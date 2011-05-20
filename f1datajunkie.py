@@ -1,8 +1,8 @@
 import timingSheetAnalysis as tsa
-import tur2011_data as data
-import json, csv
+from data import esp2011_data as data
+import json, csv, sys
 
-carData=tsa.initEnhancedHistoryDataByCar(data.history)
+race='esp_2011'
 
 def stopTimeToLapByCar(carData,lap):
 	stopData=carData
@@ -13,82 +13,77 @@ def stopTimeToLapByCar(carData,lap):
 		else: break
 	return stopTimeToLap
 
+def augmentHistoryData(carData):
+	#augment the history data
+	for carNum in carData:
+		# add in pitstop data
+		carData[carNum]['stops']=tsa.stopsAnalysis(data.stops,carNum)
+		carData[carNum]['stoppingLaps']=[]
+		for stop in carData[carNum]['stops']:
+			carData[carNum]['stoppingLaps'].append(stop['lap'])
+		print carData[carNum]['stoppingLaps']
+		print carData[carNum]['stops']
+		carData[carNum]["stopCorrectedLapTimes"]=[]
+			
+		# add in race position data
+		carData[carNum]['positions']=[]
 
-#augment the history data
-for carNum in carData:
+		for lap in data.chart:
+			if carNum in lap:
+				carData[carNum]['positions'].append(lap.index(carNum))
+		print carData[carNum]['positions']
 
-	# add in pitstop data
-	carData[carNum]['stops']=tsa.stopsAnalysis(data.stops,carNum)
-	carData[carNum]['stoppingLaps']=[]
-	for stop in carData[carNum]['stops']:
-		carData[carNum]['stoppingLaps'].append(stop['lap'])
-	print carData[carNum]['stoppingLaps']
-	print carData[carNum]['stops']
-	carData[carNum]["stopCorrectedLapTimes"]=[]
+		carData[carNum]['timeToPosInFront']=[]
+		carData[carNum]['timeToPosBehind']=[]
 	
-	# add in race position data
-	carData[carNum]['positions']=[]
+		for lap in data.chart[1:]:
+			lapCount=int(lap[0].split()[1])
+			if carNum in lap:
+				# add in time to cars in positions one ahead and one behind
+				carPos=lap.index(carNum)
+				currentElapsedTime=carData[carNum]["calcElapsedTimes"][lapCount-1]
+				if carPos==1:
+					carBehindNum=tsa.posByCarLap(data.chart,lapCount,carPos+1)
+					carBehindElapsedTime=carData[carBehindNum]["calcElapsedTimes"][lapCount-1]
+					carData[carNum]['timeToPosInFront'].append(0)
+					carData[carNum]['timeToPosBehind'].append(tsa.formatTime(carBehindElapsedTime-currentElapsedTime))
+				elif carPos==len(lap)-1:
+					carInFrontNum=tsa.posByCarLap(data.chart,lapCount,carPos-1)
+					carInFrontElapsedTime=carData[carInFrontNum]["calcElapsedTimes"][lapCount-1]
+					carData[carNum]['timeToPosInFront'].append(tsa.formatTime(currentElapsedTime-carInFrontElapsedTime))
+					carData[carNum]['timeToPosBehind'].append(0)
+				else:
+					carInFrontNum=tsa.posByCarLap(data.chart,lapCount,carPos-1)
+					carInFrontElapsedTime=carData[carInFrontNum]["calcElapsedTimes"][lapCount-1]
+					carData[carNum]['timeToPosInFront'].append(tsa.formatTime(currentElapsedTime-carInFrontElapsedTime))
+					carBehindNum=tsa.posByCarLap(data.chart,lapCount,carPos+1)
+					carBehindElapsedTime=carData[carBehindNum]["calcElapsedTimes"][lapCount-1]
+					carData[carNum]['timeToPosBehind'].append(tsa.formatTime(carBehindElapsedTime-currentElapsedTime))
 
-	for lap in data.chart:
-		if carNum in lap:
-			carData[carNum]['positions'].append(lap.index(carNum))
-	print carData[carNum]['positions']
-
-	carData[carNum]['timeToPosInFront']=[]
-	carData[carNum]['timeToPosBehind']=[]
+		print carNum,carData[carNum]['timeToPosInFront']
+		print carNum,carData[carNum]['timeToPosBehind']
 	
-	for lap in data.chart[1:]:
-		lapCount=int(lap[0].split()[1])
-		if carNum in lap:
-			# add in time to cars in positions one ahead and one behind
-			carPos=lap.index(carNum)
-			currentElapsedTime=carData[carNum]["calcElapsedTimes"][lapCount-1]
-			if carPos==1:
-				carBehindNum=tsa.posByCarLap(data.chart,lapCount,carPos+1)
-				carBehindElapsedTime=carData[carBehindNum]["calcElapsedTimes"][lapCount-1]
-				carData[carNum]['timeToPosInFront'].append(0)
-				carData[carNum]['timeToPosBehind'].append(tsa.formatTime(carBehindElapsedTime-currentElapsedTime))
-			elif carPos==len(lap)-1:
-				carInFrontNum=tsa.posByCarLap(data.chart,lapCount,carPos-1)
-				carInFrontElapsedTime=carData[carInFrontNum]["calcElapsedTimes"][lapCount-1]
-				carData[carNum]['timeToPosInFront'].append(tsa.formatTime(currentElapsedTime-carInFrontElapsedTime))
-				carData[carNum]['timeToPosBehind'].append(0)
+	
+		#experimental - is stop corrected laptime useful?
+		lapCount=1
+		offset=0
+		for lapTime in carData[carNum]["lapTimes"]:
+			carData[carNum]["stopCorrectedLapTimes"].append(tsa.formatTime(lapTime-offset))
+			if lapCount in carData[carNum]['stoppingLaps']:
+				print "stopping lap"
+				stop=carData[carNum]['stoppingLaps'].index(lapCount)
+				offset=carData[carNum]['stops'][stop]["stopTime"]
 			else:
-				carInFrontNum=tsa.posByCarLap(data.chart,lapCount,carPos-1)
-				carInFrontElapsedTime=carData[carInFrontNum]["calcElapsedTimes"][lapCount-1]
-				carData[carNum]['timeToPosInFront'].append(tsa.formatTime(currentElapsedTime-carInFrontElapsedTime))
-				carBehindNum=tsa.posByCarLap(data.chart,lapCount,carPos+1)
-				carBehindElapsedTime=carData[carBehindNum]["calcElapsedTimes"][lapCount-1]
-				carData[carNum]['timeToPosBehind'].append(tsa.formatTime(carBehindElapsedTime-currentElapsedTime))
+				offset=0
+			lapCount=lapCount+1
+		#print carData[carNum]["stopCorrectedLapTimes"]
 
-	print carNum,carData[carNum]['timeToPosInFront']
-	print carNum,carData[carNum]['timeToPosBehind']
-	
-	
-	#experimental - is stop corrected laptime useful?
-	lapCount=1
-	offset=0
-	for lapTime in carData[carNum]["lapTimes"]:
-		carData[carNum]["stopCorrectedLapTimes"].append(tsa.formatTime(lapTime-offset))
-		if lapCount in carData[carNum]['stoppingLaps']:
-			print "stopping lap"
-			stop=carData[carNum]['stoppingLaps'].index(lapCount)
-			offset=carData[carNum]['stops'][stop]["stopTime"]
-		else:
-			offset=0
-		lapCount=lapCount+1
-	#print carData[carNum]["stopCorrectedLapTimes"]
-
-for carNum in carData:
-	carData[carNum]['tyres']=data.tyres[carNum]
-
-#need to do a race stats routine	
-maxLaps=int(data.chart[-1][0].split()[1])
-
-race='tur_2011'
+	for carNum in carData:
+		carData[carNum]['tyres']=data.tyres[carNum]
+	return carData
 
 def output_battlemapAndProximity(carData):
-	f=open('../generatedFiles/'+race+'_battlemap.js','wb')
+	f=open('../generatedFiles/'+race+'battlemap.js','wb')
 	fdt=[]
 
 	f2=open('../generatedFiles/'+race+'proximity.csv','wb')
@@ -136,7 +131,7 @@ def output_elapsedTime(carData):
 		
 def output_raceHistoryChart(data,carData):
 	#race history chart
-	f=open('../generatedFiles/'+race+'demoHistory.csv','wb')
+	f=open('../generatedFiles/'+race+'History.csv','wb')
 	writer = csv.writer(f)
 	writer.writerow(["lap","car","calcElapsedTime","calcTimeToLeader","carlapAsRaceLap"])
 	winnerNum=data.history[-1][1][0]
@@ -244,13 +239,46 @@ def output_practiceAndQuali(sessiondata,sessionName):
 #-----
 
 
-
-
-output_battlemapAndProximity(carData)
-output_elapsedTime(carData)
-output_raceHistoryChart(data,carData)
-output_stintLapTimes(carData)
-output_practiceAndQuali(data.fp1times,"p1")
-output_practiceAndQuali(data.fp2times,"p2")
-output_practiceAndQuali(data.fp3times,"p3")
-output_practiceAndQuali(data.qualitimes,"quali")
+args=sys.argv
+for arg in args:
+	if arg=='race':
+		print "doing race"
+		#need to do a race stats routine	
+		maxLaps=int(data.chart[-1][0].split()[1])
+		#Need to check to see if the enhanced data file exists and if so, load that
+		#otherwise, generate the new enhanced history file
+		carData=tsa.initEnhancedHistoryDataByCar(data.history)
+		carData=augmentHistoryData(carData)
+		output_raceHistoryChart(data,carData)
+		output_stintLapTimes(carData)
+		output_battlemapAndProximity(carData)
+		output_elapsedTime(carData)
+	elif arg=='quali':
+		print "doing quali"
+		output_practiceAndQuali(data.qualitimes,"quali")
+	elif arg=="fp1":
+		print "doing fp1"
+		output_practiceAndQuali(data.fp1times,"p1")
+	elif arg=="fp2":
+		print "doing fp2"
+		output_practiceAndQuali(data.fp2times,"p2")
+	elif arg=="fp3":
+		print "doing fp3"
+		output_practiceAndQuali(data.fp3times,"p3")
+	elif arg=="practice":
+		print "doing practice"
+		output_practiceAndQuali(data.fp1times,"p1")
+		output_practiceAndQuali(data.fp2times,"p2")
+		output_practiceAndQuali(data.fp3times,"p3")
+	elif arg=="all":
+		print "doing all"
+		output_practiceAndQuali(data.fp1times,"p1")
+		output_practiceAndQuali(data.fp2times,"p2")
+		output_practiceAndQuali(data.fp3times,"p3")
+		output_practiceAndQuali(data.qualitimes,"quali")
+		carData=tsa.initEnhancedHistoryDataByCar(data.history)
+		carData=augmentHistoryData(carData)
+		output_raceHistoryChart(data,carData)
+		output_stintLapTimes(carData)
+		output_battlemapAndProximity(carData)
+		output_elapsedTime(carData)
