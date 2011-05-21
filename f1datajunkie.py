@@ -194,7 +194,7 @@ def augmentQualiData(datatimes,dataclassification):
 		if len(tmp)>8:
 			toptimes.append(tsa.getTime(tmp[8]))
 			if len(tmp)==14:
-				toptimes.append(tsa.getTime(tmp[13]))
+				toptimes.append(tsa.getTime(tmp[11]))
 		toptimes.sort()
 		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':toptimes[-1], 'name':tmp[2], 'team':tmp[3]}
 	for item in datatimes:
