@@ -180,8 +180,9 @@ def augmentPracticeQualiData(datatimes,dataclassification):
 	for item in datatimes:
 		driver=item[0]
 		ag={'times':item}
-		for att in tmpc[driver]:
-			ag[att]=tmpc[driver][att]
+		if driver in tmpc:
+			for att in tmpc[driver]:
+				ag[att]=tmpc[driver][att]
 		augmentedData[driver]=ag
 	return augmentedData
 
@@ -336,6 +337,40 @@ for arg in args:
 		output_practiceAndQuali(sessionData,"p2")
 		sessionData=augmentPracticeQualiData(data.fp3times,data.fp3classification)
 		output_practiceAndQuali(sessionData,"p3")
+		fout=open('../generatedFiles/'+race+'practice'+'laptimes.csv','wb')
+		writer = csv.writer(fout)
+		with open('../generatedFiles/'+race+"p1"+'laptimes.csv', 'rb') as f:
+			reader = csv.reader(f)
+			sw=False
+			for row in reader:
+				if sw:
+					tmp=[1]
+				else:
+					tmp=["Session"]
+					sw=True
+				for el in row:
+					tmp.append(el)
+				writer.writerow(tmp)
+		with open('../generatedFiles/'+race+"p2"+'laptimes.csv', 'rb') as f:
+			reader = csv.reader(f)
+			sw=False
+			for row in reader:
+				if sw:
+					tmp=[2]
+					for el in row:
+						tmp.append(el)
+					writer.writerow(tmp)
+				else: sw=True
+		with open('../generatedFiles/'+race+"p3"+'laptimes.csv', 'rb') as f:
+			reader = csv.reader(f)
+			sw=False
+			for row in reader:
+				if sw:
+					tmp=[3]
+					for el in row:
+						tmp.append(el)
+					writer.writerow(tmp)
+				else: sw=True
 	elif arg=="all":
 		print "doing all"
 		sessionData=augmentPracticeQualiData(data.fp1times,data.fp1classification)
