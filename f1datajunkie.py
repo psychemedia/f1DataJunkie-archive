@@ -230,12 +230,24 @@ def output_practiceAndQuali(sessiondata,sessionName):
 
 	#header=sep.join(['Name','DriverNum','Lap','Time','Elapsed'])
 	writer.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
-	writer2.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
+	writer2.writerow(['Name','DriverNum','Lap','Time','Elapsed','Stint','Fuel Corrected Laptime','Stint Length','Lap in stint'])
 	#f.write(header+'\n')
 	for driver in driverQuali:
 		lc=1
 		core=[driverQuali[driver]['driverName'],driverQuali[driver]['driverNum']]
-		for lap in driverQuali[driver]['times']:
+		stint=0
+		driverQuali[driver]['stint']={}
+		for lap in driverQuali[driver]['times'][1:]:
+			if float(lap['time']) >= float(sessiondata[driver]['fastlap']) and float(lap['time']) <= 1.5*float(sessiondata[driver]['fastlap']):
+				if stint==0:
+					stint=1
+					driverQuali[driver]['stint'][str(stint)]=[]
+				driverQuali[driver]['stint'][str(stint)].append(lap['time'])
+			else:
+				stint=stint+1
+				driverQuali[driver]['stint'][str(stint)]=[]		
+		stint=0
+		for lap in driverQuali[driver]['times'][1:]:
 			txt=[]
 			for c in core: txt.append(c)
 			txt.append(str(lc))
@@ -246,7 +258,20 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			writer.writerow(txt)
 			print driverQuali[driver]
 			if float(lap['time']) >= float(sessiondata[driver]['fastlap']) and float(lap['time']) <= 1.5*float(sessiondata[driver]['fastlap']):
+				if stint==0:
+					stint=1
+					slc=1
+				else: slc=slc+1
+				txt.append(stint)
+				stintLength=len(driverQuali[driver]['stint'][str(stint)])
+				fct=tsa.fuelCorrectedLapTime(stintLength,slc,float(lap['time']))
+				txt.append(fct)
+				txt.append(len(driverQuali[driver]['stint'][str(stint)]))
+				txt.append(slc)
 				writer2.writerow(txt)
+			else:
+				stint=stint+1
+				slc=0
 	f.close()
 
 	f=open('../generatedFiles/'+race+fname+'.js','wb')
