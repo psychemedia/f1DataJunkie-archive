@@ -23,13 +23,13 @@ You should see a common slug identifying the race:
 '''
 
 #Enter slug for race here
-race='tur'
-#chn, mal, aus
+race='esp'
+#chn, mal, aus, tur, esp
 '''
 ...and then something relevant for the rest of the filename
 '''
 #enter slug for timing sheet here
-typ='race-analysis'
+typ='qualifying-classification'
 #typ can be any of the following (if they use the same convention each race...)
 src='f1mediacentre'
 '''
@@ -229,7 +229,7 @@ def race_chart_page(page,laps):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011 FORMULA 1"):
+                if txt.startswith("<b>FORMULA 1"):
                     scraping=1
     #print laps
     return laps
@@ -379,7 +379,7 @@ def qualifying_times_page(page,pos,dpos):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011 FORMULA 1"):
+                if txt.startswith("<b>FORMULA 1"):
                     scraping=1
     return pos,dpos
 
@@ -485,9 +485,9 @@ def session1_classification():
     phase=0
     for el in list(page):
         if el.tag == "text":
-            txt=gettext_with_bi_tags(el)
+            #txt=gettext_with_bi_tags(el)
             if scraping:
-                #print el.attrib,gettext_with_bi_tags(el)
+                print el.attrib,gettext_with_bi_tags(el)
                 txt=tidyup(txt)
                 if txt!='Timekeeper:':
                     if cnt<cntz[phase]:
@@ -509,6 +509,7 @@ def session1_classification():
                 txt=txt.strip()
                 if txt.startswith("<b>TIME OF"):
                     scraping=1
+
     #Here is the data
     for pos in results:
         print pos
@@ -653,6 +654,7 @@ def qualifying_trap():
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
+                print txt
                 if txt.startswith("<b>TIME OF"):
                     scraping=1
     #Here's the data
@@ -668,41 +670,56 @@ def qualifying_classification():
     cnt=0
     pos=1
     results=[]
-    cntz=[12,9,6]
+    cntz=[13,10,6]
     posz=[10,17,24]
     for el in list(page):
         if el.tag == "text":
             if scraping:
-                print el.attrib,gettext_with_bi_tags(el)
+                #print el.attrib,gettext_with_bi_tags(el)
                 txt=gettext_with_bi_tags(el)
+                txt=tidyup(txt)
                 if session<4:
                     if cnt<cntz[session-1]:
                         if cnt==0:
                             results.append([])
                             txt=txt.strip()
-                            txt=txt.split(" ")
+                            txt=txt.split()
+                            print txt
                             for j in txt:
                                 results[pos-1].append(j)
                                 cnt=cnt+1
                         else:
-                            results[pos-1].append(txt)
-                            cnt=cnt+1
+                            if len(results[pos-1])>4:
+                                txt=txt.split()
+                                #print txt
+                                for j in txt:
+                                    results[pos-1].append(j)
+                                    cnt=cnt+1
+                                    if j=='DNS':
+                                        cnt=cnt+1
+                            else:
+                                results[pos-1].append(txt)
+                                cnt=cnt+1
                     else:
                         if pos==posz[session-1]:
                             session=session+1
-                            #print "session",session
+                            print "session",session
                         cnt=0
-                        results[pos-1].append(txt)
-                        #print pos,results[pos-1]
+                        txt=txt.split()
+                        for j in txt:
+                            results[pos-1].append(j)
+                        print txt,pos,results[pos-1]
                         pos=pos+1
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011"):
+                if txt.startswith("<b>FORMULA 1"):
                     scraping=1
     #Here's the data
     for result in results:
-        print result
+        print 'result',result
+    del results[-1]
+    print results
 
 def race_classification():
     #under development
@@ -775,4 +792,3 @@ elif typ=="race-chart":
 # in the way that the information is presented in them in terms of the top left bottom right 
 # pixel locations.  It's real work, but you can use the position visualizer here:
 #    http://scraperwikiviews.com/run/pdf-to-html-preview-1/
-
