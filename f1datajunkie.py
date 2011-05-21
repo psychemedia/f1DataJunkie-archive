@@ -172,22 +172,45 @@ def startTimeInSeconds(clockTime):
   t=clockTime.split(':')
   return 3600*int(t[0])+60*int(t[1])+int(t[2])
 
+def augmentPracticeQualiData(datatimes,dataclassification):
+	augmentedData={}
+	tmpc={}
+	for tmp in dataclassification:
+		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':tsa.getTime(tmp[5]), 'name':tmp[2], 'team':tmp[4],'nationality':tmp[3]}
+	for item in datatimes:
+		driver=item[0]
+		ag={'times':item}
+		for att in tmpc[driver]:
+			ag[att]=tmpc[driver][att]
+		augmentedData[driver]=ag
+	return augmentedData
+
 def output_practiceAndQuali(sessiondata,sessionName):
 	driverQuali={}
 	sectors={}
 	sep=','
 	
 	fname=sessionName
-	timing=sessiondata
+	#timing=sessiondata
 	f=open('../generatedFiles/'+race+fname+'.csv','wb')
 	writer = csv.writer(f)
+	
+	f2=open('../generatedFiles/'+race+fname+'laptimes.csv','wb')
+	writer2 = csv.writer(f2)
+	
+	
 	earlyStart='99:99:99'
-	for driver in timing:
+	for dn in sessiondata:
+		driver=sessiondata[dn]['times']
 		driverNum= str(driver[0])
+		if driverNum!=dn:
+			print 'Augmentation mismatch',driverNum,dn
+			sys.exit(0)
 		if len(driver)>2:
 			if earlyStart>driver[3]: earlyStart=driver[3]
 	earlyStartTime=startTimeInSeconds(earlyStart)
-	for driver in timing:
+	for dn in sessiondata:
+		driver=sessiondata[dn]['times']
 		driverNum= str(driver[0])
 		if len(driver)>2:
 			clockTime=driver[3]
@@ -207,6 +230,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 
 	#header=sep.join(['Name','DriverNum','Lap','Time','Elapsed'])
 	writer.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
+	writer2.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
 	#f.write(header+'\n')
 	for driver in driverQuali:
 		lc=1
@@ -220,21 +244,31 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			lc=lc+1
 			#f.write(sep.join(txt)+'\n')
 			writer.writerow(txt)
+			print driverQuali[driver]
+			if float(lap['time']) >= float(sessiondata[driver]['fastlap']) and float(lap['time']) <= 1.5*float(sessiondata[driver]['fastlap']):
+				writer2.writerow(txt)
 	f.close()
 
 	f=open('../generatedFiles/'+race+fname+'.js','wb')
 	#txt='var data=['
 	txt=[]
+	bigtxt=[]
 	for driver in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 		#txt=txt+'['
 		txt.append([])
+		bigtxt.append({})
+		bigtxt[-1]['times']=[]
 		for lap in driverQuali[driver]['times']:
 			txt[-1].append(float(lap['time']))
 			#txt=txt+lap['time']+','
+			bigtxt[-1]['times'].append(float(lap['time']))
+		for att in sessiondata[driver]:
+			if att!='times': bigtxt[-1][att]=sessiondata[driver][att]
 		#txt=txt.rstrip(',')+'], '
 	#txt=txt.rstrip(',')+'];'
-	print txt
-	f.write('var data=['+','.join(map(str, txt))+'];')
+	print txt,bigtxt
+	
+	f.write('var data=['+','.join(map(str, bigtxt))+'];')
 	f.close()
 #-----
 
@@ -255,27 +289,38 @@ for arg in args:
 		output_elapsedTime(carData)
 	elif arg=='quali':
 		print "doing quali"
-		output_practiceAndQuali(data.qualitimes,"quali")
+		sessionData=augmentPracticeQualiData(data.qualitimes,data.qualiclassification)
+		output_practiceAndQuali(sessionData,"quali")
 	elif arg=="fp1":
 		print "doing fp1"
-		output_practiceAndQuali(data.fp1times,"p1")
+		sessionData=augmentPracticeQualiData(data.fp1times,data.fp1classification)
+		output_practiceAndQuali(sessionData,"p1")
 	elif arg=="fp2":
 		print "doing fp2"
-		output_practiceAndQuali(data.fp2times,"p2")
+		sessionData=augmentPracticeQualiData(data.fp2times,data.fp2classification)
+		output_practiceAndQuali(sessionData,"p2")
 	elif arg=="fp3":
 		print "doing fp3"
-		output_practiceAndQuali(data.fp3times,"p3")
+		sessionData=augmentPracticeQualiData(data.fp3times,data.fp3classification)
+		output_practiceAndQuali(sessionData,"p3")
 	elif arg=="practice":
 		print "doing practice"
-		output_practiceAndQuali(data.fp1times,"p1")
-		output_practiceAndQuali(data.fp2times,"p2")
-		output_practiceAndQuali(data.fp3times,"p3")
+		sessionData=augmentPracticeQualiData(data.fp1times,data.fp1classification)
+		output_practiceAndQuali(sessionData,"p1")
+		sessionData=augmentPracticeQualiData(data.fp2times,data.fp2classification)
+		output_practiceAndQuali(sessionData,"p2")
+		sessionData=augmentPracticeQualiData(data.fp3times,data.fp3classification)
+		output_practiceAndQuali(sessionData,"p3")
 	elif arg=="all":
 		print "doing all"
-		output_practiceAndQuali(data.fp1times,"p1")
-		output_practiceAndQuali(data.fp2times,"p2")
-		output_practiceAndQuali(data.fp3times,"p3")
-		output_practiceAndQuali(data.qualitimes,"quali")
+		sessionData=augmentPracticeQualiData(data.fp1times,data.fp1classification)
+		output_practiceAndQuali(sessionData,"p1")
+		sessionData=augmentPracticeQualiData(data.fp2times,data.fp2classification)
+		output_practiceAndQuali(sessionData,"p2")
+		sessionData=augmentPracticeQualiData(data.fp3times,data.fp3classification)
+		output_practiceAndQuali(sessionData,"p3")
+		sessionData=augmentPracticeQualiData(data.qualitimes,data.qualiclassification)
+		output_practiceAndQuali(sessionData,"quali")
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
 		output_raceHistoryChart(data,carData)
