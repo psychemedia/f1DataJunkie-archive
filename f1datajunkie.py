@@ -164,7 +164,7 @@ def output_raceHistoryChart(data,carData):
 def output_stintLapTimes(carData):
 	f=open('../generatedFiles/'+race+'stintLapTimes.csv','wb')
 	writer = csv.writer(f)
-	writer.writerow(["driver","stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader","calcGapToLeader"])
+	writer.writerow(["driver","stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader","calcGapToLeader","lapsBehind"])
 	for carNum in carData:
 		#prevLapTime=0
 		stint=1
@@ -176,12 +176,12 @@ def output_stintLapTimes(carData):
 			
 			#todo - stint has now been added to augment, so can refer to it directly (test first..)
 			if lap not in carData[carNum]['stoppingLaps']:
-				rows.append([carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap]])
+				rows.append([carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap]])
 			else:
 				writer.writerows(rows)
 				stint=stint+1
 				print "new stint", stint,lap+1,carNum
-				rows=[[carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap]]]
+				rows=[[carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap]]]
 			#prevLapTime=carData[carNum]["lapTimes"][lap]
 			writer.writerows(rows)
 
