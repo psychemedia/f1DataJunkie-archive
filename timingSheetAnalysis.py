@@ -152,8 +152,9 @@ def getTimeToTrackPos(historyData,cars):
 				carsCounted=carsCounted+1
 			elif lt[2]!="PIT":
 				t=t+getTime(lt[1])
-				carsCounted=carsCounted+1			
-			#Not - the above time in seconds needs to be an enhamcement on original data
+				carsCounted=carsCounted+1		
+			#Note - the above time in seconds needs to be an enhamcement on original data
+			cars[lt[0]]["posOnTrackByRaceLap"][raceLapStr]=carsCounted
 		lapTimeEstimate=t/carsCounted
 		print "Laptime estimate",lapTimeEstimate, "Sample size:",carsCounted
 		firstPass=(raceLapCountIndex==0)
@@ -201,10 +202,11 @@ def getTimeToTrackPos(historyData,cars):
 			if cars[raceBackmarkerNum]["timeToTrackCarBehind"][-1]<0:
 				print "oops:",raceLapStr,raceLeaderNum,raceLapCountIndex,cars[raceLeaderNum]["calcElapsedTimes"][raceLapCountIndex+1],raceBackmarkerNum,raceBackmarkerLapIndex,cars[backCarNum]["calcElapsedTimes"][raceBackmarkerLapIndex]
 		cars[raceLeaderNum]["timeToTrackCarInFront"].append(formatTime(cars[raceLeaderNum]["calcElapsedTimes"][raceLeaderLapIndex]+lapTimeEstimate-cars[raceBackmarkerNum]["calcElapsedTimes"][raceBackmarkerLapIndex]))
+
 	return cars
 
 def fuelCorrectedLapTime(totalLaps,lap,lapTime):
-	fuelConsumption=2.7
+	fuelConsumption=2.4
 	fuelPenalty=0.03
 	fuelLapsWeightEffect=fuelConsumption * fuelPenalty
 	fuelCorrectedLapTime=lapTime-(totalLaps-lap)*fuelLapsWeightEffect
@@ -226,7 +228,7 @@ def initEnhancedHistoryDataByCar(data,enhancedData={}):
 		lapTime=getTime(carData[1])
 		tmpLapCounter[carNum]=tmpLapCounter[carNum]+1
 		if carNum not in cars:
-			cars[carNum]={"racelapAsCarlap":{raceLapStr:[1]},"racelapTimes":{str(raceLapCount):lapTime},"lapTimes":[lapTime],"gapToLeader":[0],"calcElapsedTimes":[lapTime],"calcTimeToLeader":[0],"timeToTrackCarInFront":[],"timeToTrackCarBehind":[],"lapTimeDelta":[0],"fuelCorrectedLapTimes":[fuelCorrectedLapTime(totalLaps,1,lapTime)],"carlapAsRacelap":[1]}
+			cars[carNum]={"racelapAsCarlap":{raceLapStr:[1]},"racelapTimes":{str(raceLapCount):lapTime},"lapTimes":[lapTime],"gapToLeader":[0],"calcElapsedTimes":[lapTime],"calcTimeToLeader":[0],"timeToTrackCarInFront":[],"timeToTrackCarBehind":[],"lapTimeDelta":[0],"fuelCorrectedLapTimes":[fuelCorrectedLapTime(totalLaps,1,lapTime)],"carlapAsRacelap":[1],"posOnTrackByRaceLap":{raceLapStr:[]}}
 		else:
 			cars[carNum]["racelapTimes"][str(raceLapCount)]=lapTime
 			cars[carNum]["lapTimeDelta"].append(formatTime(lapTime-cars[carNum]["lapTimes"][-1]))
@@ -247,7 +249,7 @@ def initEnhancedHistoryDataByCar(data,enhancedData={}):
 				testCount+=1
 				print raceLapCount,carData
 			if carNum not in cars:
-				cars[carNum]={"racelapAsCarlap":{raceLapStr:[1]},"racelapTimes":{str(raceLapCount):lapTime},"lapTimes":[lapTime],"gapToLeader":[gapToLeader],"calcElapsedTimes":[lapTime],"calcTimeToLeader":[formatTime(lapTime-leaderElapsedTime)],"timeToTrackCarInFront":[],"timeToTrackCarBehind":[],"lapTimeDelta":[0],"fuelCorrectedLapTimes":[fuelCorrectedLapTime(totalLaps,1,lapTime)],"carlapAsRacelap":[1]}	
+				cars[carNum]={"racelapAsCarlap":{raceLapStr:[1]},"racelapTimes":{str(raceLapCount):lapTime},"lapTimes":[lapTime],"gapToLeader":[gapToLeader],"calcElapsedTimes":[lapTime],"calcTimeToLeader":[formatTime(lapTime-leaderElapsedTime)],"timeToTrackCarInFront":[],"timeToTrackCarBehind":[],"lapTimeDelta":[0],"fuelCorrectedLapTimes":[fuelCorrectedLapTime(totalLaps,1,lapTime)],"carlapAsRacelap":[1],"posOnTrackByRaceLap":{raceLapStr:[]}}	
 			else:
 				cars[carNum]["racelapTimes"][str(raceLapCount)]=lapTime
 				cars[carNum]["lapTimeDelta"].append(formatTime(lapTime-cars[carNum]["lapTimes"][-1]))
