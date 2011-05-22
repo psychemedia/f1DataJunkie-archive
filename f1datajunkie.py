@@ -27,15 +27,17 @@ def augmentHistoryData(carData):
 			
 		# add in race position data
 		carData[carNum]['positions']=[]
-
+		carData[carNum]['posByCarLap']=[]
 		for lap in data.chart:
 			if carNum in lap:
 				carData[carNum]['positions'].append(lap.index(carNum))
+				#positions is position by leaderlap
+				#todo- posByCarLap
 		print carData[carNum]['positions']
 
 		carData[carNum]['timeToPosInFront']=[]
 		carData[carNum]['timeToPosBehind']=[]
-	
+		carData[carNum]['stintByCarLap']=[1]
 		for lap in data.chart[1:]:
 			lapCount=int(lap[0].split()[1])
 			if carNum in lap:
@@ -59,7 +61,11 @@ def augmentHistoryData(carData):
 					carBehindNum=tsa.posByCarLap(data.chart,lapCount,carPos+1)
 					carBehindElapsedTime=carData[carBehindNum]["calcElapsedTimes"][lapCount-1]
 					carData[carNum]['timeToPosBehind'].append(tsa.formatTime(carBehindElapsedTime-currentElapsedTime))
-
+				#add stint
+				stint=1
+				if lap in carData[carNum]['stoppingLaps']: stint=stint+1
+				carData[carNum]['stintByCarLap'].append(stint)
+				
 		print carNum,carData[carNum]['timeToPosInFront']
 		print carNum,carData[carNum]['timeToPosBehind']
 	
@@ -79,7 +85,8 @@ def augmentHistoryData(carData):
 		#print carData[carNum]["stopCorrectedLapTimes"]
 
 	for carNum in carData:
-		carData[carNum]['tyres']=data.tyres[carNum]
+		if carNum in data.tyres: carData[carNum]['tyres']=data.tyres[carNum]
+		else: carData[carNum]['tyres']=[]
 	return carData
 
 def output_battlemapAndProximity(carData):
@@ -147,26 +154,53 @@ def output_raceHistoryChart(data,carData):
 def output_stintLapTimes(carData):
 	f=open('../generatedFiles/'+race+'stintLapTimes.csv','wb')
 	writer = csv.writer(f)
-	writer.writerow(["stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader"])
+	writer.writerow(["driver","stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader"])
 	for carNum in carData:
-		prevLapTime=0
+		#prevLapTime=0
 		stint=1
 		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
 			rows=[]
 			#this is a huge kludge; identify stint by stops
 			#print carData[carNum]["lapTimes"][lap], prevLapTime,prevLapTime-12.0
 			#if carData[carNum]["lapTimes"][lap] > (prevLapTime-12.0):
+			
+			#todo - stint has now been added to augment, so can refer to it directly (test first..)
 			if lap not in carData[carNum]['stoppingLaps']:
-				rows.append([stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap]])
+				rows.append([carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap]])
 			else:
 				writer.writerows(rows)
 				stint=stint+1
 				print "new stint", stint,lap+1,carNum
-				rows=[[stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap]]]
-			prevLapTime=carData[carNum]["lapTimes"][lap]
+				rows=[[carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap]]]
+			#prevLapTime=carData[carNum]["lapTimes"][lap]
 			writer.writerows(rows)
 
-
+def output_motionChart(carData,griddata):
+	#under development - i've got a bit confused by the logic at the moment...
+	f=open('../generatedFiles/'+race+'motionChart.csv','wb')
+	writer = csv.writer(f)
+	writer.writerow(["driver","scaleElapsedTime","elapsedTime","pos","lap","trackPos","pitHistory", "timeToLead","timeToFwd","timeToBack","currTrackPos","gridByDriver","lapTime","stint"])
+	grid=[]
+	pos=1
+	for place in griddata[1:]:
+		pos=pos+1
+		row=[place,1900,0,pos,0,pos,0,0,0,0,pos,pos,0,1]
+		grid.append(row)
+	writer.writerows(grid)
+	for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
+		lapdata=[]
+		for lap in range(1,maxLaps+1):
+			if carNum in carData and lap<=len(carData[carNum]["lapTimes"]):
+				cdn=carData[carNum]
+				#in cas we need to use the leader lapcount
+				llap=cdn["carlapAsRacelap"][lap]
+				if len(cdn['timeToTrackCarBehind'])>=lap:ttb=cdn['timeToTrackCarBehind'][lap-1]
+				else:ttb=0
+				if str(lap) in cdn["posOnTrackByRaceLap"]:lapp=cdn["posOnTrackByRaceLap"][str(lap)]
+				else: lapp=''
+				lapdata=[carNum,1900+cdn["calcElapsedTimes"][llap],cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["stops"][lap-1],cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn,cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]
+		writer.writerow(lapdata)
+	
 #output and quali outputs
 def startTimeInSeconds(clockTime):
   t=clockTime.split(':')
@@ -334,6 +368,7 @@ for arg in args:
 		output_stintLapTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_elapsedTime(carData)
+		#output_motionChart(carData,data.chart[0])
 	elif arg=='quali':
 		print "doing quali"
 		sessionData=augmentQualiData(data.qualitimes,data.qualiclassification)
@@ -408,3 +443,4 @@ for arg in args:
 		output_stintLapTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_elapsedTime(carData)
+		#output_motionChart(carData,data.chart[0])
