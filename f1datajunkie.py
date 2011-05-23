@@ -102,13 +102,17 @@ def augmentHistoryData(carData):
 		if carNum in tyres:
 			lasttyres=tyres[carNum]['0']
 		else:lasttyres=''
+		lasttyrestmp=lasttyres
 		carData[carNum]["tyresByLap"]=[lasttyres]
 		for lapTime in carData[carNum]["lapTimes"]:
 			carData[carNum]["stopCorrectedLapTimes"].append(tsa.formatTime(lapTime-offset))
 			if carNum in tyres:
 				if str(lapCount) in tyres[carNum]:
+					if tyres[carNum][str(lapCount)].startswith('DT'):
+						lasttyrestmp=lasttyres
 					lasttyres=tyres[carNum][str(lapCount)]
 			carData[carNum]["tyresByLap"].append(lasttyres)
+			lasttyres=lasttyrestmp
 			if lapCount in carData[carNum]['stoppingLaps']:
 				print "stopping lap"
 				stop=carData[carNum]['stoppingLaps'].index(lapCount)
