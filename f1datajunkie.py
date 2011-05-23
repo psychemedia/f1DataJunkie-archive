@@ -83,14 +83,30 @@ def augmentHistoryData(carData):
 		#experimental - is stop corrected laptime useful?
 		lapCount=1
 		offset=0
+		carData[carNum]["stopCount"]=[]
+		carData[carNum]["stopTime"]=[]
+		carData[carNum]["stoppingLap"]=[]
+		carData[carNum]["totalStopTime"]=[]
 		for lapTime in carData[carNum]["lapTimes"]:
 			carData[carNum]["stopCorrectedLapTimes"].append(tsa.formatTime(lapTime-offset))
 			if lapCount in carData[carNum]['stoppingLaps']:
 				print "stopping lap"
 				stop=carData[carNum]['stoppingLaps'].index(lapCount)
 				offset=carData[carNum]['stops'][stop]["stopTime"]
+				carData[carNum]["stopCount"].append(len(carData[carNum]['stops']))
+				carData[carNum]["stopTime"].append(carData[carNum]['stops'][stop]["stopTime"])
+				carData[carNum]["stoppingLap"].append(1)
+				carData[carNum]["totalStopTime"].append(carData[carNum]['stops'][stop]["totalStopTime"])
 			else:
 				offset=0
+				if len(carData[carNum]["stopCount"])>0:
+					carData[carNum]["stopCount"].append(carData[carNum]["stopCount"][-1])
+					carData[carNum]["totalStopTime"].append(carData[carNum]["totalStopTime"][-1])
+				else:
+					carData[carNum]["stopCount"].append(0)
+					carData[carNum]["totalStopTime"].append(0)
+				carData[carNum]["stopTime"].append(0)
+				carData[carNum]["stoppingLap"].append(0)
 			lapCount=lapCount+1
 		#print carData[carNum]["stopCorrectedLapTimes"]
 
@@ -161,10 +177,10 @@ def output_raceHistoryChart(data,carData):
 			#writer.writerow([lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],f1dj.formatTime((tenthPlacedAvLapTime*(lap+1))-carData[carNum]["calcElapsedTimes"][lap])])
 			writer.writerow([lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap]])
 
-def output_stintLapTimes(carData):
-	f=open('../generatedFiles/'+race+'stintLapTimes.csv','wb')
+def output_comprehensiveTimes(carData):
+	f=open('../generatedFiles/'+race+'comprehensiveLapTimes.csv','wb')
 	writer = csv.writer(f)
-	writer.writerow(["driver","stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader","calcGapToLeader","lapsBehind"])
+	writer.writerow(["driver","stint","lap","car","lapTime","fuelCorrectedLaptime","calcElapsedTime","calcTimeToLeader","calcGapToLeader","lapsBehind","carLapAsRaceLap","stopCount","stopTime","stoppingLap","totalStopTime"])
 	for carNum in carData:
 		#prevLapTime=0
 		stint=1
@@ -176,12 +192,12 @@ def output_stintLapTimes(carData):
 			
 			#todo - stint has now been added to augment, so can refer to it directly (test first..)
 			if lap not in carData[carNum]['stoppingLaps']:
-				rows.append([carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap]])
+				rows.append([carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["stopCount"][lap],carData[carNum]["stopTime"][lap],carData[carNum]["stoppingLap"][lap],carData[carNum]["totalStopTime"][lap]])
 			else:
 				writer.writerows(rows)
 				stint=stint+1
 				print "new stint", stint,lap+1,carNum
-				rows=[[carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap]]]
+				rows=[[carData[carNum]['driverName'],stint,lap+1,carNum,carData[carNum]["lapTimes"][lap],carData[carNum]["fuelCorrectedLapTimes"][lap],carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["calcGapToLeader"][lap],carData[carNum]["lapsBehind"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["stopCount"][lap],carData[carNum]["stopTime"][lap],carData[carNum]["stoppingLap"][lap],carData[carNum]["totalStopTime"][lap]]]
 			#prevLapTime=carData[carNum]["lapTimes"][lap]
 			writer.writerows(rows)
 
@@ -375,7 +391,7 @@ for arg in args:
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
 		output_raceHistoryChart(data,carData)
-		output_stintLapTimes(carData)
+		output_comprehensiveTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_elapsedTime(carData)
 		#output_motionChart(carData,data.chart[0])
@@ -452,5 +468,5 @@ for arg in args:
 		output_raceHistoryChart(data,carData)
 		output_stintLapTimes(carData)
 		output_battlemapAndProximity(carData)
-		output_elapsedTime(carData)
+		output_comprehensiveTimes(carData)
 		#output_motionChart(carData,data.chart[0])
