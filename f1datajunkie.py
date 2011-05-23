@@ -117,7 +117,9 @@ def augmentHistoryData(carData):
 				print "stopping lap"
 				stop=carData[carNum]['stoppingLaps'].index(lapCount)
 				offset=carData[carNum]['stops'][stop]["stopTime"]
-				carData[carNum]["stopCount"].append(len(carData[carNum]['stops']))
+				if len(carData[carNum]["stopCount"])>0:
+					carData[carNum]["stopCount"].append(carData[carNum]["stopCount"][-1]+1)
+				else: carData[carNum]["stopCount"].append(1)
 				carData[carNum]["stopTime"].append(carData[carNum]['stops'][stop]["stopTime"])
 				carData[carNum]["stoppingLap"].append(1)
 				carData[carNum]["totalStopTime"].append(carData[carNum]['stops'][stop]["totalStopTime"])
