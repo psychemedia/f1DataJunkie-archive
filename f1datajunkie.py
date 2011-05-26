@@ -227,7 +227,8 @@ def output_comprehensiveTimes(carData):
 			#prevLapTime=carData[carNum]["lapTimes"][lap]
 			writer.writerows(rows)
 
-def output_motionChart(carData,griddata):
+def output_motionChart(carData,data,raceStats):
+	griddata=data.chart[0]
 	#under development - i've got a bit confused by the logic at the moment...
 	f=open('../generatedFiles/'+race+'motionChart.csv','wb')
 	writer = csv.writer(f)
@@ -241,7 +242,7 @@ def output_motionChart(carData,griddata):
 	writer.writerows(grid)
 	for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 		lapdata=[]
-		for lap in range(1,maxLaps+1):
+		for lap in range(1,raceStats['maxlaps']+1):
 			if carNum in carData and lap<=len(carData[carNum]["lapTimes"]):
 				cdn=carData[carNum]
 				#in cas we need to use the leader lapcount
@@ -405,13 +406,18 @@ def output_practiceAndQuali(sessiondata,sessionName):
 	f.close()
 #-----
 
+def setRaceStats(data,carData,raceStats={}):
+	raceStats['maxlaps']=int(data.chart[-1][0].split()[1])
+	return raceStats
+#-----
 
 args=sys.argv
 for arg in args:
 	if arg=='race':
 		print "doing race"
 		#need to do a race stats routine	
-		maxLaps=int(data.chart[-1][0].split()[1])
+		#maxLaps=raceStats['maxlaps']
+		
 		#Need to check to see if the enhanced data file exists and if so, load that
 		#otherwise, generate the new enhanced history file
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
@@ -491,8 +497,15 @@ for arg in args:
 		output_practiceAndQuali(sessionData,"quali")
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
+		raceStats=setRaceStats(data,carData)
 		output_raceHistoryChart(data,carData)
 		output_stintLapTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_comprehensiveTimes(carData)
-		#output_motionChart(carData,data.chart[0])
+		#output_motionChart(carData,data,raceStats)
+	elif arg=="test":
+		print "doing test"
+		carData=tsa.initEnhancedHistoryDataByCar(data.history)
+		carData=augmentHistoryData(carData)
+		raceStats=setRaceStats(data,carData)
+		output_motionChart(carData,data,raceStats)
