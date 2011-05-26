@@ -1,8 +1,8 @@
 import timingSheetAnalysis as tsa
-from data import esp2011_data as data
+from data import mco2011_data as data
 import json, csv, sys
 
-race='esp_2011'
+race='mco_2011'
 
 def stopTimeToLapByCar(carData,lap):
 	stopData=carData
@@ -242,16 +242,21 @@ def output_motionChart(carData,data,raceStats):
 	writer.writerows(grid)
 	for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 		lapdata=[]
-		for lap in range(1,raceStats['maxlaps']+1):
+		for lap in range(0,raceStats['maxlaps']):
 			if carNum in carData and lap<=len(carData[carNum]["lapTimes"]):
 				cdn=carData[carNum]
 				#in cas we need to use the leader lapcount
-				llap=cdn["carlapAsRacelap"][lap]
+				llap=int(cdn["carlapAsRacelap"][lap])-1
+				print llap,carNum,len(cdn["calcElapsedTimes"])
 				if len(cdn['timeToTrackCarBehind'])>=lap:ttb=cdn['timeToTrackCarBehind'][lap-1]
 				else:ttb=0
 				if str(lap) in cdn["posOnTrackByRaceLap"]:lapp=cdn["posOnTrackByRaceLap"][str(lap)]
 				else: lapp=''
-				lapdata=[carNum,1900+cdn["calcElapsedTimes"][llap],cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["stops"][lap-1],cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn,cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]
+				#lapdata=[carNum,1900+cdn["calcElapsedTimes"][llap],cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["stops"][lap-1],cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn,cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]
+				
+				print len(cdn["calcElapsedTimes"]),lap,int(llap) 
+				if len(cdn["calcElapsedTimes"])>int(llap):
+					lapdata=[carNum,1900+cdn["calcElapsedTimes"][llap]]#,cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["stops"][lap-1],cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn,cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]
 		writer.writerow(lapdata)
 	
 #output and quali outputs
@@ -263,13 +268,14 @@ def augmentPracticeData(datatimes,dataclassification):
 	augmentedData={}
 	tmpc={}
 	for tmp in dataclassification:
-		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':tsa.getTime(tmp[5]), 'name':tmp[2], 'team':tmp[4],'nationality':tmp[3]}
+		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':tsa.getTime(tmp[5]), 'name':tmp[2], 'team':tmp[4],'nationality':tmp[3],'driverNum':tmp[1]}
 	for item in datatimes:
 		driver=item[0]
 		ag={'times':item}
 		if driver in tmpc:
 			for att in tmpc[driver]:
 				ag[att]=tmpc[driver][att]
+		else: ag={'name':item[1],'times':[],'driverNum':driver}
 		augmentedData[driver]=ag
 	return augmentedData
 
@@ -301,17 +307,13 @@ def output_practiceAndQuali(sessiondata,sessionName):
 	
 	fname=sessionName
 	#timing=sessiondata
-	f=open('../generatedFiles/'+race+fname+'.csv','wb')
-	writer = csv.writer(f)
-	
-	f2=open('../generatedFiles/'+race+fname+'laptimes.csv','wb')
-	writer2 = csv.writer(f2)
-	
-	
+	#f=open('../generatedFiles/'+race+fname+'.csv','wb')
+	#writer = csv.writer(f)
+		
 	earlyStart='99:99:99'
 	for dn in sessiondata:
 		driver=sessiondata[dn]['times']
-		driverNum= str(driver[0])
+		driverNum= sessiondata[dn]['driverNum']#str(driver[0])
 		if driverNum!=dn:
 			print 'Augmentation mismatch',driverNum,dn
 			sys.exit(0)
@@ -320,25 +322,29 @@ def output_practiceAndQuali(sessiondata,sessionName):
 	earlyStartTime=startTimeInSeconds(earlyStart)
 	for dn in sessiondata:
 		driver=sessiondata[dn]['times']
-		driverNum= str(driver[0])
+		driverNum= sessiondata[dn]['driverNum']#str(driver[0])
 		if len(driver)>2:
 			clockTime=driver[3]
 		else:
 			clockTime='0:0:0'
-		driverQuali[driverNum]={'times':[],'driverName':driver[1],'driverNum':driverNum, 'startTime':'','clockStartTime':clockTime}
+		driverQuali[driverNum]={'times':[],'driverName':sessionData[dn]['name'],'driverNum':driverNum, 'startTime':'','clockStartTime':clockTime}
 		dsTime=startTimeInSeconds(driverQuali[driverNum]['clockStartTime'])
 		driverQuali[driverNum]['startTime']= "%.1f" % (dsTime-earlyStartTime)
-		driverQuali[driverNum]['times'].append({'time':driverQuali[driverNum]['startTime'],'elapsed':driverQuali[driverNum]['startTime']})
-		for pair in tsa.pairs(driver[4:]):
-			t=pair[1].split(':')
-			tm=60*int(t[0])+float(t[1])
-			timing={'time':"%.3f" % tm, 'elapsed':"%.3f" %( float(driverQuali[driverNum]['times'][-1]['elapsed'])+tm)}
-			driverQuali[driverNum]['times'].append(timing)
+		if 'fastlap' in sessiondata[dn]:
+			driverQuali[driverNum]['times'].append({'time':driverQuali[driverNum]['startTime'],'elapsed':driverQuali[driverNum]['startTime']})
+			for pair in tsa.pairs(driver[4:]):
+				t=pair[1].split(':')
+				tm=60*int(t[0])+float(t[1])
+				timing={'time':"%.3f" % tm, 'elapsed':"%.3f" %( float(driverQuali[driverNum]['times'][-1]['elapsed'])+tm)}
+				driverQuali[driverNum]['times'].append(timing)
 
 	print driverQuali
 
+	f2=open('../generatedFiles/'+race+fname+'laptimes.csv','wb')
+	writer2 = csv.writer(f2)
+
 	#header=sep.join(['Name','DriverNum','Lap','Time','Elapsed'])
-	writer.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
+	#writer.writerow(['Name','DriverNum','Lap','Time','Elapsed'])
 	writer2.writerow(['Name','DriverNum','Lap','Time','Elapsed','Stint','Fuel Corrected Laptime','Stint Length','Lap in stint'])
 	#f.write(header+'\n')
 	for driver in driverQuali:
@@ -364,7 +370,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			txt.append(lap['elapsed'])
 			lc=lc+1
 			#f.write(sep.join(txt)+'\n')
-			writer.writerow(txt)
+			#writer.writerow(txt)
 			print driverQuali[driver]
 			if float(lap['time']) >= float(sessiondata[driver]['fastlap']) and float(lap['time']) <= 1.5*float(sessiondata[driver]['fastlap']):
 				if stint==0:
@@ -381,7 +387,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			else:
 				stint=stint+1
 				slc=0
-	f.close()
+	f2.close()
 
 	f=open('../generatedFiles/'+race+fname+'.js','wb')
 	#txt='var data=['
