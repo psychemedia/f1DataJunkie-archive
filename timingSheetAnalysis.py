@@ -1,4 +1,4 @@
-
+from data import mco2011_data as data
 
 #-----------UTILITY FUNCTIONS---------------
 # Return data tuples from a list
@@ -206,8 +206,8 @@ def getTimeToTrackPos(historyData,cars):
 	return cars
 
 def fuelCorrectedLapTime(totalLaps,lap,lapTime):
-	fuelConsumption=2.4
-	fuelPenalty=0.03
+	fuelConsumption=data.fuel['consumption']
+	fuelPenalty=data.fuel['penalty']
 	fuelLapsWeightEffect=fuelConsumption * fuelPenalty
 	fuelCorrectedLapTime=lapTime-(totalLaps-lap)*fuelLapsWeightEffect
 	#print "Fuel weight penalty time correction:",lapTime,fuelCorrectedLapTime
