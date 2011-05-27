@@ -112,7 +112,7 @@ def augmentHistoryData(carData):
 						lasttyrestmp=lasttyres
 					lasttyres=tyres[carNum][str(lapCount)]
 			carData[carNum]["tyresByLap"].append(lasttyres)
-			lasttyres=lasttyrestmp
+			#lasttyres=lasttyrestmp
 			if lapCount in carData[carNum]['stoppingLaps']:
 				print "stopping lap"
 				stop=carData[carNum]['stoppingLaps'].index(lapCount)
@@ -147,12 +147,12 @@ def output_battlemapAndProximity(carData):
 
 	f2=open('../generatedFiles/'+race+'proximity.csv','wb')
 	writer = csv.writer(f2)
-	writer.writerow(["lap","car","pos","timeToPosInFront","timeToPosBehind","timeToTrackInFront","timeToTrackBehind","pitstop"])
+	writer.writerow(["lap","car","pos","timeToPosInFront","timeToPosBehind","timeToTrackInFront","timeToTrackBehind","pitstop","laptime","fuelcorrlaptime"])
 
 	#for d in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 	for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 		fdd=[]
-		for lap in range(1,maxLaps+1):
+		for lap in range(1,raceStats['maxlaps']+1):
 			fdl={}
 			fdl['lap']=lap
 			if carNum in carData and lap<=len(carData[carNum]["lapTimes"]):
@@ -165,6 +165,8 @@ def output_battlemapAndProximity(carData):
 				else: proximity.append(0)
 				if lap in carData[carNum]['stoppingLaps']: proximity.append(1)
 				else: proximity.append(0)
+				proximity.append(carData[carNum]["lapTimes"][lap-1])
+				proximity.append(carData[carNum]["fuelCorrectedLapTimes"][lap-1])
 				writer.writerow(proximity)
 			else:
 				fdl['ttf']=0
@@ -180,7 +182,7 @@ def output_elapsedTime(carData):
 	f3=open('../generatedFiles/'+race+'elapsedtimes.csv','wb')
 	writer2 = csv.writer(f3)
 	writer2.writerow(['lap','VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','HEI','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','TRU','KOV','KAR','LIU','GLO','AMB'])
-	for lap in range(1,maxLaps+1):
+	for lap in range(1,raceStats['maxlaps']+1):
 		elt=[lap]
 		for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 			if carNum in carData and lap<=len(carData[carNum]["calcElapsedTimes"]):
@@ -428,6 +430,7 @@ for arg in args:
 		#otherwise, generate the new enhanced history file
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
+		raceStats=setRaceStats(data,carData)
 		output_raceHistoryChart(data,carData)
 		output_comprehensiveTimes(carData)
 		output_battlemapAndProximity(carData)
