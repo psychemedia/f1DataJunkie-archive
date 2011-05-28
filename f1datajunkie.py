@@ -291,13 +291,14 @@ def augmentQualiData(datatimes,dataclassification):
 			if len(tmp)==14:
 				toptimes.append(tsa.getTime(tmp[11]))
 		toptimes.sort()
-		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':toptimes[0], 'name':tmp[2], 'team':tmp[3]}
+		tmpc[tmp[1]]={'pos':tmp[0],'fastlap':toptimes[0], 'name':tmp[2], 'team':tmp[3],'driverNum':tmp[1]}
 	for item in datatimes:
 		driver=item[0]
 		ag={'times':item}
 		if driver in tmpc:
 			for att in tmpc[driver]:
 				ag[att]=tmpc[driver][att]
+		else: ag={'name':item[1],'times':[],'driverNum':driver}
 		augmentedData[driver]=ag
 	return augmentedData
 
