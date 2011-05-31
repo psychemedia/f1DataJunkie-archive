@@ -99,7 +99,7 @@ def augmentHistoryData(carData):
 		carData[carNum]["totalStopTime"]=[]
 
 		tyres=processTyres(data.tyres)
-		#print tyres
+		print tyres,carNum
 		if carNum in tyres:
 			lasttyres=tyres[carNum]['0']
 		else:lasttyres=''
@@ -190,7 +190,22 @@ def output_elapsedTime(carData):
 				elt.append(carData[carNum]["calcElapsedTimes"][lap-1])
 			else: elt.append('')
 		writer2.writerow(elt)
-		
+
+def output_gephiRaceChart(carData):
+	#race history chart
+	f=open('../generatedFiles/'+race+'Chart.gdf','wb')
+	writer = csv.writer(f)
+	writer.writerow(["nodedef> name VARCHAR","label VARCHAR","lap INT","car VARCHAR","calcElapsedTime DOUBLE","calcTimeToLeader DOUBLE","carlapAsRaceLap DOUBLE","tyres VARCHAR","pos INT"])
+	for carNum in carData:
+		print carNum,carData[carNum]["avLapTime"]
+		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
+			#writer.writerow([lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],f1dj.formatTime((tenthPlacedAvLapTime*(lap+1))-carData[carNum]["calcElapsedTimes"][lap])])
+			writer.writerow([carNum+'_'+str(lap),carData[carNum]['driverName'],lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["tyresByLap"][lap],carData[carNum]['positions'][lap]])
+	writer.writerow(['edgedef>from INT','to INT'])
+	for carNum in carData:
+		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])-1):
+			writer.writerow([carNum+'_'+str(lap),carNum+'_'+str(lap+1)])
+
 def output_raceHistoryChart(data,carData):
 	#race history chart
 	f=open('../generatedFiles/'+race+'History.csv','wb')
@@ -437,6 +452,7 @@ for arg in args:
 		output_comprehensiveTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_elapsedTime(carData)
+		output_gephiRaceChart(carData)
 		#output_motionChart(carData,data.chart[0])
 	elif arg=='quali':
 		print "doing quali"
