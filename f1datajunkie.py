@@ -52,6 +52,8 @@ def augmentHistoryData(carData):
 				carData[carNum]['positions'].append(lap.index(carNum))
 				#positions is position by leaderlap
 				#todo- posByCarLap
+				carData[carNum]['posByCarLap'].append(lap.index(carNum))
+				#this is wrong - we need a lapbylap rank order
 		print carData[carNum]['positions']
 
 		carData[carNum]['timeToPosInFront']=[]
@@ -113,7 +115,7 @@ def augmentHistoryData(carData):
 						lasttyrestmp=lasttyres
 					lasttyres=tyres[carNum][str(lapCount)]
 			carData[carNum]["tyresByLap"].append(lasttyres)
-			#lasttyres=lasttyrestmp
+			if carData[carNum]["tyresByLap"][-1].startswith('DT'):lasttyres=lasttyrestmp
 			if lapCount in carData[carNum]['stoppingLaps']:
 				print "stopping lap"
 				stop=carData[carNum]['stoppingLaps'].index(lapCount)
@@ -195,15 +197,27 @@ def output_gephiRaceChart(carData):
 	#race history chart
 	f=open('../generatedFiles/'+race+'Chart.gdf','wb')
 	writer = csv.writer(f)
-	writer.writerow(["nodedef> name VARCHAR","label VARCHAR","lap INT","car VARCHAR","calcElapsedTime DOUBLE","calcTimeToLeader DOUBLE","carlapAsRaceLap DOUBLE","tyres VARCHAR","pos INT"])
+	writer.writerow(["nodedef> name VARCHAR","label VARCHAR","lap INT","car VARCHAR","calcElapsedTime DOUBLE","calcTimeToLeader DOUBLE","carlapAsRaceLap DOUBLE","tyres VARCHAR","posByCarLap INT","stops INT","trackPos INT","lapped INT"])
+	#need to add in grid
+	
+	#write nodes for lap labels
+	for lap in range(1,raceStats['maxlaps']+1):
+		writer.writerow(['LAP_'+str(lap),lap,lap,'','','','','',-1,''])
 	for carNum in carData:
-		print carNum,carData[carNum]["avLapTime"]
+		#write grid
+		#print data.driverShort[carNum],0,carNum,0,0,0,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0]
+		writer.writerow([carNum+'_0',data.driverShort[carNum],0,carNum,0,0,0,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
+		
+		#write driver name labels
+		writer.writerow([carNum+'_0x',data.driverShort[carNum],-2,carNum,0,0,-1,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
 		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
 			#writer.writerow([lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],f1dj.formatTime((tenthPlacedAvLapTime*(lap+1))-carData[carNum]["calcElapsedTimes"][lap])])
-			writer.writerow([carNum+'_'+str(lap),carData[carNum]['driverName'],lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["tyresByLap"][lap],carData[carNum]['positions'][lap]])
+			lapp=carData[carNum]["posOnTrackByCarLap"][lap]
+			lapOffset=carData[carNum]["lapsBehind"][lap]
+			writer.writerow([carNum+'_'+str(lap+1),data.driverShort[carNum],lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["tyresByLap"][lap],carData[carNum]['posByCarLap'][lap+1],carData[carNum]["stopCount"][lap],lapp,carData[carNum]["lapsBehind"][lap]])
 	writer.writerow(['edgedef>from INT','to INT'])
 	for carNum in carData:
-		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])-1):
+		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
 			writer.writerow([carNum+'_'+str(lap),carNum+'_'+str(lap+1)])
 
 def output_raceHistoryChart(data,carData):
@@ -248,22 +262,23 @@ def output_comprehensiveTimes(carData):
 def output_motionChart(carData,data,raceStats):
 	griddata=data.chart[0]
 	#under development - i've got a bit confused by the logic at the moment...
-	f=open('../generatedFiles/'+race+'motionChart.csv','wb')
+	f=open('../generatedFiles/'+race+'motionChartX.csv','wb')
 	writer = csv.writer(f)
-	writer.writerow(["driver","scaleElapsedTime","elapsedTime","pos","lap","trackPos","pitHistory", "timeToLead","timeToFwd","timeToBack","currTrackPos","gridByDriver","lapTime","stint"])
+	writer.writerow(["driver","scaleElapsedTime","elapsedTime","pos","lap","trackPos", "timeToLead","timeToFwd","timeToBack","currTrackPos","gridByDriver","lapTime","stint"])#"pitHistory"
 	grid=[]
-	pos=1
+	pos=0
 	for place in griddata[1:]:
 		pos=pos+1
-		row=[place,1900,0,pos,0,pos,0,0,0,0,pos,pos,0,1]
+		row=[data.driverShort[place],1900,0,pos,0,pos,0,0,0,pos,pos,0,1]
 		grid.append(row)
 	writer.writerows(grid)
 	for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
 		lapdata=[]
 		for lap in range(0,raceStats['maxlaps']):
-			if carNum in carData and lap<=len(carData[carNum]["lapTimes"]):
+			if carNum in carData and lap<len(carData[carNum]["lapTimes"]):
 				cdn=carData[carNum]
 				#in cas we need to use the leader lapcount
+				#print lap,cdn["carlapAsRacelap"]
 				llap=int(cdn["carlapAsRacelap"][lap])-1
 				print llap,carNum,len(cdn["calcElapsedTimes"])
 				if len(cdn['timeToTrackCarBehind'])>=lap:ttb=cdn['timeToTrackCarBehind'][lap-1]
@@ -274,8 +289,8 @@ def output_motionChart(carData,data,raceStats):
 				
 				print len(cdn["calcElapsedTimes"]),lap,int(llap) 
 				if len(cdn["calcElapsedTimes"])>int(llap):
-					lapdata=[carNum,1900+cdn["calcElapsedTimes"][llap]]#,cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["stops"][lap-1],cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn,cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]
-		writer.writerow(lapdata)
+					lapdata=[data.driverShort[carNum],1900+cdn["calcElapsedTimes"][llap],cdn["calcElapsedTimes"][llap],cdn['positions'][0],lap,lapp,cdn["calcTimeToLeader"][llap],cdn["timeToTrackCarInFront"][lap-1],ttb,cdn["posOnTrackByCarLap"][lap],cdn['positions'][0],cdn["lapTimes"][llap],cdn["stintByCarLap"][llap]]#,cdn["stops"][lap-1]
+					writer.writerow(lapdata)
 	
 #output and quali outputs
 def startTimeInSeconds(clockTime):
