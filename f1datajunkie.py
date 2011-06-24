@@ -1,8 +1,8 @@
 import timingSheetAnalysis as tsa
-from data import mco2011_data as data
+from data import eur2011_data as data
 import json, csv, sys
 
-race='mco_2011'
+race='eur_2011'
 
 def stopTimeToLapByCar(carData,lap):
 	stopData=carData
@@ -432,13 +432,14 @@ def output_practiceAndQuali(sessiondata,sessionName):
 		txt.append([])
 		bigtxt.append({})
 		bigtxt[-1]['times']=[]
-		for lap in driverQuali[driver]['times']:
-			txt[-1].append(float(lap['time']))
-			#txt=txt+lap['time']+','
-			bigtxt[-1]['times'].append(float(lap['time']))
-		for att in sessiondata[driver]:
-			if att!='times': bigtxt[-1][att]=sessiondata[driver][att]
-		#txt=txt.rstrip(',')+'], '
+		if driver in driverQuali:
+			for lap in driverQuali[driver]['times']:
+				txt[-1].append(float(lap['time']))
+				#txt=txt+lap['time']+','
+				bigtxt[-1]['times'].append(float(lap['time']))
+			for att in sessiondata[driver]:
+				if att!='times': bigtxt[-1][att]=sessiondata[driver][att]
+			#txt=txt.rstrip(',')+'], '
 	#txt=txt.rstrip(',')+'];'
 	print txt,bigtxt
 	
