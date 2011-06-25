@@ -23,13 +23,15 @@ You should see a common slug identifying the race:
 '''
 
 #Enter slug for race here
-race='esp'
-#chn, mal, aus, tur, esp
+race='eur'
+#chn, mal, aus, tur, esp, mco, can, eur
 '''
 ...and then something relevant for the rest of the filename
 '''
 #enter slug for timing sheet here
-typ='qualifying-classification'
+typ='session3-times'
+#enter page footer slug
+slug="<b>2011 FORMULA 1"
 #typ can be any of the following (if they use the same convention each race...)
 src='f1mediacentre'
 '''
@@ -185,7 +187,7 @@ def race_history_page(page,lapdata=[]):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011 FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     #print laps
     return lapdata
@@ -273,7 +275,7 @@ def race_summary_page(page,stops=[]):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011 FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     for result in results:
         if not result[0].startswith("Page"):
@@ -379,7 +381,7 @@ def qualifying_times_page(page,pos,dpos):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     return pos,dpos
 
@@ -470,7 +472,7 @@ def race_analysis_page(page,pos,dpos):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>2011 FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     return pos,dpos
 
@@ -483,11 +485,12 @@ def session1_classification():
     results=[]
     pos=1
     phase=0
+    print 'pages:',len(pages)
     for el in list(page):
         if el.tag == "text":
-            #txt=gettext_with_bi_tags(el)
+            txt=gettext_with_bi_tags(el)
             if scraping:
-                print el.attrib,gettext_with_bi_tags(el)
+                print el.attrib,gettext_with_bi_tags(el),txt
                 txt=tidyup(txt)
                 if txt!='Timekeeper:':
                     if cnt<cntz[phase]:
@@ -513,7 +516,7 @@ def session1_classification():
     #Here is the data
     for pos in results:
         print pos
-    print results
+    print 'results:',results
 
 def qualifying_sectors():
     sectors=["<b>SECTOR 1</b>\n","<b>SECTOR 2</b>\n","<b>SECTOR 3</b>\n"]
@@ -713,7 +716,7 @@ def qualifying_classification():
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     #Here's the data
     for result in results:
@@ -722,7 +725,7 @@ def qualifying_classification():
     print results
 
 def race_classification():
-    #under development
+    #under development - need to handle 'NOT CLASSIFIED'
     page = pages[0]
     scraping=0
     cnt=0
@@ -731,7 +734,7 @@ def race_classification():
     pos=1
     phase=0
     for el in list(page):
-        print "broken?",el
+        #print "broken?",el
         if el.tag == "text":
             txt=gettext_with_bi_tags(el)
             if scraping:
@@ -760,7 +763,7 @@ def race_classification():
                 print "...",txt
                 if txt.startswith("<b>LAP<"):
                     scraping=1
-
+    print results 
 
 if typ=="qualifying-classification":
     qualifying_classification()
