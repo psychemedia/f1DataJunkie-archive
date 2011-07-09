@@ -1,8 +1,10 @@
 import timingSheetAnalysis as tsa
-from data import eur2011_data as data
+from data import currdata as data
+#REMEMBER TO CHANGE IMPORT IN TIMING ANALYSIS... **NEED TO FIX THIS***
 import json, csv, sys
 
-race='eur_2011'
+#race='can_2011'
+race=sys.argv[1]
 
 def stopTimeToLapByCar(carData,lap):
 	stopData=carData
@@ -206,15 +208,20 @@ def output_gephiRaceChart(carData):
 	for carNum in carData:
 		#write grid
 		#print data.driverShort[carNum],0,carNum,0,0,0,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0]
-		writer.writerow([carNum+'_0',data.driverShort[carNum],0,carNum,0,0,0,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
+		if len(data.tyres)>0: tyredata=data.tyres[carNum][0][0]
+		else: tyredata=''
+		writer.writerow([carNum+'_0',data.driverShort[carNum],0,carNum,0,0,0,tyredata,carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
 		
 		#write driver name labels
-		writer.writerow([carNum+'_0x',data.driverShort[carNum],-2,carNum,0,0,-1,data.tyres[carNum][0][0],carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
+		writer.writerow([carNum+'_0x',data.driverShort[carNum],-2,carNum,0,0,-1,tyredata,carData[carNum]['posByCarLap'][0],'',carData[carNum]['posByCarLap'][0],0])
 		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
 			#writer.writerow([lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],f1dj.formatTime((tenthPlacedAvLapTime*(lap+1))-carData[carNum]["calcElapsedTimes"][lap])])
 			lapp=carData[carNum]["posOnTrackByCarLap"][lap]
 			lapOffset=carData[carNum]["lapsBehind"][lap]
-			writer.writerow([carNum+'_'+str(lap+1),data.driverShort[carNum],lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap],carData[carNum]["tyresByLap"][lap],carData[carNum]['posByCarLap'][lap+1],carData[carNum]["stopCount"][lap],lapp,carData[carNum]["lapsBehind"][lap]])
+			if len(carData[carNum]["tyresByLap"])>0:
+				tyres=carData[carNum]["tyresByLap"][lap]
+			else: tyres=''
+			writer.writerow([carNum+'_'+str(lap+1),data.driverShort[carNum],lap+1,carNum,carData[carNum]["calcElapsedTimes"][lap],carData[carNum]["calcTimeToLeader"][lap],carData[carNum]["carlapAsRacelap"][lap],tyres,carData[carNum]['posByCarLap'][lap+1],carData[carNum]["stopCount"][lap],lapp,carData[carNum]["lapsBehind"][lap]])
 	writer.writerow(['edgedef>from INT','to INT'])
 	for carNum in carData:
 		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
@@ -345,6 +352,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 	#writer = csv.writer(f)
 		
 	earlyStart='99:99:99'
+	earlyStartTime=startTimeInSeconds(earlyStart)
 	for dn in sessiondata:
 		driver=sessiondata[dn]['times']
 		driverNum= sessiondata[dn]['driverNum']#str(driver[0])
@@ -352,8 +360,10 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			print 'Augmentation mismatch',driverNum,dn
 			sys.exit(0)
 		if len(driver)>2:
-			if earlyStart>driver[3]: earlyStart=driver[3]
-	earlyStartTime=startTimeInSeconds(earlyStart)
+			#if earlyStart>driver[3]: earlyStart=driver[3]
+			sttmp=startTimeInSeconds(driver[3])
+			if earlyStartTime>sttmp: earlyStartTime=sttmp
+	#earlyStartTime=startTimeInSeconds(earlyStart)
 	for dn in sessiondata:
 		driver=sessiondata[dn]['times']
 		driverNum= sessiondata[dn]['driverNum']#str(driver[0])
@@ -363,6 +373,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 			clockTime='0:0:0'
 		driverQuali[driverNum]={'times':[],'driverName':sessionData[dn]['name'],'driverNum':driverNum, 'startTime':'','clockStartTime':clockTime}
 		dsTime=startTimeInSeconds(driverQuali[driverNum]['clockStartTime'])
+		print driverQuali[driverNum]['clockStartTime'],earlyStartTime,earlyStart
 		driverQuali[driverNum]['startTime']= "%.1f" % (dsTime-earlyStartTime)
 		if 'fastlap' in sessiondata[dn]:
 			driverQuali[driverNum]['times'].append({'time':driverQuali[driverNum]['startTime'],'elapsed':driverQuali[driverNum]['startTime']})
@@ -373,7 +384,8 @@ def output_practiceAndQuali(sessiondata,sessionName):
 				driverQuali[driverNum]['times'].append(timing)
 
 	print driverQuali
-
+	sys.exit(0)
+	#testz
 	f2=open('../generatedFiles/'+race+fname+'laptimes.csv','wb')
 	writer2 = csv.writer(f2)
 
@@ -453,7 +465,7 @@ def setRaceStats(data,carData,raceStats={}):
 #-----
 
 args=sys.argv
-for arg in args:
+for arg in args[2:]:
 	if arg=='race':
 		print "doing race"
 		#need to do a race stats routine	
@@ -530,19 +542,19 @@ for arg in args:
 				else: sw=True
 	elif arg=="all":
 		print "doing all"
-		sessionData=augmentPracticeQualiData(data.fp1times,data.fp1classification)
+		sessionData=augmentPracticeData(data.fp1times,data.fp1classification)
 		output_practiceAndQuali(sessionData,"p1")
-		sessionData=augmentPracticeQualiData(data.fp2times,data.fp2classification)
+		sessionData=augmentPracticeData(data.fp2times,data.fp2classification)
 		output_practiceAndQuali(sessionData,"p2")
-		sessionData=augmentPracticeQualiData(data.fp3times,data.fp3classification)
+		sessionData=augmentPracticeData(data.fp3times,data.fp3classification)
 		output_practiceAndQuali(sessionData,"p3")
-		sessionData=augmentPracticeQualiData(data.qualitimes,data.qualiclassification)
+		sessionData=augmentPracticeData(data.qualitimes,data.qualiclassification)
 		output_practiceAndQuali(sessionData,"quali")
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
 		raceStats=setRaceStats(data,carData)
 		output_raceHistoryChart(data,carData)
-		output_stintLapTimes(carData)
+		#output_stintLapTimes(carData)
 		output_battlemapAndProximity(carData)
 		output_comprehensiveTimes(carData)
 		#output_motionChart(carData,data,raceStats)
