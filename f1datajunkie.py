@@ -384,8 +384,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 				driverQuali[driverNum]['times'].append(timing)
 
 	print driverQuali
-	sys.exit(0)
-	#testz
+
 	f2=open('../generatedFiles/'+race+fname+'laptimes.csv','wb')
 	writer2 = csv.writer(f2)
 
