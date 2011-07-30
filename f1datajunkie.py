@@ -524,8 +524,8 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 		for driverNum in sessionStats:
 			if typ=='quali':
 				if 'fastlap' in sessiondata[driverNum]:
-					fastlap=sessiondata[driverNum]['fastlap']
-				else: fastlap=200
+					fastlap[driverNum]=sessiondata[driverNum]['fastlap']
+				else: fastlap[driverNum]=200
 			sessionStats[driverNum]['ultimate']=float(sessionStats[driverNum]['sector1'])+float(sessionStats[driverNum]['sector2'])+float(sessionStats[driverNum]['sector3'])
 			ss=sessionStats[driverNum]
 			writer.writerow([driverNum,ss['name'],ss['position'],ss['sector1'],ss['sector2'],ss['sector3'],ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']])
