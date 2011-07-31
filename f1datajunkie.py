@@ -513,6 +513,11 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				sessionStats[c[1]]['position']=c[0]
 				sessionStats[c[1]]['team']=c[3]
 				sessionStats[c[1]]['percent']=c[6]
+				if int(c[0])<17: offset=-3
+				else: offset=-4
+				if c[-2]=='DNS':
+					sessionStats[c[1]]['qualitime']=tsa.getTime(c[offset])
+				else: sessionStats[c[1]]['qualitime']=''
 		else:
 			for c in qualiclassification:
 				sessionStats[c[0]]['position']=c[5]
@@ -520,7 +525,10 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				fastlap[c[0]]=tsa.getTime(c[-2])
 				#sessionStats[c[0]]['percent']=c[6]
 		
-		writer.writerow(['driverNum','name','classfication','sector1','sector2','sector3','ultimate','fastestlap','inter1','inter2','finish','trap','traptimeofday','team'])
+		headers=['classification','driverNum','name','sector1','sector2','sector3']
+		if typ=='quali': headers.append('qualiTime')
+		headers=headers+['ultimate','fastestlap','inter1','inter2','finish','trap','traptimeofday','team']
+		writer.writerow(headers)
 		for driverNum in sessionStats:
 			if typ=='quali':
 				if 'fastlap' in sessiondata[driverNum]:
@@ -528,7 +536,10 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				else: fastlap[driverNum]=200
 			sessionStats[driverNum]['ultimate']=float(sessionStats[driverNum]['sector1'])+float(sessionStats[driverNum]['sector2'])+float(sessionStats[driverNum]['sector3'])
 			ss=sessionStats[driverNum]
-			writer.writerow([driverNum,ss['name'],ss['position'],ss['sector1'],ss['sector2'],ss['sector3'],ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']])
+			outTxt=[ss['position'],driverNum,ss['name'],ss['sector1'],ss['sector2'],ss['sector3']]
+			if typ=='quali': outTxt.append(ss['qualitime'])
+			outTxt=outTxt+[ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']]
+			writer.writerow(outTxt)
 		f.close()
 	
 #-----
