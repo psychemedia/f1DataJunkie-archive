@@ -186,7 +186,7 @@ def output_battlemapAndProximity(carData):
 def output_elapsedTime(carData):
 	f3=open('../generatedFiles/'+race+'elapsedtimes.csv','wb')
 	writer2 = csv.writer(f3)
-	writer2.writerow(['lap','VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','HEI','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','TRU','KOV','KAR','LIU','GLO','AMB'])
+	writer2.writerow(['lap','VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','HEI','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','RIC','TRU','RIC','LIU','GLO','AMB'])
 	for lap in range(1,raceStats['maxlaps']+1):
 		elt=[lap]
 		for carNum in ['1','2','3','4','5','6','7','8','9','10','11','12','14','15','16','17','18','19','20','21','22','23','24','25']:
@@ -323,7 +323,8 @@ def augmentQualiData(datatimes,dataclassification):
 	augmentedData={}
 	tmpc={}
 	for tmp in dataclassification:
-		toptimes=[tsa.getTime(tmp[4])]
+		if tmp[4]!='DNS': toptimes=[tsa.getTime(tmp[4])]
+		else: toptimes=[0]
 		if len(tmp)>8:
 			toptimes.append(tsa.getTime(tmp[8]))
 			if len(tmp)==14:
@@ -486,7 +487,7 @@ def output_practiceAndQuali(sessiondata,sessionName):
 	f.close()
 	return fastlaps
 
-def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,sessiondata,typ='quali'):	
+def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,sessiondata,typ='quali',grid=[]):	
 		f=open('../generatedFiles/'+race+typ+'stats.csv','wb')
 		writer = csv.writer(f)
 		sessionStats={}
@@ -512,21 +513,28 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 			for c in qualiclassification:
 				sessionStats[c[1]]['position']=c[0]
 				sessionStats[c[1]]['team']=c[3]
-				sessionStats[c[1]]['percent']=c[6]
-				if int(c[0])<17: offset=-3
+				if c[0]!='DNQ' and int(c[0])<17: offset=-3
 				else: offset=-4
-				if c[-2]=='DNS':
+				if c[-2]!='DNS':
 					sessionStats[c[1]]['qualitime']=tsa.getTime(c[offset])
-				else: sessionStats[c[1]]['qualitime']=''
+					sessionStats[c[1]]['percent']=c[6]
+				else:
+					sessionStats[c[1]]['qualitime']=''
+					sessionStats[c[1]]['percent']=''
 		else:
 			for c in qualiclassification:
 				sessionStats[c[0]]['position']=c[5]
 				sessionStats[c[0]]['team']=c[3]
 				fastlap[c[0]]=tsa.getTime(c[-2])
 				#sessionStats[c[0]]['percent']=c[6]
+			px=1
+			for p in grid[1:]:
+				sessionStats[p]['grid']=px
+				px=px+1
 		
 		headers=['classification','driverNum','name','sector1','sector2','sector3']
 		if typ=='quali': headers.append('qualiTime')
+		else: headers.append('grid')
 		headers=headers+['ultimate','fastestlap','inter1','inter2','finish','trap','traptimeofday','team']
 		writer.writerow(headers)
 		for driverNum in sessionStats:
@@ -534,10 +542,15 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				if 'fastlap' in sessiondata[driverNum]:
 					fastlap[driverNum]=sessiondata[driverNum]['fastlap']
 				else: fastlap[driverNum]=200
+			
+			for x in ['sector1','sector2','sector3','inter1','inter2','finish','trap','traptimeofday','team']:
+				if x not in sessionStats[driverNum]:
+					sessionStats[driverNum][x]=0 
 			sessionStats[driverNum]['ultimate']=float(sessionStats[driverNum]['sector1'])+float(sessionStats[driverNum]['sector2'])+float(sessionStats[driverNum]['sector3'])
 			ss=sessionStats[driverNum]
 			outTxt=[ss['position'],driverNum,ss['name'],ss['sector1'],ss['sector2'],ss['sector3']]
 			if typ=='quali': outTxt.append(ss['qualitime'])
+			else: outTxt.append(ss['grid'])
 			outTxt=outTxt+[ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']]
 			writer.writerow(outTxt)
 		f.close()
@@ -566,7 +579,7 @@ for arg in args[2:]:
 		output_battlemapAndProximity(carData)
 		output_elapsedTime(carData)
 		output_gephiRaceChart(carData)
-		output_qualiStats(data.trap,data.speeds,data.sectors,data.classification,[],typ='race')
+		output_qualiStats(data.trap,data.speeds,data.sectors,data.classification,[],typ='race',grid=data.chart[0])
 		#output_motionChart(carData,data.chart[0])
 	elif arg=='quali':
 		print "doing quali"
@@ -577,17 +590,17 @@ for arg in args[2:]:
 		print "doing fp1"
 		sessionData=augmentPracticeData(data.fp1times,data.fp1classification)
 		output_practiceAndQuali(sessionData,"p1")
-		output_practiceSessionCLassification("p1",data.fp1classification)
+		output_practiceSessionClassification("p1",data.fp1classification)
 	elif arg=="fp2":
 		print "doing fp2"
 		sessionData=augmentPracticeData(data.fp2times,data.fp2classification)
 		output_practiceAndQuali(sessionData,"p2")
-		output_practiceSessionCLassification("p2",data.fp2classification)
+		output_practiceSessionClassification("p2",data.fp2classification)
 	elif arg=="fp3":
 		print "doing fp3"
 		sessionData=augmentPracticeData(data.fp3times,data.fp3classification)
 		output_practiceAndQuali(sessionData,"p3")
-		output_practiceSessionCLassification("p3",data.fp3classification)
+		output_practiceSessionClassification("p3",data.fp3classification)
 	elif arg=="practice":
 		print "doing practice"
 		sessionData=augmentPracticeData(data.fp1times,data.fp1classification)
