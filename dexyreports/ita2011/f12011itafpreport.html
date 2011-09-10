@@ -13,12 +13,14 @@
 	    {{ d['fp1.R|idio']['data-import'] }}
 	<hr/>
 	<h2>Free Practice 1</h2>
-    <div><img src="img/ita-2011-fp1-times.png" alt="FP1 Practice times" /></div>
+    <div><img src="img/ita-2011-fp1-times.png" alt="FP1 Practice times" /> <img src="img/ita-2011-fp1-boxplot.png" alt="FP1 Practice times distribution" /></div>
     
     <p>R Code:</p>
     
     {{ d['fp1.R|idio']['FP1-times'] }}
     
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp1-utilisation.png" alt="FP1 Utilisation" /></div>
     <hr/>
 	<h2>Free Practice 2</h2>
 	<p>I've tweaked the previous approach to create a function to generate the laptimes chart:</p>
@@ -28,7 +30,19 @@
 	{{ d['fp1.R|idio']['FP2-data'] }}
 	{{ d['fp1.R|idio']['FP2-times'] }}
 	<p>Here's the chart...</p>
-    <div><img src="img/ita-2011-fp2-times.png" alt="FP2 Practice times" /></div>
-        
+    <div><img src="img/ita-2011-fp2-times.png" alt="FP2 Practice times" /> <img src="img/ita-2011-fp2-boxplot.png" alt="FP2 Practice times distribution" /></div>
+    
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp2-utilisation.png" alt="FP2 Utilisation" /></div>
+    
+    <h2>Free Practice 3</h2>
+    <p>Grab the data and generate the chart:</p>
+	{{ d['fp1.R|idio']['FP3-data'] }}
+	{{ d['fp1.R|idio']['FP3-times'] }}
+	<p>Here's the chart...</p>
+    <div><img src="img/ita-2011-fp3-times.png" alt="FP2 Practice times" /> <img src="img/ita-2011-fp3-boxplot.png" alt="FP3 Practice times distribution" /></div>
+    
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp3-utilisation.png" alt="FP3 Utilisation" /></div>
   </body>
 </html>
