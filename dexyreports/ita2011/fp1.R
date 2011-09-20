@@ -1,5 +1,7 @@
 ### @export "data-constants"
+sskey='0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE'
 maxtime=110
+
 
 ### @export "data-import"
 require(RCurl)
@@ -12,7 +14,7 @@ gsqAPI = function(key,query,gid=0){
 	) )
 }
 
-itafp1=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,B,C,D,E,F,G',gid='0')
+itafp1=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='0')
 
 ### @export "FPsession-utilisation"
 fpUtilisationChart=function(df,filename,title){
@@ -50,7 +52,7 @@ fpTimesBoxplot=function(df,filename,threshold,title){
 ### @export "FPsession-timeggboxplot"
 require(ggplot2)
 fpTimesggBox=function(df,filename,threshold,title){
-	ggplot(subset(df, Time < maxtime)) +
+	ggplot(subset(df, Time < threshold)) +
 	  geom_boxplot(aes(x=interaction(Stint,Session,DriverNum,sep=":"), y=Time)) +
 	  scale_y_continuous("Laptime (s)") +
 	  scale_x_discrete("FP Stint:Session:DriverNum") +
@@ -61,12 +63,19 @@ fpTimesggBox=function(df,filename,threshold,title){
 ### @export "FPsession-timeggpoint"
 require(ggplot2)
 fpTimesggPoint=function(df,filename,threshold,title){
-	ggplot(subset(df, Time < maxtime)) +
+	ggplot(subset(df, Time < threshold)) +
 	  geom_point(aes(x=interaction(Stint,Session,DriverNum,sep=":"), y=Time, alpha=0.7)) +
 	  scale_y_continuous("Laptime (s)") +
 	  scale_x_discrete("FP Stint:Session:DriverNum") +
 	  opts(title = title, axis.text.x = theme_text(angle=90),legend.position = "none")  
 	ggsave(file = filename)
+}
+
+### @export "FP-times-chart"
+fpTimesElapsedPoint=function(df,filename,threshold,title,offset){
+	png(file=filename)
+	plot(Time~Elapsed,data=subset(df,Time < threshold),col=DriverNum-offset,pch=DriverNum-offset, main=title, xlim=c(0,max(Elapsed)))
+	dev.off()
 }
 
 ### @export "FP1-utilisation"
@@ -75,11 +84,11 @@ fpUtilisationChart(itafp1,"ita-2011-fp1-utilisation.png",'F1 2011 Free Practice 
 ### @export "FP1-boxplot"
 fpTimesBoxplot(itafp1,"ita-2011-fp1-boxplot.png",maxtime,'F1 2011 Free Practice 1 Times Distribution')
 
-itafp=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,C,E,G',gid='6')
+itafp=gsqAPI(sskey,'select A,C,E,F,G',gid='6')
 itafprbr=subset(itafp,DriverNum==1 | DriverNum==2)
 fpTimesggPoint(itafprbr,"ita-2011-fp-rbr-ggpoint.png",maxtime,'F1 2011 Practice - RBR')
 fpTimesggBox(itafprbr,"ita-2011-fp-rbr-ggbox.png",maxtime,'F1 2011 Practice - RBR')
-
+fpTimesElapsedPoint(subset(itafprbr,Session==1),"ita-2011-fp1-rbr-elapsed.png",maxtime,'F1 2011 FP1 Times - RBR',0)
 
 ### @export "team-focus-Mercedes"
 png(file="ita-merc-2011-fp1.png")
@@ -96,7 +105,7 @@ plot(	Time~DriverNum,
 dev.off()
 
 ### @export "FP2-data"
-itafp2=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,B,C,D,E,F,G',gid='2')
+itafp2=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='2')
 
 
 ### @export "FP2-utilisation"
@@ -110,7 +119,7 @@ fpTimesBoxplot(itafp2,"ita-2011-fp2-boxplot.png",maxtime,'F1 2011 Free Practice 
 
 
 ### @export "FP3-data"
-itafp3=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,B,C,D,E,F,G',gid='4')
+itafp3=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='4')
 
 ### @export "FP3-times"
 fpTimesChart(itafp3,"ita-2011-fp3-times.png",maxtime,'F1 2011 Free Practice 3 Times')
@@ -124,8 +133,8 @@ fpUtilisationChart(itafp3,"ita-2011-fp3-utilisation.png",'F1 2011 Free Practice 
 
 ### @export "Race-summary-chart"
 library("ggplot2")
-ita2011racestatsX=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,B,G',gid='10')
-ita2011proximity=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,B,C',gid='13')
+ita2011racestatsX=gsqAPI(sskey,'select A,B,G',gid='10')
+ita2011proximity=gsqAPI(sskey,'select A,B,C',gid='13')
 
 h=ita2011proximity
 k=ita2011racestatsX
@@ -157,7 +166,7 @@ f1djHeatmap=function(d,title){
 	dev.off()
 }
 
-ita2011comprehensiveLapTimes=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select C,D,E',gid='12')
+ita2011comprehensiveLapTimes=gsqAPI(sskey,'select C,D,E',gid='12')
 l2=with(ita2011comprehensiveLapTimes, data.frame(car=car,lap=lap,laptime=lapTime))
 dd<- ddply(l2, .(car), summarize, lap=lap, diff=log(1+laptime-min(laptime)))
 
@@ -169,7 +178,7 @@ dd<- ddply(l2, .(car), summarize, lap=lap, diff=laptime)
 f1djHeatmap(dd,"ita-2011-race-heatmap-laptimeConsecutiveDelta.png")
 
 ### @export "practiceLaptimeDistributions"
-pd=gsqAPI('0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE','select A,C,E,G',gid='6')
+pd=gsqAPI(sskey,'select A,C,E,G',gid='6')
 
 #deprecated in favour of ggplot...
 stintDistributionChart=function(sdata,fn,title,ylim){
