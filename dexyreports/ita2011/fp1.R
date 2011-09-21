@@ -1,7 +1,16 @@
-### @export "data-constants"
-sskey='0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE'
-maxtime=110
+###THIS FILE IS DEPRECATED AND SIMPLY REMAINS AS A SCRIBBLEPAD
 
+### @export "datasource_config"
+sskey='0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE'
+ssgid_fp1='0'
+ssgid_fp2='2'
+ssgid_fp3='4'
+ssgid_fp='6'
+
+### @export "report_parameters"
+maxtime=110
+# Which FP Session are we reporting on? '1', '2', '3', 'All'
+fpSession='All'
 
 ### @export "data-import"
 require(RCurl)
@@ -14,7 +23,7 @@ gsqAPI = function(key,query,gid=0){
 	) )
 }
 
-itafp1=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='0')
+itafp1=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid=ssgid_fp1)
 
 ### @export "FPsession-utilisation"
 fpUtilisationChart=function(df,filename,title){
@@ -64,7 +73,7 @@ fpTimesggBox=function(df,filename,threshold,title){
 require(ggplot2)
 fpTimesggPoint=function(df,filename,threshold,title){
 	ggplot(subset(df, Time < threshold)) +
-	  geom_point(aes(x=interaction(Stint,Session,DriverNum,sep=":"), y=Time, alpha=0.7)) +
+	  geom_point(aes(x=interaction(Stint,Session,DriverNum,sep=":"), y=Time, alpha=0.7, colour=Session)) +
 	  scale_y_continuous("Laptime (s)") +
 	  scale_x_discrete("FP Stint:Session:DriverNum") +
 	  opts(title = title, axis.text.x = theme_text(angle=90),legend.position = "none")  
@@ -79,16 +88,50 @@ fpTimesElapsedPoint=function(df,filename,threshold,title,offset){
 }
 
 ### @export "FP1-utilisation"
-fpUtilisationChart(itafp1,"ita-2011-fp1-utilisation.png",'F1 2011 Free Practice 1 Utilisation')
+if (fpSession==1)
+	fpUtilisationChart(itafp1,"ita-2011-fp1-utilisation.png",'F1 2011 Free Practice 1 Utilisation')
 
 ### @export "FP1-boxplot"
-fpTimesBoxplot(itafp1,"ita-2011-fp1-boxplot.png",maxtime,'F1 2011 Free Practice 1 Times Distribution')
+if (fpSession==1) 
+	fpTimesBoxplot(itafp1,"ita-2011-fp1-boxplot.png",maxtime,'F1 2011 Free Practice 1 Times Distribution')
 
-itafp=gsqAPI(sskey,'select A,C,E,F,G',gid='6')
-itafprbr=subset(itafp,DriverNum==1 | DriverNum==2)
-fpTimesggPoint(itafprbr,"ita-2011-fp-rbr-ggpoint.png",maxtime,'F1 2011 Practice - RBR')
-fpTimesggBox(itafprbr,"ita-2011-fp-rbr-ggbox.png",maxtime,'F1 2011 Practice - RBR')
-fpTimesElapsedPoint(subset(itafprbr,Session==1),"ita-2011-fp1-rbr-elapsed.png",maxtime,'F1 2011 FP1 Times - RBR',0)
+### @export "FP-Team-Report"
+itafp=gsqAPI(sskey,'select A,C,E,F,G',gid=ssgid_fp)
+
+fpSessionTimesElapsedPoint=function(fpdata,raceslug, raceName, teamslug, teamName, threshold, teamOffset,session){
+	fpTimesElapsedPoint(
+		subset(fpdata,Session==session),
+		paste( sep="",raceslug,'-fp-',teamslug,"-elapsed.png"),
+		threshold,
+		paste( sep="", "F1 ",raceName," FP",session," Times - ", teamName ),
+		teamOffset
+	)
+}
+
+#teamOffset is fudge for now....  we need to find a way of setting pch based on drivernumber to either 1 or 2
+fpTeamReport=function(fpdata,raceslug, raceName, teamslug, teamName, threshold, teamOffset){
+	fpTimesggPoint(
+		fpdata,
+		paste( sep="",raceslug,'-fp-',teamslug,"-ggpoint.png"),
+		threshold,
+		paste( sep="", "F1 ",raceName," Practice - ", teamName ) 
+	)
+	#fpTimesggPoint(itafprbr,"ita-2011-fp-rbr-ggpoint.png",maxtime,'F1 2011 Practice - RBR')
+	# fpTimesggBox(itafprbr,"ita-2011-fp-rbr-ggbox.png",maxtime,'F1 2011 Practice - RBR')
+	fpTimesggBox(
+		fpdata,
+		paste( sep="",raceslug,'-fp-',teamslug,"-ggbox.png"),
+		threshold,
+		paste( sep="", "F1 ",raceName," Practice - ", teamName )
+	)
+	# fpTimesElapsedPoint(subset(itafprbr,Session==1),"ita-2011-fp1-rbr-elapsed.png",maxtime,'F1 2011 FP1 Times - RBR',0)
+	fpSessionTimesElapsedPoint(fpdata,raceslug, raceName, teamslug, teamName, threshold, teamOffset,1)
+	fpSessionTimesElapsedPoint(fpdata,raceslug, raceName, teamslug, teamName, threshold, teamOffset,2)
+	fpSessionTimesElapsedPoint(fpdata,raceslug, raceName, teamslug, teamName, threshold, teamOffset,3)
+}
+
+if (fpSession=='All')
+	fpTeamReport(subset(itafp,DriverNum==1 | DriverNum==2),"ita-2011", "2011 Italy",rbr,"RBR", maxtime, 0)
 
 ### @export "team-focus-Mercedes"
 png(file="ita-merc-2011-fp1.png")
@@ -105,7 +148,7 @@ plot(	Time~DriverNum,
 dev.off()
 
 ### @export "FP2-data"
-itafp2=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='2')
+itafp2=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid=ssgid_fp2)
 
 
 ### @export "FP2-utilisation"
@@ -119,7 +162,7 @@ fpTimesBoxplot(itafp2,"ita-2011-fp2-boxplot.png",maxtime,'F1 2011 Free Practice 
 
 
 ### @export "FP3-data"
-itafp3=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid='4')
+itafp3=gsqAPI(sskey,'select A,B,C,D,E,F,G',gid=ssgid_fp3)
 
 ### @export "FP3-times"
 fpTimesChart(itafp3,"ita-2011-fp3-times.png",maxtime,'F1 2011 Free Practice 3 Times')
@@ -132,7 +175,7 @@ fpUtilisationChart(itafp3,"ita-2011-fp3-utilisation.png",'F1 2011 Free Practice 
 
 
 ### @export "Race-summary-chart"
-library("ggplot2")
+require("ggplot2")
 ita2011racestatsX=gsqAPI(sskey,'select A,B,G',gid='10')
 ita2011proximity=gsqAPI(sskey,'select A,B,C',gid='13')
 
@@ -194,9 +237,9 @@ stintDistributionChart=function(sdata,fn,title,ylim){
 ##to try 
 #1
 #ggplot(data=pitStopRaw,aes(x=interaction(driver,team),y=stoptime))+geom_boxplot()
-#2
+#2  ?myData=pitStopRaw
 #ggplot(myData, aes(x=team, y=stoptime, group=driver)) + geom_boxplot() + facet_wrap(~slug)
-#3 ?library(lattice) ita2011racestats <- read.csv("~/code/f1/generatedFiles/ita2011racestats.csv")
+#3 ?require(lattice) ita2011racestats <- read.csv("~/code/f1/generatedFiles/ita2011racestats.csv")
 #isd=subset(ita2011racestats,sector1>0&sector2>0 & sector3>0)
 #pairs(isd[c(4,5,6,10,11,12,13)])
 #4 pitStopRaw <- read.csv("~/code/f1/testOutputFiles/pitStopRaw.csv")
