@@ -19,17 +19,17 @@ Essentially, it seems to be a call to the binary /usr/bin/pdftohtml ? [h/t @frab
 To run the script, you need to provide a couple of bits of info...
 Check out the PDF URLs on the F1 Media Centre timings page:
   http://www.fia.com/en-GB/mediacentre/f1_media/Pages/timing.aspx
-You should see a common slug identifying the race:
+You should see a common slug identifying the race (note that occasionally the slug may differ on the timing sheets)
 '''
 
 #Enter slug for race here
-race='eur'
-#chn, mal, aus, tur, esp, mco, can, eur
+race='sin'
+#chn, mal, aus, tur, esp, mco, can, eur, gbr, ger, hun, bel, ita
 '''
 ...and then something relevant for the rest of the filename
 '''
 #enter slug for timing sheet here
-typ='session3-times'
+typ='qualifying-classification'
 #enter page footer slug
 slug="<b>2011 FORMULA 1"
 #typ can be any of the following (if they use the same convention each race...)
@@ -75,6 +75,8 @@ race-grid
 #Here's where we construct the URL for the timing sheet.
 #I assume a similar naming convention is used for each race?
 
+TYP=typ
+
 if src =='f1mediacentre': url = "http://www.fia.com/en-GB/mediacentre/f1_media/Documents/"+race+"-"+typ+".pdf"
 else: url="http://dl.dropbox.com/u/1156404/"+race+"-"+typ+".pdf"
 #url='http://dl.dropbox.com/u/1156404/mal-race-analysis.pdf'
@@ -91,6 +93,35 @@ root = lxml.etree.fromstring(xmldata)
 pages = list(root)
 
 print "The pages are numbered:", [ page.attrib.get("number")  for page in pages ]
+
+
+#Pairs: from eg [a,b,c,d] return (a,b), (c,d)
+def pairs(seq):
+    it = iter(seq)
+    try:
+        while True:
+            yield it.next(), it.next()
+    except StopIteration:
+        return
+
+
+
+#Preferred time format
+def formatTime(t):
+    return float("%.3f" % t)
+# Accept times in the form of hh:mm:ss.ss or mm:ss.ss
+# Return the equivalent number of seconds
+def getTime(ts):
+    t=ts.strip()
+    t=ts.split(':')
+    if len(t)==3:
+        tm=60*int(t[0])+60*int(t[1])+float(t[2])
+    elif len(t)==2:
+        tm=60*int(t[0])+float(t[1])
+    else:
+        tm=float(t[0])
+    return formatTime(tm)
+
 
 def tidyup(txt):
     txt=txt.strip()
@@ -231,7 +262,7 @@ def race_chart_page(page,laps):
             else:
                 txt=gettext_with_bi_tags(el)
                 txt=txt.strip()
-                if txt.startswith("<b>FORMULA 1"):
+                if txt.startswith(slug):
                     scraping=1
     #print laps
     return laps
@@ -283,6 +314,15 @@ def race_summary_page(page,stops=[]):
     return stops
 
 
+
+def storeSessionTimes(rawdata):
+    for result in rawdata:
+        print result
+        datapair=pairs(result)
+        driverNum,driverName=datapair.next()
+        for lap,laptime in datapair:
+            scraperwiki.sqlite.save(unique_keys=['driverLap'], table_name=TYP, data={'driverLap':driverNum+'_'+lap,'lap':lap, 'laptime':laptime, 'name':driverName, 'driverNum':driverNum, 'laptimeInS':getTime(laptime)})
+
 def qualifying_times():
     pos=1
     dpos=[]
@@ -313,6 +353,7 @@ def qualifying_times():
         print dposcorr.append(dupe)
     print dpos
     print 'hackfix',dposcorr
+    storeSessionTimes(dposcorr)
 
 
 def linebuffershuffle(oldbuffer, newitem):
@@ -476,6 +517,9 @@ def race_analysis_page(page,pos,dpos):
                     scraping=1
     return pos,dpos
 
+def storeSessionClassification(rawdata):
+    for result in rawdata:
+        scraperwiki.sqlite.save(unique_keys=['name','driverNum'], table_name=TYP, data={'pos':result[0],'fastlap':getTime(result[5]), 'name':result[2], 'team':result[4],'nationality':result[3],'driverNum':result[1], 'laps':result[-1], 'kph':result[8]})
 
 def session1_classification():
     page = pages[0]
@@ -517,6 +561,15 @@ def session1_classification():
     for pos in results:
         print pos
     print 'results:',results
+    storeSessionClassification(results)
+
+def storeSessionQualiSectors(rawdata):
+    ss=1
+    for sector in rawdata:
+        for result in sector:
+            scraperwiki.sqlite.save(unique_keys=['sector_pos','sector_driver'], table_name=TYP, data={'sector_pos':str(ss)+'_'+result[0],'sector_driver':str(ss)+'_'+result[1],'pos':result[0],'name':result[2],'sectortime':result[3],'driverNum':result[1]})
+        ss=ss+1
+
 
 def qualifying_sectors():
     sectors=["<b>SECTOR 1</b>\n","<b>SECTOR 2</b>\n","<b>SECTOR 3</b>\n"]
@@ -571,6 +624,15 @@ def qualifying_sectors():
     for result in sectorResults:
         print result
     print sectorResults
+    storeSessionQualiSectors(sectorResults)
+
+def storeSessionQualiSpeeds(rawdata):
+    ss=1
+    for sector in rawdata:
+        for result in sector:
+            scraperwiki.sqlite.save(unique_keys=['sector_pos','sector_driver'], table_name=TYP, data={'sector_pos':str(ss)+'_'+result[0],'sector_driver':str(ss)+'_'+result[1],'pos':result[0],'name':result[2],'speed':result[3],'driverNum':result[1]})
+        ss=ss+1
+
 
 def qualifying_speeds():
     sessions=["<b>INTERMEDIATE 1</b>\n","<b>INTERMEDIATE 2</b>\n","<b>FINISH LINE</b>\n"]
@@ -627,6 +689,12 @@ def qualifying_speeds():
     for session in sessionResults:
         print session
     print sessionResults
+    storeSessionQualiSpeeds(sessionResults)
+
+def storeSessionQualiTrap(rawdata):
+    for result in rawdata:
+        scraperwiki.sqlite.save(unique_keys=['pos','driverNum'], table_name=TYP, data={'pos':result[0],'name':result[2],'speed':result[3],'driverNum':result[1],'timeOfDay':result[4]})
+
 
 def qualifying_trap():
     page = pages[0]
@@ -664,6 +732,7 @@ def qualifying_trap():
     for pos in results:
         print pos
     print results
+    storeSessionQualiTrap(results)
 
 def qualifying_classification():
     # print the first hundred text elements from the first page
@@ -675,6 +744,7 @@ def qualifying_classification():
     results=[]
     cntz=[13,10,6]
     posz=[10,17,24]
+    inDNS=0
     for el in list(page):
         if el.tag == "text":
             if scraping:
@@ -694,12 +764,19 @@ def qualifying_classification():
                         else:
                             if len(results[pos-1])>4:
                                 txt=txt.split()
-                                #print txt
+                                print '->',txt
                                 for j in txt:
                                     results[pos-1].append(j)
                                     cnt=cnt+1
-                                    if j=='DNS':
-                                        cnt=cnt+1
+                                    if j=='DNS' or j=='DNF':
+                                        inDNS=1
+                                        if session==1 or session==2:
+                                            cnt=cnt+3
+                                        else:
+                                            cnt=cnt+1
+                                    if inDNS==1:
+                                        if cnt==cntz[session-1]-3:
+                                            cnt=cnt+3
                             else:
                                 results[pos-1].append(txt)
                                 cnt=cnt+1
@@ -707,6 +784,7 @@ def qualifying_classification():
                         if pos==posz[session-1]:
                             session=session+1
                             print "session",session
+                            inDNS=0
                         cnt=0
                         txt=txt.split()
                         for j in txt:
@@ -721,7 +799,7 @@ def qualifying_classification():
     #Here's the data
     for result in results:
         print 'result',result
-    del results[-1]
+    #del results[-1]
     print results
 
 def race_classification():
@@ -795,3 +873,4 @@ elif typ=="race-chart":
 # in the way that the information is presented in them in terms of the top left bottom right 
 # pixel locations.  It's real work, but you can use the position visualizer here:
 #    http://scraperwikiviews.com/run/pdf-to-html-preview-1/
+
