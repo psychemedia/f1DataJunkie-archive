@@ -323,10 +323,11 @@ def augmentQualiData(datatimes,dataclassification):
 	augmentedData={}
 	tmpc={}
 	for tmp in dataclassification:
-		if tmp[4]!='DNS': toptimes=[tsa.getTime(tmp[4])]
+		if tmp[4]!='DNS' and tmp[4]!='DNF': toptimes=[tsa.getTime(tmp[4])]
 		else: toptimes=[0]
 		if len(tmp)>8:
-			toptimes.append(tsa.getTime(tmp[8]))
+			if tmp[8]!='DNF':
+				toptimes.append(tsa.getTime(tmp[8]))
 			if len(tmp)==14:
 				toptimes.append(tsa.getTime(tmp[11]))
 		toptimes.sort()
@@ -499,7 +500,11 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 		for traps in qualispeeds:
 			for driver in traps:
 				driverNum=driver[1]
-				sessionStats[driverNum][trapnames[tt]]=driver[3]
+				if driverNum in sessionStats:
+					sessionStats[driverNum][trapnames[tt]]=driver[3]
+				else:
+					sessionStats[driverNum]={}
+					sessionStats[driverNum][trapnames[tt]]=driver[3]
 			tt=tt+1
 		sn=1
 		dultimate={}
@@ -515,7 +520,7 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				sessionStats[c[1]]['team']=c[3]
 				if c[0]!='DNQ' and int(c[0])<17: offset=-3
 				else: offset=-4
-				if c[-2]!='DNS':
+				if c[-2]!='DNS' and c[-2]!='DNF':
 					sessionStats[c[1]]['qualitime']=tsa.getTime(c[offset])
 					sessionStats[c[1]]['percent']=c[6]
 				else:
@@ -548,13 +553,69 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 					sessionStats[driverNum][x]=0 
 			sessionStats[driverNum]['ultimate']=float(sessionStats[driverNum]['sector1'])+float(sessionStats[driverNum]['sector2'])+float(sessionStats[driverNum]['sector3'])
 			ss=sessionStats[driverNum]
-			outTxt=[ss['position'],driverNum,ss['name'],ss['sector1'],ss['sector2'],ss['sector3']]
+			#hackfix
+			outTxt=[]
+			if 'position' in ss: outTxt.append(ss['position'])
+			else: outTxt.append('')
+			outTxt.append(driverNum)
+			for tmpi in ['name','sector1','sector2','sector3']:
+				if tmpi in ss:outTxt.append(ss[tmpi])
+				else: outTxt.append('')
+			#outTxt=[ss['position'],driverNum,ss['name'],ss['sector1'],ss['sector2'],ss['sector3']]
+			
 			if typ=='quali': outTxt.append(ss['qualitime'])
 			else: outTxt.append(ss['grid'])
+			if driverNum not in fastlap: fastlap[driverNum]=0
 			outTxt=outTxt+[ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']]
 			writer.writerow(outTxt)
 		f.close()
+
+def getlaptime(driverHistory,carNum, lap):
+	laptime=''
+	#print lap, driverHistory
+	if str(lap) in driverHistory:
+		laptime=driverHistory[str(lap)]
+	return laptime
+
+def instopafterLaps(driverHistory,carNum,lap):
+	#[['1', ['8', '1:59.687'], ['1', '2:00.172', '0.485'],
+	threelaps=[]
+	threelaps.append(getlaptime(driverHistory,carNum,int(lap)-1))
+	threelaps.append(getlaptime(driverHistory,carNum,int(lap)))
+	threelaps.append(getlaptime(driverHistory,carNum,int(lap)+1))
+	threelaps.append(getlaptime(driverHistory,carNum,int(lap)+2))
+	'''
+	lap3=getlaptime(driverHistory,carNum,int(lap)+1)
+	lap4=getlaptime(driverHistory,carNum,int(lap)+2)
+	if lap3=='' and lap4!='':
+		lap3=lap4
+		lap4=getlaptime(driverHistory,carNum,int(lap)+3)
+	threelaps.append(lap3)
+	threelaps.append(lap4)
+	'''
+	return threelaps
 	
+def output_pitStops(stops,history,analysis):
+	#['24', 'T. GLOCK', 'Marussia Virgin Racing', '1', '1', '14:05:58', '35.092', '35.092']
+	driverHistory={}
+	#modify driverHistory to be analysis but with lap 1 time from history
+	lap1times=history[0]
+	for t in lap1times:
+		driverHistory[t[0]]={}
+	for hl in analysis:
+		driver=hl[0]
+		if driver in driverHistory:
+			for pair in tsa.pairs(hl[4:]):
+				driverHistory[driver][pair[0]]=tsa.getTime(pair[1])
+
+	for stop in stops:
+		carNum=stop[0]
+		lap=stop[4]
+		stoptime=tsa.getTime(stop[6])
+		if carNum in driverHistory:	
+			threelaps=instopafterLaps(driverHistory[carNum],carNum,lap)
+		else: threelaps=['','','','']
+		print carNum,lap,stoptime,threelaps
 #-----
 
 def setRaceStats(data,carData,raceStats={}):
@@ -571,6 +632,8 @@ for arg in args[2:]:
 		
 		#Need to check to see if the enhanced data file exists and if so, load that
 		#otherwise, generate the new enhanced history file
+		output_pitStops(data.stops,data.history, data.analysis)
+		break
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
 		raceStats=setRaceStats(data,carData)
