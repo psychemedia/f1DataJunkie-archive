@@ -29,7 +29,7 @@ race='sin'
 ...and then something relevant for the rest of the filename
 '''
 #enter slug for timing sheet here
-typ='qualifying-classification'
+typ='race-chart'
 #enter page footer slug
 slug="<b>2011 FORMULA 1"
 #typ can be any of the following (if they use the same convention each race...)
@@ -158,6 +158,16 @@ def stub():
 #The scraper functions themselves
 #I just hope the layout of the PDFs, and the foibles, are the same for all races!
 
+
+def storeRaceHistory(rawdata):
+    for result in rawdata:
+        lap=result[0]
+        for cardata in result[1:]:
+            if len(cardata)==2: gap=''
+            else: gap= cardata[2]
+            scraperwiki.sqlite.save(unique_keys=['lapDriver'], table_name=TYP, data={ 'lapDriver':lap+'_'+cardata[0], 'lap':lap,'driverNum':cardata[0],'time':getTime(cardata[1]), 'gap':gap})
+
+
 def race_history():
     lapdata=[]
     txt=''
@@ -170,6 +180,7 @@ def race_history():
     print lapdata
     print txt
     print 'nlaps timing',str(len(lapdata))
+    storeRaceHistory(lapdata)
 
 def race_history_page(page,lapdata=[]):
     scraping=0
@@ -223,6 +234,15 @@ def race_history_page(page,lapdata=[]):
     #print laps
     return lapdata
 
+def storeSessionRaceChart(rawdata):
+    for result in rawdata:
+        #scraperwiki.sqlite.save(unique_keys=['lap'], table_name=TYP, data={'lap':result[0],'positions':'::'.join(result[1:])})
+        lap=result[0]
+        pos=1
+        for carpos in result[1:]:
+            scraperwiki.sqlite.save(unique_keys=['lapPos'], table_name=TYP, data={'lapPos':lap+'_'+str(pos), 'lap':lap,'position':pos,'driverNum':carpos})
+            pos=pos+1
+
 def race_chart():
     laps=[]
     for page in pages:
@@ -231,6 +251,7 @@ def race_chart():
     for lap in laps:
         print lap
     print laps
+    storeSessionRaceChart(laps)
 
 def race_chart_page(page,laps):
     cnt=0
@@ -268,6 +289,10 @@ def race_chart_page(page,laps):
     return laps
 
 
+def storeSessionRaceSummary(rawdata):
+    for result in rawdata:
+        scraperwiki.sqlite.save(unique_keys=['car_stop'], table_name=TYP, data={'car_stop':result[0]+'_'+result[3],'pos':result[0],'team':result[2],'stop':result[3],'lap':result[4],'name':result[1],'stoptime':result[6],'totalstoptime':result[7],'driverNum':result[0], 'timeOfDay':result[5]})
+
 def race_summary():
     stops=[]
     for page in pages:
@@ -276,6 +301,7 @@ def race_summary():
     for stop in stops:
         print stop
     print stops
+    storeSessionRaceSummary(stops)
 
 def race_summary_page(page,stops=[]):
     scraping=0
@@ -426,6 +452,13 @@ def qualifying_times_page(page,pos,dpos):
                     scraping=1
     return pos,dpos
 
+def storeRaceAnalysis(rawdata):
+    for result in rawdata:
+        print result
+        datapair=pairs(result)
+        driverNum,driverName=datapair.next()
+        for lap,laptime in datapair:
+            scraperwiki.sqlite.save(unique_keys=['driverLap'], table_name=TYP, data={'driverLap':driverNum+'_'+lap,'lap':lap, 'laptime':laptime, 'name':driverName, 'driverNum':driverNum, 'laptimeInS':getTime(laptime)})
 
 def race_analysis():
     pos=1
@@ -453,6 +486,7 @@ def race_analysis():
         print dposcorr.append(dupe)
     print dpos
     print dposcorr
+    storeRaceAnalysis(dposcorr)
 
 def race_analysis_page(page,pos,dpos):
     #There are still a few issues with this one:
@@ -734,6 +768,23 @@ def qualifying_trap():
     print results
     storeSessionQualiTrap(results)
 
+def storeQualiClassification(rawdata):
+    for result in rawdata:
+        if len(result)>4: q1_laps=result[4]
+        else: q1_laps=''
+        if len(result)>5: q2_laps=result[5]
+        else: q2_laps=''
+        if len(result)>8: q3_laps=result[8]
+        else: q3_laps=''
+        if len(result)>9: q1_time=result[9]
+        else: q1_time=''
+        if len(result)>11: q2_time=result[11]
+        else: q2_time=''
+        if len(result)>12: q3_time=result[12]
+        else: q3_time=''
+        scraperwiki.sqlite.save(unique_keys=['name','driverNum','pos'], table_name=TYP, data={'pos':result[0],'fastlap':getTime(result[5]), 'name':result[2], 'team':result[3],'driverNum':result[1], 'q1_laps':q1_laps,'q2_laps':q2_laps,'q3_laps':q3_laps, 'q1_time':q1_time,'q2_time':q2_time,'q3_time':q3_time})
+
+
 def qualifying_classification():
     # print the first hundred text elements from the first page
     page = pages[0]
@@ -801,6 +852,17 @@ def qualifying_classification():
         print 'result',result
     #del results[-1]
     print results
+    storeQualiClassification(results)
+
+def storeRaceClassification(rawdata):
+    pos=1
+    for result in rawdata:
+        if result[0]!='FASTEST LAP':
+            try: fastlap=getTime(result[5])
+            except: fastlap=''
+            scraperwiki.sqlite.save(unique_keys=['name','driverNum'], table_name=TYP, data={'pos':result[5],'fastlap':fastlap, 'name':result[1], 'team':result[3],'nationality':result[2],'driverNum':result[0], 'laps':result[4], 'result':pos, 'gap':result[6], 'fastlap':result[-2],'speed':result[-3]})
+    pos=pos+1
+
 
 def race_classification():
     #under development - need to handle 'NOT CLASSIFIED'
@@ -842,6 +904,7 @@ def race_classification():
                 if txt.startswith("<b>LAP<"):
                     scraping=1
     print results 
+    storeRaceClassification(results)
 
 if typ=="qualifying-classification":
     qualifying_classification()
