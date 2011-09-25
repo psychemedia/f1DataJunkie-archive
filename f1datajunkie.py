@@ -633,7 +633,6 @@ for arg in args[2:]:
 		#Need to check to see if the enhanced data file exists and if so, load that
 		#otherwise, generate the new enhanced history file
 		output_pitStops(data.stops,data.history, data.analysis)
-		break
 		carData=tsa.initEnhancedHistoryDataByCar(data.history)
 		carData=augmentHistoryData(carData)
 		raceStats=setRaceStats(data,carData)
