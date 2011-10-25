@@ -106,6 +106,11 @@ p=ggplot(battledata)  + geom_point(aes(y=-5*posdelta,x=lap)) + geom_point(aes(y=
 print (p)
 }
 
+# I can't get the colour mappings to work in ggplot, so falling back on plot
+battlePlotByPos=function(x){
+dummy=plot(-5*posdelta~lap,data=subset(proximity,pos==x),col=mycolourfn(car),ylim=c(-20,25),pch=myshapefn(car),xlab='Lap',ylab='Time difference (s)') + points(timeToPosInFront~lap,data=subset(proximity,pos==x),pch=3,col=8)+points(timeToPosBehind~lap,data=subset(proximity,pos==x),pch=4,col=8)
+}
+
 # Race Summary Chart
 # Thanks to Joran on Stack Overflow for helping improve the code used to genearte this image
 # http://stackoverflow.com/questions/7861771/omitting-a-missing-x-axis-value-in-ggplot2-convert-range-to-categorical-variabl
@@ -221,7 +226,6 @@ speedTime(racestats,'sector2','inter2',c(min(racestats$inter2)-2,max(racestats$i
 \begin{figure}
 \begin{minipage}[b]{0.5\linewidth}
 \centering
-
 <<speedTimeS3,echo=F,fig=T,width=5,height=5>>=
 speedTime(racestats,'sector3','finish',c(min(racestats$finish)-2,max(racestats$finish)+2))
 @
@@ -249,7 +253,6 @@ The \emph{stint summary} chart summarises stints, defined for the purposes of th
 \begin{center}
 <<fig = T, echo = F>>=
 p=ggplot(times)+geom_point(aes(y=driverName, x=lap,col=stint,size=3)) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")
-
 print(p)
 @
 \caption{Stint Summary; colours denote stint number. \emph{(Note that drive-through/DT and stop-and-go penalities result in an increase in the stint count.)}}
@@ -258,6 +261,68 @@ print(p)
 \noindent\textbf{Things to look for} Does the occurrence and number of stints suggest different pit stop strategies were in place?
 
 \noindent\textbf{Notes} I have to admit, I don't find this chart very informative. Is there a better way of presenting the information that allows us to more easily compare stint lengths? Maybe colouring by tyre would make this chart more useful, perhaps using an underlaid cross to highlight PIT laps on occasions where drivers move onto the same set of tyres they were using in the previous stint?
+
+\newpage
+\subsection{Battle Plots for Position}
+The \emph{battle plots for position} show activity around the specified race position, depicting the car in the corresponding position on each lap and the time to the cars in the positions immediately ahead and immediately behind.
+
+The colour of the car along the x-axis identifies the team, and the symbol shows whether it is driver 1 (\emph{circle}) or driver 2 (\emph{triangle}) in the team. When the ``position car'' symbol is off the x-axis, it identifies the number of positions that that car \emph{gained} (above the line) or \emph{lost} (below the line) since the last lap in order to enter the specified race position.
+
+The grey + symbols \emph{above} the line identify the time to the car in race position immediately ahead, and the grey x symbols \emph{below} the line identify the time to the car in race immediately behind the car in the race position of interest.
+
+\begin{figure}
+\begin{minipage}[b]{0.9\linewidth}
+\centering
+<<fig = T, echo = F, width=7,height=7>>=
+battlePlotByPos(1)
+@
+\caption{Battle plot for 1st}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP2,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(2)
+@
+\caption{Battle plot for 2nd}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP3,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(3)
+@
+\caption{Battle plot for 3rd}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\noindent\textbf{Things to look for} If the car in the race position ahead is close (the + marks above the axis are close to the axis), the car in the current position may be battling for the position ahead. If the car in the race position behind is close (the x marks below the line are close to the axis), the car in the current position may be fighting to keep the position. If car-in-front or car-behind marks are going away from the axis as we move left to right (increasing lap count), that means the car in the current position is either falling behind the car ahead, or pulling away from the car behind.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP4,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(4)
+@
+\caption{Battle plot for 4th}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP5,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(5)
+@
+\caption{Battle plot for 5th}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
 
 \newpage
 \section{Team Summaries}
@@ -841,21 +906,27 @@ battleplot(23)
 
 \newpage
 \section{Feedback}
-This report format is something of an experiment, so all comments appreciated, particularly on:
+This report format is something of an experiment, providing a ``safe'', yet authentic, context for me to explore data handling and visualisation design in conceptual terms, as well as giving some real data to work with as I try to get my head round the R statistical programming language. It's also providing something of a testbed for me to get back to grips with automated report generation/workflows.
+
+Given the audience demographics of Formula One, I'm also mindful that folk reading this may be interested in how similar techniques, whether relating to data publicaation, data visualisation or automated document creation, may be relevant to their own work related - or personal - projects... which is why I'm trying to be as open as I can about how this document was created, and everything that has gone in to making it. I don't think there's quite enough here for an Open University shortcourse (that's the day job!), but you never know...!
+
+All comments appreciated, particularly on:
 
 \begin{itemize}
 \item \emph{chart types}: there are several experimental chart types, as well as my take on more traditional motor sport style chart. Feedback and suggestions welcome on the usefulness/clarity of these charts, things to look for in the charts, suggested improvements to the visual design of the charts.
-\item \emph{scripts}: the latest version of the "source code" for this document is available from:\\ \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.Rnw}
+\item \emph{scripts}: the latest version of the ``source code'' for this document is available from:\\ \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.Rnw}
 
 \end{itemize}
 
 Please send feedback to: \emph{tony.hirst@gmail.com}, or visit \emph{f1datajunkie.blogspot.com}
 
-At the moment, I'm using a single, monolithic script to generate the report. Ideally, this needs splitting into several components that are then drawn together automagically. (If you can provide hints/examples/advice on how to do this, maybe even using this document as an example, it'd save me a load of time.;-) The R functions used to generate charts are collected at the top of the document - all comments on how to improve them in terms of "best practice" much appreciated. I generate the PDF from the source Sweave document within RStudio (\emph{rstudio.org} using the MacTeX LateX processor).
+At the moment, I'm using a single, monolithic script to generate the report. Ideally, this needs splitting into several components that are then drawn together automagically. (If you can provide hints/examples/advice on how to do this, maybe even using this document as an example, it'd save me a load of time.;-) The R functions used to generate charts are collected at the top of the document - all comments on how to improve them in terms of ``best practice'' much appreciated. I generate the PDF from the source Sweave document within RStudio (\emph{rstudio.org} using the MacTeX LateX processor).
 
-Please feel free to fork the "source code" of this documents and make your own changes to it, for example, by using the report as a shell for your own comments/analysis of the race. (I'm still a git/github novice, so I don't at the moment know how to pull any changes back into my repository!)
+Please feel free to fork the ``source code'' of this documents and make your own changes to it, for example, by using the report as a shell for your own comments/analysis of the race. (I'm still a git/github novice, so I don't at the moment know how to pull any changes back into my repository!)
 
 A copy of the current version of this document can be found at:\\
 \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.pdf}
+
+PS If any motor racing industry folk want to know more, please do get in touch...:-)
 
 \end{document}
