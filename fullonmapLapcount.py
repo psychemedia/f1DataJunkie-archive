@@ -1,30 +1,33 @@
 import simplejson,urllib
 import csv
 import os,sys
-fpath='telemetry/telem-2010-valencia-mclaren/'
+
+yr="2010"
+countryFull=sys.argv[1]#'hungary'
+countrySlug=sys.argv[2]#'hun'
+fpath='../telemetry/telem-'+yr+'-'+countryFull+'-mclaren/'
 maxlaps=78
 
 
-	
-drivername=sys.argv[1]
+drivername=sys.argv[3]
 
-f2name=drivername+"full_val_2010"
+f2name=drivername+"full_"+countrySlug+"_"+yr
 f2i=1
 newLap=False
 oldDist=0
 ##f2=open('/Users/ajh59/Downloads/telem-2010-bahrain-mclaren/HAM.csv',"wb+")
-f2=open('generatedfiles/'+f2name+".csv","wb+")
+f2=open('../generatedfiles/'+f2name+".csv","wb+")
 csv_file = csv.writer(f2)
 csv_file.writerow([ "file",'timestamp','NGPSLatitude','NGPSLongitude', 'NGear','nEngine','rThrottlePedal','pBrakeF','gLat','gLong','sLap','vCar','Lap','lat/lng' ])
 
 samplelaps=[5]
 distSamples=[]
 
-f3=open('generatedfiles/'+f2name+".gdf","wb+")
+f3=open('../generatedfiles/'+f2name+".gdf","wb+")
 gdf_file = csv.writer(f3)
 gdf_file.writerow([ "nodedef>name VARCHAR",'label VARCHAR','NGPSLatitude DOUBLE','NGPSLongitude DOUBLE','NGear INT','nEngine INT','rThrottlePedal INT','pBrakeF INT','gLat INT','gLong INT','sLap INT','vCar DOUBLE','Lap INT' ])
 
-f4=open('generatedfiles/'+f2name+"-elevation.csv","wb+")
+f4=open('../generatedfiles/'+f2name+"-elevation.csv","wb+")
 el_file = csv.writer(f4)
 el_file.writerow([ "elevation","lat","long","distance" ])
 
@@ -50,20 +53,23 @@ for i in listing:
 		try:
 			data=simplejson.loads(txt)
 		except:
-			pass
+			print 'something bad happened...',i
 		#print data
 		if data and 'drivers' in data:
 			if drivername in data['drivers']:
 				if 'telemetry' in data['drivers'][drivername]:
 					d=data['drivers'][drivername]['telemetry']
-					if started==False and d['vCar']==0:
+					if data['drivers'][drivername]['additional']['lap']>=1:
+						started=True
+						l=d
+					elif (started==False and d['vCar']==0):
 						started=True
 					if started==True:
 						if racing==False:
 							if d['vCar']==0:
 								l=d
 							else:
-								print "let's go racing"
+								print "let's go racing",i
 								csv_file.writerow([ i,l['timestamp'],l['NGPSLatitude'],l['NGPSLongitude'], l['NGear'],l['nEngine'],l['rThrottlePedal'],l['pBrakeF'],l['gLat'],l['gLong'],l['sLap'],l['vCar'],f2i,str(l['NGPSLatitude'])+','+str(l['NGPSLongitude']) ])
 								gdf_file.writerow([ i,l['timestamp'],l['NGPSLatitude'],l['NGPSLongitude'], l['NGear'],l['nEngine'],l['rThrottlePedal'],l['pBrakeF'],l['gLat'],l['gLong'],l['sLap'],l['vCar'],f2i ])
 								racing=True
@@ -86,7 +92,7 @@ gdf_file.writerow(["edgedef>from INT","to INT"])
 for laps in lapdata:
 	gdf_file.writerow(laps)
 
-
+'''
 heightsamples=heightsamples.rstrip('|')
 url='http://maps.googleapis.com/maps/api/elevation/json?locations='+heightsamples+'&sensor=false'
 
@@ -101,3 +107,4 @@ for el in elevationData['results']:
 for sample in elout:
 	el_file.writerow(sample)
 print elout
+'''

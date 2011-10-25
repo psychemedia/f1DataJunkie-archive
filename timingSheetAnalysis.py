@@ -1,4 +1,4 @@
-from data import mco2011_data as data
+from data import currdata as data
 
 #-----------UTILITY FUNCTIONS---------------
 # Return data tuples from a list
@@ -213,7 +213,7 @@ def fuelCorrectedLapTime(totalLaps,lap,lapTime):
 	fuelPenalty=data.fuel['penalty']
 	fuelLapsWeightEffect=fuelConsumption * fuelPenalty
 	fuelCorrectedLapTime=lapTime-(totalLaps-lap)*fuelLapsWeightEffect
-	#print "Fuel weight penalty time correction:",lapTime,fuelCorrectedLapTime
+	print "Fuel weight penalty time correction:",fuelConsumption,fuelPenalty,fuelLapsWeightEffect,lapTime,fuelCorrectedLapTime
 	return formatTime(fuelCorrectedLapTime)
 
 def initEnhancedHistoryDataByCar(data,enhancedData={}):
