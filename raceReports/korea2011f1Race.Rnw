@@ -18,6 +18,10 @@ Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie 
 
 \maketitle
 
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
 \newpage
 \section{Race Summary Data}
 In this section, you will be able to find macroscopic charts that summarise the race over the whole field.
@@ -34,7 +38,9 @@ the \emph{vertical line} denotes the RANGE OF RACE POSITIONS held during the rac
 \begin{figure}[htbp]
 \begin{center}
 <<fig = T, echo = F>>=
+#This key identifies the Google spreadsheet containing the scraped timing data
 sskey='0AmbQbL4Lrd61dHlibmxYa2JyT05Na2pGVUxLWVJYRWc'
+
 library("ggplot2")
 require(RCurl)
 
@@ -42,20 +48,25 @@ gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://sprea
 
 driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
 
+# Grab data from the Race Statistics sheet
 racestats=gsqAPI(sskey,'select *',gid='13')
 racestats$driverName=factor(racestats$driverNum,labels = driverLabels)
 
+# Grab data from the Race Proximity sheet
 proximity=gsqAPI(sskey,'select *',gid='12')
 proximity$driverName <- factor(proximity$car,labels = driverLabels)
 proximity$posdelta=c(0,diff(proximity$pos))
 proximity$stop=by(proximity, 1:nrow(proximity), function(row) if (row$pitstop==1) row$pitstop else NA)
 
 maxLap=max(proximity$lap)
+firstLap=subset(proximity,lap==1)
 
+# Grab data from the Comprehensive Race Laptimes Sheet
 times=gsqAPI(sskey,'select *',10)
 times$driverName=factor(times$car,labels = driverLabels)
 
-firstLap=subset(proximity,lap==1)
+fuelcorrThreshold=min(times$fuelCorrectedLaptime)*1.1
+yrange=c(min(times$fuelCorrectedLaptime),fuelcorrThreshold)
 
 mycolours=c(26,26,178,178,33,33,270,270,142,142,254,254,13,128,128,630,630,139,139,501,501,32,32,55,55)
 mycolourfn=function(x) colours()[mycolours[x]]
@@ -64,6 +75,11 @@ myshapefn=function(x) myshapes[x]
 
 speedTime=function(racestats,timeData,speedData,speedRange,driverName='driverName'){
 p=ggplot(racestats,aes_string(x=timeData,y=speedData,label=driverName))+ geom_text(size=4,angle=45)+scale_x_continuous(limits=speedRange)+opts(legend.position = "none") + scale_x_continuous('Time (s)')+ scale_y_continuous('Speed (km/h)')
+print(p)
+}
+
+timesDistribution=function(timeData,ydat,ytxt,xdat='driverName'){
+p=ggplot(timeData)+geom_boxplot(aes_string(x=xdat,y=ydat))+opts(legend.position = "none") + scale_y_continuous(ytxt)+opts(axis.text.x=theme_text(angle=90))+xlab(NULL)
 print(p)
 }
 
@@ -78,11 +94,9 @@ raceStintBox=function(stintTimes,fct,yrange){
   print(p)
 }
 
-fuelcorrThreshold=min(times$fuelCorrectedLaptime)*1.1
-yrange=c(min(times$fuelCorrectedLaptime),fuelcorrThreshold)
 
 racePosChart=function(posData){
-p=ggplot(posData) + geom_line(aes(x=lap,y=pos,group=driverName,col=car)) + geom_point(aes(x=lap,y=pos*stop,col=car)) + scale_y_discrete( "Driver",limits=1:24,breaks=1:24) + scale_x_continuous('Lap') + opts(legend.position="none")
+p=ggplot(posData) + geom_line(aes(x=lap,y=pos,group=driverName,col=car)) + geom_point(aes(x=lap,y=pos*stop,col=car)) + scale_y_discrete( "Driver",limits=1:24,breaks=1:24) + scale_x_continuous('Lap',limits=c(0,maxLap+1)) + opts(legend.position="none")
 print(p)
 }
 
@@ -95,7 +109,8 @@ print (p)
 # Race Summary Chart
 # Thanks to Joran on Stack Overflow for helping improve the code used to genearte this image
 # http://stackoverflow.com/questions/7861771/omitting-a-missing-x-axis-value-in-ggplot2-convert-range-to-categorical-variabl
-p=ggplot() + 
+raceSummaryChart=function(){
+  p=ggplot() + 
     geom_step(aes(x=proximity$driverName, y=proximity$pos, group=proximity$driverName)) + 
     geom_point(aes(x=firstLap$driverName, y=firstLap$pos, pch=3, size=2)) + 
     geom_point(aes(x=racestats$driverName, y=racestats$classification,size=2), label='Final') + 
@@ -106,6 +121,9 @@ p=ggplot() +
 
 
 print(p)
+}
+
+raceSummaryChart()
 @
 \caption{Race Summary Chart}
 \end{center}
@@ -138,6 +156,39 @@ print(p)
 \\
 \noindent\textbf{Feedback} The \emph{Position Density Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
 
+\newpage
+\subsection{Laptime Distributions}
+The laptime distributions summarise the overall distributions of recorded and fuel corrected lap times for each driver. This is not necessarily very informative, (the stint analysis laptime distributions provided for each team may be more useful). 
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<laptimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'lapTime','Recorded laptimes (s)')
+@
+\caption{Laptime distribution}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fcTimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'fuelCorrectedLaptime','Fuel corrected laptimes (s)')
+@
+\caption{Fuel corrected laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.9\linewidth}
+\centering
+<<fig = T, echo = F, width=7,height=7>>=
+timesDistribution(subset(times,fuelCorrectedLaptime<fuelcorrThreshold),'fuelCorrectedLaptime','Fuel corrected laptimes (s) [slow laps omitted]')
+@
+\caption{Fuel Corrected Laptime Distribution (Slow laps omitted)}
+\end{minipage}
+\end{figure}
 
 \newpage
 \subsection{(Sector) Times and Speeds}
@@ -219,10 +270,6 @@ The team summaries include the following chart types:
 \item \textbf{Race position chart} Inspired by the popular chart that depicts race position for the whole field, the \emph{race position charts} show the positions, by lap, for each car in the team. PIT events are also highlighted.
 \item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the prvious lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
 \end{itemize}
-
-\renewcommand{\topfraction}{0.85}
-\renewcommand{\textfraction}{0.1}
-\renewcommand{\floatpagefraction}{0.75}
 
 \newpage
 \subsection{Red Bull Racing (RBR)}
