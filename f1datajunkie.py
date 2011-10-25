@@ -563,7 +563,9 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 				else: outTxt.append('')
 			#outTxt=[ss['position'],driverNum,ss['name'],ss['sector1'],ss['sector2'],ss['sector3']]
 			
-			if typ=='quali': outTxt.append(ss['qualitime'])
+			if typ=='quali':
+				if 'qualitime' in ss: outTxt.append(ss['qualitime'])
+				else: outTxt.append('')
 			else: outTxt.append(ss['grid'])
 			if driverNum not in fastlap: fastlap[driverNum]=0
 			outTxt=outTxt+[ss['ultimate'],fastlap[driverNum],ss['inter1'],ss['inter2'],ss['finish'],ss['trap'],ss['traptimeofday'],ss['team']]
