@@ -3,16 +3,21 @@
 \usepackage{a4wide}
 \usepackage{color}
 
-\title{F1 2011 Korea (Race)\\A Statistical Graphics Review}
+
+\title{F1 2011 Korea (Race)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
 
 \author{
-Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog 
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
 }
+
 
 \date{\today}
 
+
 \begin{document}
+
 \maketitle
+
 \newpage
 \section{Race Summary Data}
 In this section, you will be able to find macroscopic charts that summarise the race over the whole field.
@@ -65,8 +70,8 @@ print(p)
 raceStintBox=function(stintTimes,fct,yrange){
   if (fct>0) stintTimes=subset(stintTimes,fuelCorrectedLaptime<fct)
   stintTimes$driverName=factor(stintTimes$driverName)
-	p=ggplot( stintTimes ) +
-		geom_boxplot( aes( x=interaction( stint, driverName, sep=":" ), y=fuelCorrectedLaptime ) ) +
+  p=ggplot( stintTimes ) +
+  	geom_boxplot( aes( x=interaction( stint, driverName, sep=":" ), y=fuelCorrectedLaptime ) ) +
 		scale_y_continuous( "Fuel Corrected Laptime (s)",limits=yrange) +
 		scale_x_discrete( "Race Stint:Driver" ) +
 		opts( legend.position="none" ) 
@@ -87,6 +92,9 @@ p=ggplot(battledata)  + geom_point(aes(y=-5*posdelta,x=lap)) + geom_point(aes(y=
 print (p)
 }
 
+# Race Summary Chart
+# Thanks to Joran on Stack Overflow for helping improve the code used to genearte this image
+# http://stackoverflow.com/questions/7861771/omitting-a-missing-x-axis-value-in-ggplot2-convert-range-to-categorical-variabl
 p=ggplot() + 
     geom_step(aes(x=proximity$driverName, y=proximity$pos, group=proximity$driverName)) + 
     geom_point(aes(x=firstLap$driverName, y=firstLap$pos, pch=3, size=2)) + 
@@ -130,25 +138,6 @@ print(p)
 \\
 \noindent\textbf{Feedback} The \emph{Position Density Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
 
-\newpage
-\subsection{Stint Summary}
-The \emph{stint summary} chart summarises stints, defined for the purposes of this graphic as periods between pit entries/exits. As well as pit stops, drive through penalties and stop-and-go penalties also result
-
-\noindent\textbf{To do} find some way of marking pit stops vs DT etc. Colour stint by tyre (prime/option, new/old)
-
-\begin{figure}[htbp]
-\begin{center}
-<<fig = T, echo = F>>=
-p=ggplot(times)+geom_point(aes(y=driverName, x=lap,col=stint,size=3)) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")
-
-print(p)
-@
-\caption{Stint Summary; colours denote stint number. \emph{(Note that drive-through/DT and stop-and-go penalities result in an increase in the stint count.)}}
-\end{center}
-\end{figure}
-\noindent\textbf{Things to look for} Does the occurrence and number of stints suggest different pit stop strategies were in place?
-
-\noindent\textbf{Notes} I have to admit, I don't find this chart very informative. Is there a better way of presenting the information that allows us to more easily compare stint lengths? Maybe colouring by tyre would make this chart more useful, perhaps using an underlaid cross to highlight PIT laps on occasions where drivers move onto the same set of tyres they were using in the previous stint?
 
 \newpage
 \subsection{(Sector) Times and Speeds}
@@ -200,6 +189,26 @@ speedTime(racestats,'fastestlap','trap',c(min(racestats$trap)-2,max(racestats$tr
 \end{figure}
 
 \newpage
+\subsection{Stint Summary}
+The \emph{stint summary} chart summarises stints, defined for the purposes of this graphic as periods between pit entries/exits. As well as pit stops, drive through penalties and stop-and-go penalties also result
+
+\noindent\textbf{To do} find some way of marking pit stops vs DT etc. Colour stint by tyre (prime/option, new/old)
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(times)+geom_point(aes(y=driverName, x=lap,col=stint,size=3)) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")
+
+print(p)
+@
+\caption{Stint Summary; colours denote stint number. \emph{(Note that drive-through/DT and stop-and-go penalities result in an increase in the stint count.)}}
+\end{center}
+\end{figure}
+\noindent\textbf{Things to look for} Does the occurrence and number of stints suggest different pit stop strategies were in place?
+
+\noindent\textbf{Notes} I have to admit, I don't find this chart very informative. Is there a better way of presenting the information that allows us to more easily compare stint lengths? Maybe colouring by tyre would make this chart more useful, perhaps using an underlaid cross to highlight PIT laps on occasions where drivers move onto the same set of tyres they were using in the previous stint?
+
+\newpage
 \section{Team Summaries}
 The team summary pages summarise team based statistics, allowing comparisons to be drawn diretly between team members.
 
@@ -208,7 +217,7 @@ The team summaries include the following chart types:
 \begin{itemize}
 \item \textbf{Fuel corrected aptime distribution by stint} The \emph{fuel corrected laptime distribution by stint} chart is a graphical statistical summary of fuel corrected lap times by stint for each driver.
 \item \textbf{Race position chart} Inspired by the popular chart that depicts race position for the whole field, the \emph{race position charts} show the positions, by lap, for each car in the team. PIT events are also highlighted.
-\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the prvious lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.)
+\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the prvious lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
 \end{itemize}
 
 \renewcommand{\topfraction}{0.85}
@@ -782,13 +791,24 @@ battleplot(23)
 \end{minipage}
 \end{figure}
 
+
 \newpage
 \section{Feedback}
 This report format is something of an experiment, so all comments appreciated, particularly on:
 
 \begin{itemize}
 \item \emph{chart types}: there are several experimental chart types, as well as my take on more traditional motor sport style chart. Feedback and suggestions welcome on the usefulness/clarity of these charts, things to look for in the charts, suggested improvements to the visual design of the charts.
-\item \emph{scripts}: the latest version of the "source code" for this document is available from: \emph{}
+\item \emph{scripts}: the latest version of the "source code" for this document is available from:\\ \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.Rnw}
 
 \end{itemize}
+
+Please send feedback to: \emph{tony.hirst@gmail.com}, or visit \emph{f1datajunkie.blogspot.com}
+
+At the moment, I'm using a single, monolithic script to generate the report. Ideally, this needs splitting into several components that are then drawn together automagically. (If you can provide hints/examples/advice on how to do this, maybe even using this document as an example, it'd save me a load of time.;-) The R functions used to generate charts are collected at the top of the document - all comments on how to improve them in terms of "best practice" much appreciated. I generate the PDF from the source Sweave document within RStudio (\emph{rstudio.org} using the MacTeX LateX processor).
+
+Please feel free to fork the "source code" of this documents and make your own changes to it, for example, by using the report as a shell for your own comments/analysis of the race. (I'm still a git/github novice, so I don't at the moment know how to pull any changes back into my repository!)
+
+A copy of the current version of this document can be found at:\\
+\emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.pdf}
+
 \end{document}
