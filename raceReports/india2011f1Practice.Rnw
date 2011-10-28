@@ -1,0 +1,1011 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dC1laDBjZkZkcTlQRzNBZVl4RE02Z1E'
+
+library("ggplot2")
+require(RCurl)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+fp1times=gsqAPI(sskey,'select *',gid='0')
+fp2times=gsqAPI(sskey,'select *',gid='2')
+fp3times=gsqAPI(sskey,'select *',gid='4')
+fpcombinedclassification=gsqAPI(sskey,'select *',gid='7')
+fpcombinedclassification$driverName=factor(fpcombinedclassification$driverNum,labels = driverLabels)
+
+
+fpSessionUtilisation=function(sessiondata){
+  p=ggplot(sessiondata) + geom_point(aes(x=Elapsed,y=reorder(Name, DriverNum),pch=1)) + xlab('Elapsed time in session (s)') +ylab(NULL)
+  print(p)
+}
+
+fpFullsessionUtilisation=function(fp1times,fp2times,fp3times){
+  p=ggplot() + geom_point(aes(x=1000+max(fp1times$Elapsed)+max(fp2times$Elapsed)+fp3times$Elapsed,y=fp3times$DriverNum,col=fp3times$Stint.Length)) +  geom_point(aes(x=fp1times$Elapsed,y= fp1times$DriverNum,col=fp1times$Stint.Length)) + geom_point(aes(x=500+max(fp1times$Elapsed)+fp2times$Elapsed,y= fp2times$DriverNum,col=fp2times$Stint.Length)) + xlab('Elapsed time in session (s)') +ylab('Car Number') + geom_vline(xintercept = c(max(fp1times$Elapsed)+max(fp2times$Elapsed)+750,max(fp1times$Elapsed)+250),color='grey')+ scale_colour_continuous(name = "Stint length")
+  print(p)
+}
+
+
+fpSessionTeamggBox=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+  # y-axis: laptime distribution
+  if (nrow(df)>0){
+  #	p=ggplot( subset( df, Time < threshold ) ) +
+	#    geom_boxplot( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	#    scale_y_continuous( "Laptime (s)") +
+	#    opts( axis.text.x=theme_text( angle=45 ), legend.position="none" )  +xlab(NULL)
+    p=qplot(x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time, data=subset( df, Time < threshold ), geom=c("boxplot", "jitter")) +
+      scale_y_continuous( "Laptime (s)") +
+      opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+nullplot=function(){
+  p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)
+  print(p)
+}
+fpSessionTeamggPoint=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+	# y-axis: laptime distribution
+  if (nrow(df)>0){
+  	p=ggplot( subset( df, Time < threshold ) ) +
+	    geom_point( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	    scale_y_continuous( "Laptime (s)") +
+	    opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+
+fpxRank=function(fpcombinedstats,cat='time',ytxt='Fastest lap time (s)'){
+  fp1stats=subset(fpcombinedstats,session=='fp1' & time>0 & speed>0)
+  fp2stats=subset(fpcombinedstats,session=='fp2' & time>0 & speed>0)
+  fp3stats=subset(fpcombinedstats,session=='fp3' & time>0 & speed>0)
+  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverName',y=cat,pch='session')) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt) + geom_point(data=fp2stats,aes_string(x='driverName',y=cat,pch='session')) #+ geom_point(data=fp3stats,aes_string(x='driverName',y=cat,pch='session')) 
+  print(p)
+}
+
+fpxPosRank=function(sessionstats){
+  p=ggplot() + geom_point(data=fpcombinedclassification,aes(x=driverName,y=pos,groups=session,pch=session,size=session)) + opts(axis.text.x=theme_text(angle=90))+xlab(NULL) + ylab('Classification')
+  print(p)
+}
+  
+fpSessionTeamBoxStintRange=function( df, threshold, geStintLengthMin, geStintLengthMax ) {
+	dff=subset( df, Time < 120 & Stint.Length>=geStintLengthMin & Stint.Length<=geStintLengthMax )
+	boxplot( Time~Stint*DriverNum, data=dff, las=2, ylab="Time(s)", xlab=paste("FP Stint:DriverNum stint range",geStintLengthMin,':',geStintLengthMax))
+}
+
+
+@
+
+\title{F1 2011 India (Practice)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+
+\newpage
+\section{Free Practice Summary}
+
+What went on in the free practice sessions?
+
+\subsection{Session Utilisation Charts}
+\textbf{Session utilisation charts} are an experimental chart type that show how each team made use of the practice sessions, identifying the time during the session when a lap time was recorded. The combined session utilisation chart shows the extent to which each car goes out, as well as using colour to denote stint length. There are some issues with the combined chart I need to fix: the cars need to be identified as factors, thus removing non-existent car 13, and each car needs labelling (and ordering numerically) and highlighting with a minor(?) gridline. Add grey horizontal lines between each team to highlight the teams (so lines at 2.5:23.5 step 2). 
+
+\subsection{Session comparison chart (lap time, speed, position)}
+The \textbf{quickest lap comparison}, \textbf{fastest speed comparison} and \textbf{position comparison} charts summarise the best times/speeds recorded in each session along with the standings. The quicker cars are the ones near the bottom of the fastest lap chart and the top of the speed chart. Note that the name labels for the race drivers are used to identify the \emph{car} that participated in each session. Some teams may utilise a third driver in the earlier practice sessions.
+
+Looking across the \emph{Classification} rows and down the columns, there should be at most once instance of each symbol (evidence of that classified position for each of the sessions) in each row and column. If there is a symbol missing, it may be hidden beneath one of the larger symbols. So for example, if the same car was placed third in free practice 2 and 3, we would only see the larger square denoting the FP3 classification. (I wonder - can I specify the layer/height of a symbol as an aesthetic variable?)
+
+\textbf{To do} Add unit gridlines and labels to the position chart. Is it maybe worth including some sort of long stint summary?
+
+\newpage
+%\begin{figure}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp1utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp1times)
+%@
+%\caption{FP1 Session Utilisation}
+%\end{minipage}
+%\hspace{0.2cm}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp2utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp2times)
+%@
+%\caption{FP2 Session Utilisation}
+%\end{minipage}\hspace{0.2cm}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp3utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp3times)
+%@
+%\caption{FP3 Session Utilisation}
+%\end{minipage}
+%\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpFullsessionUtilisation(fp1times,fp2times,fp3times)
+@
+\caption{FP1-3 Session Utilisation}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1_3fasttime,echo=F,fig=T,width=5,height=5>>=
+fpxRank(fpcombinedclassification,'time','Quickest lap time (s)')
+@
+\caption{Free Practice 1-3: Fastest lap comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1_3fastspeed,echo=F,fig=T,width=5,height=5>>=
+fpxRank(fpcombinedclassification,'speed','Fastest speed (mph)')
+@
+\caption{Free Practice 1-3: Fastest speed comparison}
+\end{minipage}
+\begin{minipage}[b]{1.0\linewidth}
+\centering
+<<fp1_3classification,echo=F,fig=T,width=8,height=8>>=
+fpxPosRank(fpcombinedclassification)
+@
+\caption{Free Practice 1-3: Classification comparison}
+\end{minipage}
+\end{figure}
+
+%\newpage
+%\subsection{Long Stint Summaries}
+
+%The long stint summary charts summarise the distibution of laptimes recorded in a long stint (that is, a stint of at least N laps), with lap times grater than ?? filtered out. (That is, the distribution may summarise different ``substints'' within a stint, and additionally may be a summary of less than N lap times... If you have any suggestions regarding better heauristics for capturing a meaningful summary statistic capturing long stint times, please let me know... At the very least, may I just need to capture fue corrected lap times, in the hope that if we can resolve a stint to a tyre selection, we can start to build up a model of tyre related laptime penalties?)
+%\begin{figure}[htbp]
+%\begin{center}
+%<<fig = T, echo = F>>=
+%MAXTIME=300
+%fpSessionTeamBoxStintRange(fp2times,MAXTIME,8,25)
+%@
+%\caption{FP2 Long Stint Summary Session Utilisation (8 laps+)}
+%\end{center}
+%\end{figure}
+
+
+
+\newpage
+\section{Team Analyses}
+The \emph{Team Analysis} reports provide a set of charts summarising the activity of each team during each practice session, in particular the range of laptimes and their distribution, by stint.
+
+I'm not sure the laptime distribution chart is that useful?
+
+\textbf{To do} Need a table for each team showing fastest lap per stint, and maybe some sort of summary of 'fast times', esp. in longer stints (so eg more than \emph{N} laps within \emph{X}\% of the fastest lap recorded by that team in that session?)
+
+I use the following identifiers for the teams:
+\begin{itemize}
+\item \textbf{RBR}: \emph{Red bull Racing}
+\item \textbf{MCL}: \emph{McLaren}
+\item \textbf{FER}: \emph{Ferrari}
+\item \textbf{MER}: \emph{Mercedes}
+\item \textbf{REN}: \emph{Renault}
+\item \textbf{WIL}: \emph{Williams}
+\item \textbf{FOR}: \emph{Force India}
+\item \textbf{SAU}: \emph{Sauber}
+\item \textbf{TOR}: \emph{Toro Rosso}
+\item \textbf{LOT}: \emph{Team Lotus}
+\item \textbf{HRT}: \emph{HRT}
+\item \textbf{VIR}: \emph{Marussia Virgin}
+\end{itemize}
+
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 RBR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 RBR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 RBR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MCL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MCL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MCL Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FER Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MER Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 REN Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 REN Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 REN Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 WIL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 WIL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 WIL Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FOR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 SAU Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 SAU Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 SAU Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 TOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 TOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 TOR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 LOT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 LOT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 LOT Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 HRT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 HRT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 HRT Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 VIR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 VIR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 VIR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+
+
+
+
+\end{document}
