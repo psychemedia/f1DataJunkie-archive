@@ -181,11 +181,14 @@ print(p)
 \caption{Position Density Chart}
 \end{center}
 \end{figure}
+
 \noindent\textbf{Things to look for} Was the race a procession, (cars holding the same positions for much of the race), or does there appear to have been some position changes (e.g. with cars taking different race positions for a significant amount of the race)? Note that if a car was in first position for half the race, and second place for half the race, we would not be able to distinguish this from a case where first and second changed places each lap! 
 \\
 \noindent\textbf{To do} Explore the possibility of a complementary chart that captures the number of position changes for each car over the course of the race.
 \\
 \noindent\textbf{Feedback} The \emph{Position Density Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
+
+
 
 \newpage
 \subsection{Laptime Distributions}
@@ -230,14 +233,25 @@ timesDistribution(times,'fuelCorrectedLaptime','Fuel corrected laptimes (s)')
 \end{figure}
 
 \begin{figure}
-\begin{minipage}[b]{0.9\linewidth}
-\centering
+\begin{center}
 <<fig = T, echo = F, width=7,height=7>>=
 timesDistribution(subset(times,fuelCorrectedLaptime<fuelcorrThreshold),'fuelCorrectedLaptime','Fuel corrected laptimes (s) [slow laps omitted]')
 @
 \caption{Fuel Corrected Laptime Distribution (Slow laps omitted)}
-\end{minipage}
+\end{center}
 \end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+p=qplot(x=ultimate,y=fastestlap,data=subset(racestats,fastestlap>0 & ultimate>0),label=driverName,col=10*(fastestlap-ultimate))+geom_abline(col='grey')+geom_text(size=3)+opts(legend.position = "none")
+print(p)
+@
+\caption{Fastest lap vs. ultimate lap comparison}
+\end{center}
+\end{figure}
+
+
 
 \newpage
 \subsection{(Sector) Times and Speeds}
@@ -342,7 +356,7 @@ A similar style of chart may be appropriate for relating tyre choice across the 
 \begin{figure}[htbp]
 \begin{center}
 <<fig = T, echo = F>>=
-p=ggplot(times, aes(factor(lap),fill=factor(stint)))+geom_bar()+ylab("Number of cars in stint")+xlab("Lap")
+p=ggplot(times, aes(factor(lap),fill=factor(stint)))+geom_bar()+ylab("Number of cars in stint")+xlab("Lap")+opts(axis.text.x=theme_text(angle=90, hjust=0))
 print(p)
 @
 \caption{Laps broken down to show number of cars per stint}}
@@ -359,8 +373,29 @@ print(p)
 \end{center}
 \end{figure}
 
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$lapTime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+p=qplot(x=driverName,y=x, data=minqs,col=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)
+print(p)
+@
+\caption{Fastest time per stint per car}
+\end{center}
+\end{figure}
 
-
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$fuelCorrectedLaptime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+p=qplot(x=driverName,y=x, data=minqs,col=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)
+print(p)
+@
+\caption{Fastest fuel corrected time per stint per car}
+\end{center}
+\end{figure}
 
 %\begin{figure}
 %\begin{center}
@@ -440,7 +475,7 @@ The team summaries include the following chart types:
 \begin{itemize}
 \item \textbf{Fuel corrected aptime distribution by stint} The \emph{fuel corrected laptime distribution by stint} chart is a graphical statistical summary of fuel corrected lap times by stint for each driver.
 \item \textbf{Race position chart} Inspired by the popular chart that depicts race position for the whole field, the \emph{race position charts} show the positions, by lap, for each car in the team. PIT events are also highlighted.
-\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the prvious lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
+\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the previous lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
 \end{itemize}
 
 \newpage
