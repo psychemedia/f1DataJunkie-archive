@@ -12,7 +12,7 @@ require(RCurl)
 
 gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
 
-driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','KAR','RIC','GLO','AMB')
 
 # Grab data from the Race Statistics sheet
 fp1times=gsqAPI(sskey,'select *',gid='0')
