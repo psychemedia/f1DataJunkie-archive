@@ -71,7 +71,7 @@ fpxRank=function(fpcombinedstats,cat='time',ytxt='Fastest lap time (s)'){
   fp1stats=subset(fpcombinedstats,session=='fp1' & time>0 & speed>0)
   fp2stats=subset(fpcombinedstats,session=='fp2' & time>0 & speed>0)
   fp3stats=subset(fpcombinedstats,session=='fp3' & time>0 & speed>0)
-  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverName',y=cat,pch='session')) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt) + geom_point(data=fp2stats,aes_string(x='driverName',y=cat,pch='session')) #+ geom_point(data=fp3stats,aes_string(x='driverName',y=cat,pch='session')) 
+  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverName',y=cat,pch='session')) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt) + geom_point(data=fp2stats,aes_string(x='driverName',y=cat,pch='session')) + geom_point(data=fp3stats,aes_string(x='driverName',y=cat,pch='session')) 
   print(p)
 }
 
@@ -1056,6 +1056,22 @@ Pirelli seem to be quite actively tweeting, so they may provide a good source of
 2011-10-28 14:35:17,\emph{@Pirelli\_Media} Massa fastest for Ferrari as Formula One arrives in India: Ferrari driver Felipe Massa has set the fastest lap ... http://t.co/vLzNf5tP\\
 2011-10-28 14:54:03,\emph{@Pirelli\_Media} MASSA FASTEST FOR FERRARI AS FORMULA ONE ARRIVES IN INDIA Ferrari driver Felipe Massa has set the fastest lap of... http://t.co/VDjjEE1j\\
 
+\subsubsection{Free Practice 3}
+2011-10-29 05:42:56,\emph{@Pirelli\_Media} Massa's fastest time yesterday was 1m25.706s, for reference. Let's see how today compares.\\
+2011-10-29 05:45:06,\emph{@Pirelli\_Media} More drivers coming out now; expect to see them on the hard tyre first and then onto the soft. Schumacher goes  1m31.768s. Plenty to come.\\
+2011-10-29 05:49:22,\emph{@Pirelli\_Media} Schumacher goes faster again; he's on the P Zero Silver hard tyre.\\
+2011-10-29 05:54:11,\emph{@Pirelli\_Media} Everyone on the hard tyres so far; later they will switch to the soft compound - which will be used for qualifying.\\
+2011-10-29 05:55:27,\emph{@Pirelli\_Media} This work on the hard tyre is very important as the teams are almost sure to use it to get through Q1 this afternoon.\\
+2011-10-29 05:59:52,\emph{@Pirelli\_Media} Vettel fastest now, having set three fastest sector times on the hard tyre.  1m26.311s. Red Bull looking fast,\\
+2011-10-29 06:00:16,\emph{@Pirelli\_Media} Schumacher is first onto the soft tyres; watch his times...\\
+2011-10-29 06:10:32,\emph{@Pirelli\_Media} The media is reporting that Romain Grosjean - one of our former test drivers - will drive in free practice at Abu Dhabi.\\
+2011-10-29 06:12:20,\emph{@Pirelli\_Media} Button switches over to the soft tyres: should provide a good indication about his qualifying pace.\\
+2011-10-29 06:18:16,\emph{@Pirelli\_Media} Hamilton onto the Pirelli P Zero Yellow soft tyres with his Bob Marley helmet. Time for him to get up and stand up for his rights.\\
+2011-10-29 06:22:10,\emph{@Pirelli\_Media} Massa now onto the sott tyres, like most people in the final 10 minutes of qualifying.\\
+2011-10-29 06:26:21,\emph{@Pirelli\_Media} Lots of people again running different fuel loads so hard to see full picture but for sure the Ferrari is working well - Alonso: 1m25.784s\\
+2011-10-29 06:32:57,\emph{@Pirelli\_Media} End of FP3: Vettel suddenly puts in a 1m24.824s on the soft tyre. That's 0.367s quicker than Button in second. A big warning for the others!\\
+2011-10-29 06:34:43,\emph{@Pirelli\_Media} Join us again for qualifying at 1400 local time. Times should be even faster, exceeding the lap times that most people predicted here.\\
+
 
 \subsection{F1 Teams on Twitter}
 A \emph{curated} archive of tweets from the F1 teams grabbed from the @sidepodcast/f1teams list. It might make sense to parse these out by team and then present them on a per-session, per-team basis? I also wonder if it's worth curating the tweets a bit more, maybe to just leave the ones that provide information about what's going on/went on in the session?
@@ -1084,7 +1100,7 @@ I wonder as well whether any of the linked to images are openly licensed, and ho
 <<fig = T, echo = F>>=
 fpSessionUtilisation(fp1times)
 @
-\caption{Free Practice 2 - Session Utilisation}
+\caption{Free Practice 1 - Session Utilisation}
 \end{center}
 \end{figure}
 
@@ -1468,5 +1484,137 @@ fpSessionUtilisation(fp2times)
 2011-10-28 16:08:57 MarussiaVirginRacing And now for today's big photographic moments from @latphotographic. Loving this shot of Timo at the T-10-11-12 section http://t.co/r5XLlvjZ \\
 2011-10-28 16:12:48 MarussiaVirginRacing Check out the undulations on this. A great shot of the long straight between Turns 3 and 4. Also featuring an MVR-02 http://t.co/7GJYFjWn \\
 
+\subsubsection{Practice 3}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp3times)
+@
+\caption{Free Practice 3 - Session Utilisation}
+\end{center}
+\end{figure}
+
+2011-10-29 01:35:26 \emph{@MyTeamLotus} It's hazy, it's crazy and it's a bit too early to be tweeting (curfew breaks at 8) but anyway... Namaste from Saturday at the Indian GP!\\
+2011-10-29 03:15:01 \emph{@ToroRossoSpy} I'm at The Buddh International Circuit (Jaypee Sports City, Greater Noida, at Yamuna Express Hgwy, Greater Noida) http://t.co/oBkM24G2\\
+2011-10-29 03:26:59 \emph{@MarussiaVirgin} Good morning Delhi and our followers everywhere. Final pitstop practice at a very hazy Buddh Circuit http://t.co/2X4p3mTR\\
+2011-10-29 03:33:19 \emph{@redbullracing} I'm at Buddh International Circuit / Buddh   (Buddh International circuit, Sector 25, Dankaur)\\
+2011-10-29 04:52:51 \emph{@HRTF1Team} HRT supports "Paint it Orange" campaign of Richard Burns Foundation, buy your t-shirt at http://t.co/RnhLxibJ\\
+2011-10-29 04:53:30 \emph{@HRTF1Team} HRT apoya la campaa "Paint it Orange" de la Fundacin Richard Burns, compra tu camiseta en http://t.co/RnhLxibJ\\
+2011-10-29 04:57:22 \emph{@HRTF1Team} Una banda de msicos y bailarines indios anima la maana en el pit lane del circuito. \#F1 http://t.co/kOmszQHY\\
+2011-10-29 05:00:24 \emph{@HRTF1Team} A band of Indian musicians and dancers, brightens the morning up on the pit lane. Nice \#F1 http://t.co/75LDvLrJ\\
+2011-10-29 05:14:48 \emph{@MyTeamLotus} !5 minutes until FP3. Both drivers have warmed up and are ready to go in what will be a very busy session on a fast evolving track\\
+2011-10-29 05:24:13 \emph{@InsideFerrari} Good morning from the Scuderia Ferrari garage at the Buddh International Circuit.\\
+2011-10-29 05:24:39 \emph{@InsideFerrari} Everything is ready for FP3, which will start in five minutes.\\
+2011-10-29 05:24:40 \emph{@redbullf1spy} Sorry if we're boring you sir. FP3's about to start \& you're sleeping in the Paddock Club Car Park? http://t.co/nESxsYKD\\
+2011-10-29 05:24:44 \emph{@MyTeamLotus} 33 on track now and it's only going to get hotter. The softs were holding up very well yesterday - will the same be true as grip increases?\\
+2011-10-29 05:25:38 \emph{@HRTF1Team} Todo listo en el coche para que empiece la FP3. Neumticos y piloto tambin. \#F1 http://t.co/9z3zSecp\\
+2011-10-29 05:25:56 \emph{@OfficialLRGP} Getting ready for FP3 for @vitalypetrov10 http://t.co/RRCD8SKH\\
+2011-10-29 05:26:33 \emph{@OfficialLRGP} In the car nice and early for @BSenna http://t.co/FCkZtRmb\\
+2011-10-29 05:27:07 \emph{@HRTF1Team} Everything ready on the car for the start of FP3. Tyres and drivers as too \#F1 http://t.co/M2f4Ox8I\\
+2011-10-29 05:28:16 \emph{@MyTeamLotus} Instructions from Juan for Heikki: "Usual installation lap first, rolling bite point finder and oil level check at the end of the lap"\\
+2011-10-29 05:28:42 \emph{@InsideFerrari} One minute to the green light\\
+2011-10-29 05:29:27 \emph{@HRTF1Team} Ren (1r mecnico) ajusta los cinturones a Narain | Ren (1st mechanic) adjusts Narain's seat belts http://t.co/2II4PUNb\\
+2011-10-29 05:29:54 \emph{@InsideFerrari} Main target of FP3 is usually the preparation of the Q session but maybe today someone will run on high fuel to do some work for the race.\\
+2011-10-29 05:30:29 \emph{@OfficialSF1Team} FP3 stared. Both car on installation lap.\\
+2011-10-29 05:31:01 \emph{@InsideFerrari} Today is a special day for one of our guys, Modesto Menabue, who celebrates his 50th birthday: more than th (cont) http://t.co/LHEof2ch\\
+2011-10-29 05:31:30 \emph{@OfficialLRGP} Firing up and heading out, both cars on new hards\\
+2011-10-29 05:31:40 \emph{@MyTeamLotus} "Let's fire up and go" - both cars now out on track for installation laps - radio checks loud and clear around the circuit\\
+2011-10-29 05:31:48 \emph{@InsideFerrari} Green light is on. Felipe and Fernando are ready to go.\\
+2011-10-29 05:32:04 \emph{@MarussiaVirgin} Track 36 degs and air 28 as both cars pull away for the start of FP3. Very sunny and haze starting to lift a little\\
+2011-10-29 05:32:41 \emph{@OfficialMGP} P3 is underway here in Delhi with both our cars heading out right at the start\\
+2011-10-29 05:33:34 \emph{@InsideFerrari} Some traffic in pit lane, between cars leaving the garage and coming in\\
+2011-10-29 05:33:58 \emph{@HRTF1Team} Empieza la FP3!! | FP3 starts!!! \#F1 http://t.co/wA61Hg5d\\
+2011-10-29 05:34:29 \emph{@MarussiaVirgin} Install lap for Jerome and Timo then straight back in. Track dirtier than expected and less grip\\
+2011-10-29 05:34:59 \emph{@OfficialMGP} Install laps completed and it's back into the garage\\
+2011-10-29 05:35:26 \emph{@OfficialLRGP} Back in for @vitalypetrov10 his car lightly covered in dust after a lap. http://t.co/maFTj6ts\\
+2011-10-29 05:35:28 \emph{@MarussiaVirgin} Morning \#MVRAmigos. Up and at 'em as usual\\
+2011-10-29 05:36:12 \emph{@HRTF1Team} Vueltas de instalacin completada. Todo ok | installation laps completes. All ok\\
+2011-10-29 05:36:12 \emph{@OfficialLRGP} Time for some Mr Sheen and a checkover for @BSenna and his R31 http://t.co/NEkA8Jp0\\
+2011-10-29 05:37:43 \emph{@OfficialLRGP} Our very own show and shine http://t.co/S3QsbrVX\\
+2011-10-29 05:38:34 \emph{@ToroRossoSpy} FP3 appena cominciata, giro d\&\#39;installazione effettuato...ora i controlli di routine e poi...si parte! Temp. 28 gradi piacevolissimi\\
+2011-10-29 05:39:17 \emph{@InsideFerrari} Now it is time to wait for some volunteer who wish to clean the track...\\
+2011-10-29 05:41:20 \emph{@InsideFerrari} The first one is Michael Schumacher!\\
+2011-10-29 05:41:22 \emph{@MyTeamLotus} Jarno in car in FP3 - he's making adjustments to the brake balance for next run http://t.co/IGPC0Ifz\\
+2011-10-29 05:41:28 \emph{@OfficialMGP} Michael is the first car to head out again after the install laps, he's on option tyres\\
+2011-10-29 05:42:35 \emph{@OfficialSF1Team} A lot of dust makes the track rather slippery. Checo now on hard tyres for four timed laps. http://t.co/fmfKne5w\\
+2011-10-29 05:42:53 \emph{@HRTF1Team} Maana muy soleada y suben las temperaturas. Ambiente 28*C, pista 36*C | very sunny morning and temperatures rise. Air 28*C, track 36*C\\
+2011-10-29 05:43:06 \emph{@OfficialLRGP} Bruno runs with a similar cooling setup http://t.co/OkkvLxRx\\
+2011-10-29 05:43:51 \emph{@OfficialLRGP} Talking of cooling, both cars have the older less 'tight' bodywork here, as it cools the car better.\\
+2011-10-29 05:45:21 \emph{@clubforce} FP3 begins on a beautiful day in Delhi. Here is a quick spy shot from the garage. http://t.co/EBN10I68\\
+2011-10-29 05:45:40 \emph{@HRTF1Team} Narain regresa a la pista con neumticos duros | Narain goes back out on hard tyres \#F1\\
+2011-10-29 05:45:50 \emph{@TheFifthDriver} Take a look at the awesome Indian-themed HUGO BOSS \#dmftf overalls for this race! The best yet? http://t.co/ILJU4B2a\\
+2011-10-29 05:46:39 \emph{@MyTeamLotus} Heikki, back in the car for FP3 run 2 http://t.co/xsrXRTHN\\
+2011-10-29 05:49:24 \emph{@OfficialLRGP} He's gone! @vitalypetrov10 has a new set of hards http://t.co/K3l4SrcJ\\
+2011-10-29 05:49:52 \emph{@MyTeamLotus} Hard tyres for Heikki and Jarno for run 2\\
+2011-10-29 05:50:25 \emph{@OfficialLRGP} Both our cars are running a bit more front wing today to counter understeer, or push for anyone in the USofA\\
+2011-10-29 05:50:57 \emph{@HRTF1Team} Y tambin Daniel sale con duros para esta primera tanda | Also Daniel leaves with hards for this first stint\\
+2011-10-29 05:51:38 \emph{@WilliamsF1Team} The team are back out on track for final prep work ahead of qualifying. Difficult to tell where we are due to continual track evolution\\
+2011-10-29 05:53:36 \emph{@WilliamsF1Team} We have new pods online 2day - set up and engineering - so if you want to get behind the scenes in India login to http://t.co/jqttwmY0\\
+2011-10-29 05:53:47 \emph{@InsideFerrari} Our drivers are still seating outside their cockpit, as their McLaren's colleagues.\\
+2011-10-29 05:54:30 \emph{@InsideFerrari} But now it is time to run....\\
+2011-10-29 05:55:48 \emph{@clubforce} Paul and Adrian are currently running the option tyres, which is the hard compound. Longish runs underway.\\
+2011-10-29 05:56:28 \emph{@OfficialLRGP} Making noise for @tedkravitz http://t.co/k76Z3mYz\\
+2011-10-29 05:56:57 \emph{@OfficialMGP} One in, one out... Michael's off again but this time on the primes\\
+2011-10-29 05:57:19 \emph{@HRTF1Team} Narain entra para ajustes aero y un nuevo juego de neumticos duros | Narain in for a tyre and aero change. New set of hard tyres for him\\
+2011-10-29 05:58:03 \emph{@InsideFerrari} And Fernando just left the garage for his first run\\
+2011-10-29 05:59:01 \emph{@InsideFerrari} Felipe just did the same. Both on Hards.\\
+2011-10-29 05:59:21 \emph{@MarussiaVirgin} Thoughts from the number 25 cockpit of Jerome: the track is very different from yesterday. Car feels very oversteer-y\\
+2011-10-29 06:00:18 \emph{@HRTF1Team} Vuelta rpida para Daniel (L8) con duros 33.246 | fast lap for Daniel (L8) on hards 33.246\\
+2011-10-29 06:02:03 \emph{@OfficialMGP} Nico also fits the primes and heads out...\\
+2011-10-29 06:03:11 \emph{@OfficialLRGP} Both cars head out on new softs, @vitalypetrov10 first, @BSenna next\\
+2011-10-29 06:04:55 \emph{@MyTeamLotus} 1.31.320 for Heikki on lap 11, 1.31.540 for Jarno on lap 9 as both cars continue on the hard tyres on run 1\\
+2011-10-29 06:04:56 \emph{@HRTF1Team} Varios coches cambian a neumticos blandos y se nota la diferencia | Some cars switched to soft tyres and the difference is remarkable\\
+2011-10-29 06:07:05 \emph{@OfficialLRGP} Bruno P5, Vitaly P10\\
+2011-10-29 06:08:03 \emph{@HRTF1Team} Lucha de tiempos con nuestros rivales. Por ahora ambos HRT por delante | Battling with our rivals for the times. Both HRT ahead for now\\
+2011-10-29 06:08:29 \emph{@OfficialMGP} Michael is back out for a second run on the primes which are the soft tyre, just as Nico returns in P2\\
+2011-10-29 06:09:38 \emph{@OfficialLRGP} Aside from some more front wing, we haven't changed much to the set-up - if it ain't broke, don't fix it\\
+2011-10-29 06:10:21 \emph{@MyTeamLotus} Heikki's reporting that grip levels on the hard tyres still not great but the balance is good\\
+2011-10-29 06:10:25 \emph{@OfficialLRGP} Box, Vitaly box\\
+2011-10-29 06:11:45 \emph{@HRTF1Team} Daniel back in the garage satisfied with the car's balance. Important improvement with respect yesterday.\\
+2011-10-29 06:12:27 \emph{@OfficialLRGP} P4 for Bruno, come in now\\
+2011-10-29 06:12:30 \emph{@InsideFerrari} Run completed by Fernando, who is currently 7th in 1.27.552\\
+2011-10-29 06:13:05 \emph{@OfficialMGP} Michael improves to P4 1.27.217\\
+2011-10-29 06:13:53 \emph{@OfficialLRGP} Bruno back in, looking good so far this session http://t.co/0zK8a1zF\\
+2011-10-29 06:14:12 \emph{@InsideFerrari} Also Felipe is coming in: he is 12th in 1.28.057\\
+2011-10-29 06:14:35 \emph{@HRTF1Team} Narain tambin regresa satisfecho y listo para la tercera salida | Narain returns satisfied as well and ready for the third run\\
+2011-10-29 06:14:58 \emph{@WilliamsF1Team} Rubens comes in for a practice stop in the box after 13 laps out on track in P3 so far http://t.co/15wlWoYV\\
+2011-10-29 06:15:54 \emph{@clubforce} Adrian heads out on soft tyres with 15 mins of FP3 remaining.\\
+2011-10-29 06:17:47 \emph{@ToroRossoSpy} A 15 min. dalla fine: Seb 6, Jaime 8. Attenzione...tori in pista??!!\\
+2011-10-29 06:18:29 \emph{@MyTeamLotus} Jarno \& Heikki back in for performance run preparations. Adjustments made to front wing flap angle on both cars \& Heikki's brake balance\\
+2011-10-29 06:18:56 \emph{@InsideFerrari} With around ten minutes to the end it is time for the run on Softs.\\
+2011-10-29 06:19:09 \emph{@InsideFerrari} Fernando is leaving the garage now\\
+2011-10-29 06:20:16 \emph{@HRTF1Team} Ambos coches cambian a neumticos blandos para los ltimos 10 minutos | Both cars switch to soft tyres for the remaining 10 minutes \#F1\\
+2011-10-29 06:20:21 \emph{@OfficialMGP} 10mins remaining and both drivers are out on the prime tyres\\
+2011-10-29 06:20:47 \emph{@InsideFerrari} Felipe just di dthe same\\
+2011-10-29 06:21:39 \emph{@MyTeamLotus} Ten minutes to go and both cars are out on the soft tyres for the last runs of FP3\\
+2011-10-29 06:21:55 \emph{@OfficialLRGP} Back out for @BSenna on used softs\\
+2011-10-29 06:22:38 \emph{@MarussiaVirgin} 8 mins 30 remaining and Timo heads out on the Soft tyre. Jerome to follow\\
+2011-10-29 06:23:13 \emph{@OfficialLRGP} With the cars out, garage-proud Dan takes advantage of the opportunity to sweep up http://t.co/UUzRN787\\
+2011-10-29 06:23:56 \emph{@HRTF1Team} KAR mejora su tiempo en la primera vuelta y sube a P19 (31.099) | KAR improves his lap time on the first lap and is P19 (31.099)\\
+2011-10-29 06:26:26 \emph{@OfficialLRGP} Here's @davenportemily F1 photographer extraordinaire, and she's about to take pics of the R31 http://t.co/HBGPhtND\\
+2011-10-29 06:28:35 \emph{@HRTF1Team} RIC es llamado a boxes. Parace que hay un problema. Mejor chequear | RIC called in. Seems there could be a problem. Better check out\\
+2011-10-29 06:30:29 \emph{@InsideFerrari} Run finished with a practice start for each driver\\
+2011-10-29 06:31:25 \emph{@InsideFerrari} 1.25.784 for Fernando, 1.26.058 for Felipe, 5th and 6th as usual in this last part of the season. And as usual Vettel quickest in 1.24.824\\
+2011-10-29 06:31:32 \emph{@OfficialMGP} End of P3 and both drivers will complete a practice pit stop on their return\\
+2011-10-29 06:33:14 \emph{@OfficialMGP} Nico P8 1.26.873 22 laps, Michael P11 1.27.217 21 laps\\
+2011-10-29 06:33:25 \emph{@redbullracing} \#F1 \#redbullacing FP3 results from the \#IndianGP: Seb takes P1 with 1:24.824 after 18 laps \& Mark takes P3 with 1:25.203 after 19 laps.\\
+2011-10-29 06:33:46 \emph{@OfficialLRGP} The return of Bruno http://t.co/FVMsBjmj\\
+2011-10-29 06:34:39 \emph{@TheFifthDriver} So, Jenson's best is a 1:25.191s and Lewis's a 1:25.288s. Second and fourth.\\
+2011-10-29 06:34:51 \emph{@WilliamsF1Team} P17 for Pastor \& P18 for Rubens in last practice session b4 quali. http://t.co/DbGk8cBA\\
+2011-10-29 06:35:20 \emph{@clubforce} Another strong session for Sahara Force India. @pauldirestaf1 is P7 and Adrian Sutil P9. Getting set for qualy in a couple of hours.\\
+2011-10-29 06:35:28 \emph{@OfficialLRGP} Vitaly's final pullaway was so aggressive it dislodged dead insects and dust from the roof. The perils of trackside tweeting\\
+2011-10-29 06:35:57 \emph{@ToroRossoSpy} Risultati finali FP3: Seb 1:27.146 pos. 10, Jaime 1:27.387 pos. 15. Aspettando la qualifica, tutti davanti alla TV alle 10.30!!!\\
+2011-10-29 06:36:12 \emph{@TheFifthDriver} The top 10: 1) VET, 2) Jenson, 3) WEB, 4) Lewis, 5) ALO, 6) MAS, 7) DIR, 8) ROS, 9) SUT, 10) BUE.\\
+2011-10-29 06:38:55 \emph{@HRTF1Team} Tiempos y posiciones de la FP3 | FP3 times and positions http://t.co/Q2dHfd6G\\
+2011-10-29 06:39:58 \emph{@MyTeamLotus} 19th for Jarno and 20th for Heikki in FP3. Both cars are now being prepared for quali while the heat keeps rising on track\\
+2011-10-29 06:40:50 \emph{@WilliamsF1Team} The boys making final setup changes to the cars pre-qualifying http://t.co/ftk6nI9V\\
+2011-10-29 06:44:30 \emph{@MarussiaVirgin} Timo 21st \& Jerome 23rd at the end of that session. Join us at 1300 (Delhi) and 0830 (UK) for \#riseNshine\\
+2011-10-29 06:54:39 \emph{@HRTF1Team} Seems that the problem with Daniel's car was a gearbox one. Locating the source now and hands on to fix it before qualifying\\
+2011-10-29 07:01:30 \emph{@HRTF1Team} Thanks for following the session live on twitter (@HRTF1Team). We will be back at 14.00 \#F1\\
+2011-10-29 07:05:29 \emph{@InsideFerrari} IND - Fifth and sixth in final free practice http://t.co/Nhog7Apj\\
+2011-10-29 07:08:53 \emph{@MarussiaVirgin} After watching FP3 from the pitwall, Sakon \& Robert are now meeting @MarussiaVirgin guests in Paddock Club \#MVRpartners http://t.co/PzqP35D6\\
+2011-10-29 07:20:23 \emph{@OfficialLRGP} Romain confirmed for Friday drives at final two race weekends: http://t.co/n5yAGyzf\\
 
 \end{document}
