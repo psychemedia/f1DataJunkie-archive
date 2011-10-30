@@ -234,8 +234,8 @@ def output_raceHistoryChart(data,carData):
 	writer.writerow(["lap","car","calcElapsedTime","calcTimeToLeader","carlapAsRaceLap"])
 	winnerNum=data.history[-1][1][0]
 	winnerAvLapTime=carData[winnerNum]["avLapTime"]
-	tenthPlacedAvLapTime=carData["16"]["avLapTime"]
-	print "Winner",winnerNum,"AvLap",winnerAvLapTime,tenthPlacedAvLapTime
+	#tenthPlacedAvLapTime=carData["16"]["avLapTime"]
+	#print "Winner",winnerNum,"AvLap",winnerAvLapTime,tenthPlacedAvLapTime
 	for carNum in carData:
 		print carNum,carData[carNum]["avLapTime"]
 		for lap in range(0,len(carData[carNum]["calcElapsedTimes"])):
@@ -528,10 +528,17 @@ def output_qualiStats(qualitrap,qualispeeds,qualisectors,qualiclassification,ses
 					sessionStats[c[1]]['percent']=''
 		else:
 			for c in qualiclassification:
-				sessionStats[c[0]]['position']=c[5]
-				sessionStats[c[0]]['team']=c[3]
-				fastlap[c[0]]=tsa.getTime(c[-2])
-				#sessionStats[c[0]]['percent']=c[6]
+				if c[0] in sessionStats:
+					sessionStats[c[0]]['position']=c[5]
+					sessionStats[c[0]]['team']=c[3]
+					fastlap[c[0]]=tsa.getTime(c[-2])
+					#sessionStats[c[0]]['percent']=c[6]
+				else:
+					sessionStats[c[0]]={}
+					sessionStats[c[0]]['position']=''
+					sessionStats[c[0]]['team']=''
+					fastlap[c[0]]=''
+			
 			px=1
 			for p in grid[1:]:
 				sessionStats[p]['grid']=px
