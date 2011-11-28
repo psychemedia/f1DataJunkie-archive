@@ -5,7 +5,7 @@
 
 << echo = F >>=
 #This key identifies the Google spreadsheet containing the scraped timing data
-sskey='0AmbQbL4Lrd61dFlNYjRuSERiNHRUSFJ2VVg2Yklkb2c'
+sskey='0AmbQbL4Lrd61dDlZWmE4cUNxeDJtS1BYc1BVNnJMU3c'
 
 library("ggplot2")
 require(RCurl)
@@ -153,7 +153,7 @@ fctimeLineChart=function(df){
 
 @
 
-\title{F1 2011 Abu Dhabi (Race)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+\title{F1 2011 Brazil (Race)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
 
 \author{
 Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY

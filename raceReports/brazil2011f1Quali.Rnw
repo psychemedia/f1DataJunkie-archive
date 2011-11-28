@@ -1,0 +1,639 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dDlZWmE4cUNxeDJtS1BYc1BVNnJMU3c'
+
+library("ggplot2")
+require(RCurl)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+qualistats=gsqAPI(sskey,'select *',gid='9')
+qualistats$driverName=factor(qualistats$driverNum,labels = driverLabels)
+
+qualitimes=gsqAPI(sskey,'select *',gid='8')
+
+qualitimes$numName <- reorder(qualitimes$Name, qualitimes$DriverNum)
+
+
+#qualitimes$driverName=factor(qualitimes$DriverNum,labels = driverLabels)
+
+
+fpstats=gsqAPI(sskey,'select *',gid='7')
+fpstats$driverName=factor(fpstats$driverNum,labels = driverLabels)
+
+
+fuelcorrThreshold=min(qualitimes$Fuel.Corrected.Laptime)
+yrange=c(min(qualitimes$Fuel.Corrected.Laptime),fuelcorrThreshold)
+
+speedTime=function(racestats,timeData,speedData,speedRange,timeRange,driverName='driverName'){
+p=ggplot(racestats,aes_string(x=timeData,y=speedData,label=driverName))+ geom_text(size=4,angle=45)+scale_x_continuous('Time (s)',limits=timeRange)+opts(legend.position = "none") + scale_y_continuous('Speed (km/h)',limits=speedRange)
+print(p)
+}
+
+qualiOverview=function(qualitimes){
+  p=ggplot(qualitimes,aes(x=Elapsed,y=Time,label=DriverNum))+ geom_text(size=3,angle=45)+scale_y_continuous('Time (s)')
+  print(p)
+}
+
+qualiZoom=function(qualitimes){
+  
+  p=ggplot(qualitimes,aes(x=Elapsed,y=Time,label=DriverNum))+ geom_text(size=3,angle=45)+scale_y_continuous('Time (s)',limits=c(min(qualitimes$Time),1.07*min(qualitimes$Time)))
+print(p)
+  }
+
+
+fpFullsessionUtilisation=function(fp1times,fp2times,fp3times){
+  p=ggplot() + geom_point(aes(x=1000+max(fp1times$Elapsed)+max(fp2times$Elapsed)+fp3times$Elapsed,y=fp3times$DriverNum,col=fp3times$Stint.Length)) +  geom_point(aes(x=fp1times$Elapsed,y= fp1times$DriverNum,col=fp1times$Stint.Length)) + geom_point(aes(x=500+max(fp1times$Elapsed)+fp2times$Elapsed,y= fp2times$DriverNum,col=fp2times$Stint.Length)) + xlab('Elapsed time in session (s)') +ylab('Car Number') + geom_vline(xintercept = c(max(fp1times$Elapsed)+max(fp2times$Elapsed)+750,max(fp1times$Elapsed)+250),color='grey')+ scale_colour_continuous(name = "Stint length")
+  print(p)
+}
+
+fpSessionTeamggBox=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+  # y-axis: laptime distribution
+  if (nrow(df)>0){
+  #  p=ggplot( subset( df, Time < threshold ) ) +
+  #    geom_boxplot( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	#    scale_y_continuous( "Laptime (s)") +
+	#    opts( axis.text.x=theme_text( angle=45 ), legend.position="none" )  +xlab(NULL)
+    p=qplot(x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time, data=subset( df, Time < threshold ), geom=c("boxplot", "jitter")) +
+      scale_y_continuous( "Laptime (s)") +
+      opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+fpSessionTeamggPoint=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+	# y-axis: laptime distribution
+  if (nrow(df)>0){
+  	p=ggplot( subset( df, Time < threshold ) ) +
+	    geom_point( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	    scale_y_continuous( "Laptime (s)") +
+	    opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+fpqxRank=function(fpcombinedstats,qualistats,cat='time',ytxt='Fastest lap time (s)'){
+  fp1stats=subset(fpcombinedstats,session=='fp1' & time>0 & speed>0)
+  fp2stats=subset(fpcombinedstats,session=='fp2' & time>0 & speed>0)
+  fp3stats=subset(fpcombinedstats,session=='fp3' & time>0 & speed>0)
+  qstats=subset(qualistats, fastestlap>0 )
+  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverNum',y=cat,pch='session')) + geom_point(data=fp2stats,aes_string(x='driverNum',y=cat,pch='session')) + geom_point(data=fp3stats,aes_string(x='driverNum',y=cat,pch='session')) + geom_point(data=qstats,aes_string(x='driverNum',y='fastestlap'),pch=4) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt)
+  print(p)
+}
+
+fpxPosRank=function(sessionstats){
+  p=ggplot() + geom_point(data=fpcombinedclassification,aes(x=driverName,y=pos,groups=session,pch=session,size=session)) + opts(axis.text.x=theme_text(angle=90))+xlab(NULL) + ylab('Classification')
+  print(p)
+}
+  
+timesDistribution=function(timeData,ydat,ytxt,xdat='driverName'){
+p=ggplot(timeData)+geom_boxplot(aes_string(x=xdat,y=ydat))+opts(legend.position = "none") + scale_y_continuous(ytxt)+opts(axis.text.x=theme_text(angle=90))+xlab(NULL)
+print(p)
+}
+@
+
+\title{F1 2011 Brazil (Qualifying)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre using Scraperwiki }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+
+\newpage
+\section{Qualifying Summary Data}
+In this section, you will be able to find macroscopic charts that summarise the qualifying sessions. The intention behind these charts is to provide a view over the timing data that allows the reader to see how the qualifying session(s) progressed, as well as providing points of comparison between each of the cars and their speeds/times in each sector. Comparison plots for times recorded by the drivers in each are also provided on a team by team basis.
+
+\subsection{Qualifying Session Participation}
+
+When did the cars go out in the qualifying sessions? The plot shows when in the session as a whole cars went out, along with a summary of the number of laps each car did in each stint.
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+
+p=ggplot(qualitimes)+geom_point(aes(x=Elapsed,y=numName))+xlab('Elapsed time (s)')+opts(legend.position = "none")+ylab(NULL)
+print(p)
+@
+\caption{Qualifying participation}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{Qualifying Summary}
+
+A couple of scatter plots show the lap times against elapsed time during the the three qualifying sessions taken as a single session. Labels correspond to car number. The zoomed in chart shows all times within 7\% of the fastest time recorded across qualifying as a whole.
+
+From the chart we can see when the fastest times were recorded, as well as spotting team strategies (the team strategies are more clearly seen in the corresponding team scatter charts).
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+qualiOverview(qualitimes)
+@
+\caption{Qualifying Summary}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+qualiZoom(qualitimes)
+@
+\caption{Qualifying Summary (within 7\% of fastest time)}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{Laps By Qualifying Stint}
+This chart gives an overall impression of the number of laps run by each car during each qualifying stint. What the chart does not show is whether the stint(s) occurred in Q1, Q2 or Q3.
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+
+p=ggplot(qualitimes, aes(numName,fill=factor(Stint)))+geom_bar()+ylab("Number of Laps in stint")+xlab(NULL)+opts(axis.text.x=theme_text(angle=90, hjust=0))
+print(p)
+@
+\caption{Laps by qualifying stint}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{(Sector) Times and Speeds}
+How do the drivers compare in terms of speed and laptime/sector time during qualifying?
+
+\noindent\textbf{Things to look for}
+Do the fastest cars in each sector also record the smallest times?
+How do drivers in each team compare?
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qspeedTimeS1,echo=F,fig=T,width=5,height=5>>=
+
+speedTime(qualistats,'sector1','inter1',c(min(qualistats$inter1),max(qualistats$inter1)),c(min(qualistats$sector1),max(qualistats$sector1)))
+@
+\caption{Sector 1/Inter1 Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qspeedTimeS2,echo=F,fig=T,width=5,height=5>>=
+speedTime(qualistats,'sector2','inter2',c(min(qualistats$inter2),max(qualistats$inter2)),c(min(qualistats$sector2),max(qualistats$sector2)))
+@
+\caption{Sector 2/Inter2 Comparison}
+\end{minipage}
+\end{figure}
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qspeedTimeS3,echo=F,fig=T,width=5,height=5>>=
+speedTime(qualistats,'sector3','finish',c(min(qualistats$finish),max(qualistats$finish)),c(min(qualistats$sector3),max(qualistats$sector3)))
+@
+\caption{Sector 3/Finish Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qspeedTimeRace,echo=F,fig=T,width=5,height=5>>=
+speedTime(subset(qualistats,fastestlap>20 & trap > 50),'fastestlap','trap',c(min(qualistats$trap),max(qualistats$trap)),c(min(qualistats$fastestlap),max(qualistats$fastestlap)))
+@
+\caption{Fastest Lap/Trap Comparison}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+fpqxRank(fpstats,qualistats,cat='time',ytxt='Fastest lap time (s)')
+@
+\caption{Qualifying/Practice Fastest Lap Comparisons}
+\end{center}
+\end{figure}
+
+\pagebreak
+\subsection{Fastest Laps}
+
+A couple of views are presented over fastest lap times: a) a view that compares the fastest laptimes for each driver from each of the practice sessions against the fastest qualifying session laptime; b) a view over the laptimes per qualifying stint for each driver. (Note that I haven't yet found a way of associating qualifying session stints with the actual qualifying session number; bear in mind that situations such as stint 3 for one car being in Q2, compared to during Q1 for another car, are possible...)
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+p=qplot(x=numName,y=Time, data=qualitimes,col=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)
+
+print(p)
+@
+\caption{Laptime values}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{Ultimate vs Fastest Lap Comparisons}
+
+The chart showing \emph{ultimate laptime} vs. \emph{fastest laptime} shows how well put together each driver's fastet lap was (the ultimate lap time is calculated by adding together the fastest individual sector times for each driver. (Hmmm... what would the corollary be for speeds?)). The nodes/labels are coloured to show how far away from the ultimate lap the fastet lap was. This chart really needs some label tweaking, but I'm not sure how to do that? (I think the labels need distancing from the points and then connecting by arrows?) The grey line identifies the times for which fastest and ultimate times are the same. Points above this line show that the driver's fastest lap was slower than the ultimate lap. Points can never go below this line (the fastest lap can't be faster than the ultimate lap, only equal to it or slower than it, by definition).
+
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+p=qplot(x=ultimate,y=fastestlap,data=subset(qualistats,fastestlap>0 & ultimate>0),label=driverName,col=10*(fastestlap-ultimate))+geom_abline(col='grey')+geom_text(size=3)+opts(legend.position = "none")
+print(p)
+@
+\caption{Fastest lap vs. ultimate lap comparison}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(qualitimes$Time, by=list(Stint=qualitimes$Stint,Car=qualitimes$numName),FUN=min)
+p=qplot(x=Car,y=x, data=minqs,col=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)+ylab('Time (s)')
+print(p)
+@
+\caption{Fastest time per stint per car}
+\end{center}
+\end{figure}
+
+
+
+\section{Team Summaries}
+
+There's not a lot of data within a team to do any distribution calculations... I guess I could pull in data from the practice sessions and compare the best FP times/speed with the qualifyng times/speeds?
+
+The scatter plots allow us to compare drivers within a team. Would it mae sense to use the same x/y-range across the scatter plots for all the teams so we can get a better feel for how a team's times might be situated in the wider scheme of things?
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qrbrTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==1 | DriverNum==2 ))
+@
+\caption{Quali RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qrbrScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==1 | DriverNum==2 ))
+@
+\caption{Quali RBR Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qmclTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==3 | DriverNum==4 ))
+@
+\caption{Quali MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qmclScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==3 | DriverNum==4 ))
+@
+\caption{Quali MCL Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qferTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==5 | DriverNum==6 ))
+@
+\caption{Quali FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qferScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==5 | DriverNum==6 ))
+@
+\caption{Quali FER Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qmerTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==7 | DriverNum==8 ))
+@
+\caption{Quali MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qmerScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==7 | DriverNum==8 ))
+@
+\caption{Quali MER Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qrenTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==9 | DriverNum==10 ))
+@
+\caption{Quali REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qrenScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==9 | DriverNum==10 ))
+@
+\caption{Quali REN Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qwilTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==11 | DriverNum==12 ))
+@
+\caption{Quali WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qwilScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==11 | DriverNum==12 ))
+@
+\caption{Quali WIL Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qforTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==14 | DriverNum==15 ))
+@
+\caption{Quali FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qforScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==14 | DriverNum==15 ))
+@
+\caption{Quali FOR Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qsauTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==16 | DriverNum==17 ))
+@
+\caption{Quali SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qsauScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==16 | DriverNum==17 ))
+@
+\caption{Quali SAU Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qtorTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==18 | DriverNum==19 ))
+@
+\caption{Quali TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qtorScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==18 | DriverNum==19 ))
+@
+\caption{Quali TOR Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qlotTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==20 | DriverNum==21 ))
+@
+\caption{Quali LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qlotScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==20 | DriverNum==21 ))
+@
+\caption{Quali LOT Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qhrtTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==22 | DriverNum==23 ))
+@
+\caption{Quali HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qhrtTimes,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==22 | DriverNum==23 ))
+@
+\caption{Quali HRT Laptimes}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qvirTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( qualitimes, DriverNum==24 | DriverNum==25 ))
+@
+\caption{Quali VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<qvirScatter,echo=F,fig=T,width=5,height=5>>=
+qualiOverview(subset( qualitimes, DriverNum==24 | DriverNum==25 ))
+@
+\caption{Quali VIR Laptimes}
+\end{minipage}
+\end{figure}
+
+\newpage
+\section{Official Tweets}
+
+\subsection{Pirelli}
+
+
+\subsection{Team Tweets}
+
+
+2011-11-26 15:45:35 \emph{@HRTF1Team} 15 minutes until qualifying, follow it live on our Twitter (@HRTF1Team). Good luck boys!\\
+2011-11-26 15:50:32 \emph{@HRTF1Team} Parece que no va a llover durante la sesin de clasificacin | It seems it won't be raining after all during qualifying\\
+2011-11-26 15:53:20 \emph{@MyTeamLotus} less than 10 minutes to go. Fantastic atmosphere here in the paddock and the stands are bouncing to the Brazilian beat. MEGA!\\
+2011-11-26 15:53:28 \emph{@redbullracing} Win a part of our Car! Exclusive competition running for 24 hours only. Get Guessing http://t.co/5Ly9DHBD\\
+2011-11-26 15:59:11 \emph{@InsideFerrari} One minute to the green light of Q1\\
+2011-11-26 15:59:38 \emph{@MarussiaVirgin} Queuing up at the end of the pitlane for the start of the last qualifying of the year\\
+2011-11-26 15:59:41 \emph{@InsideFerrari} The weather has changed.... The wind is stronger and the threat of rain is much closer.\\
+2011-11-26 15:59:43 \emph{@MyTeamLotus} Both our boys queueing at the lights and ready to go\\
+2011-11-26 15:59:54 \emph{@InsideFerrari} The nearest shower is at 10 km. Remind a sudden shower may develop at any time on the circuit, said Meteo France\\
+2011-11-26 16:00:19 \emph{@OfficialSF1Team} The show is about to begin. The nearest shower is at 10 km. Cars are queuing up as nobody wants to miss a lap under dry conditions.\\
+2011-11-26 16:01:27 \emph{@OfficialLRGP} Both cars are out - on fresh sets of mediums\\
+2011-11-26 16:01:39 \emph{@HRTF1Team} Empieza la sesin de clasificacin! Tonio el primero en salir del garaje | Qualifying begins! Tonio is the first one leaving the garage\\
+2011-11-26 16:02:20 \emph{@OfficialLRGP} The mediums should assist with predicting what the weather will do in this session.\\
+2011-11-26 16:02:37 \emph{@clubforce} Qualy underway in Sao Paulo. 20 cars on track. Adrian and Paul begin on a set of mediums.\\
+2011-11-26 16:02:57 \emph{@OfficialSF1Team} \#Checo and \#Kamui on out-lap with medium tyres!\\
+2011-11-26 16:03:18 \emph{@InsideFerrari} Fernando just left the garage\\
+2011-11-26 16:04:00 \emph{@HRTF1Team} Daniel sale poco despus para buscar su hueco | Daniel exits shortly later to make some space\\
+2011-11-26 16:04:43 \emph{@OfficialLRGP} It's hot and humid, and the word from the pit wall is that it may rain. So get those quick laps in quickly...\\
+2011-11-26 16:04:46 \emph{@InsideFerrari} Felipe is doing it now\\
+2011-11-26 16:06:56 \emph{@MyTeamLotus} 1st runs done. Jarno 1.16.611, 18th, Heikki 1.16.338, 16th\\
+2011-11-26 16:07:56 \emph{@MyTeamLotus} Very quick turnaround for Jarno and he's straight back out on softs for run 2\\
+2011-11-26 16:08:22 \emph{@OfficialLRGP} One more timed lap for Bruno then a return to the garage for no doubt some fettlement, and perhaps some tweakery\\
+2011-11-26 16:09:32 \emph{@OfficialLRGP} Box Bruno, and turn the KERS knob to setting 6 if you could be so kind\\
+2011-11-26 16:10:07 \emph{@MyTeamLotus} Same for KOV. 10 mins to go and he's straight back out on the options for run 2\\
+2011-11-26 16:10:39 \emph{@OfficialSF1Team} Back to box for both! Front wing adjustments and then out again to get trough to Q2!\\
+2011-11-26 16:11:22 \emph{@MarussiaVirgin} Timo and Jerome heading out again for their second runs\\
+2011-11-26 16:12:11 \emph{@HRTF1Team} Con su primer juego, Daniel marca 1'16.895 y Tonio 1'17.559 | With their first set of soft tyres Daniel sets a 1'16.895 and Tonio 1'17.559\\
+2011-11-26 16:12:25 \emph{@InsideFerrari} Run finished for both drivers: 1.13.986 for Fernando, 1.14.269 for Felipe. The Spaniard is 5th, the Brazilia (cont) http://t.co/lHgW0t9D\\
+2011-11-26 16:13:11 \emph{@OfficialSF1Team} Soft compounds for \#Kamui and \#Checo and out again. Two to three timed laps.\\
+2011-11-26 16:13:15 \emph{@OfficialLRGP} Both cars out on new sets of softs; did the mediums see that coming?\\
+2011-11-26 16:13:44 \emph{@MyTeamLotus} Run 2 Jarno 1.15.409, 17th. Heikki 20th 1.15.527\\
+2011-11-26 16:14:19 \emph{@WilliamsF1Team} Rubens \& Pastor back on track for their final laps in Q1\\
+2011-11-26 16:14:24 \emph{@InsideFerrari} Fernando left the garage for another run on Medium tyres\\
+2011-11-26 16:14:31 \emph{@HRTF1Team} Y ah va el segundo intento de Daniel | And Daniel is out for his second attempt\\
+2011-11-26 16:15:17 \emph{@clubforce} Almost everyone on track is running the soft tyre for the final few mins of Q1 - Paul and Adrian included.\\
+2011-11-26 16:15:43 \emph{@OfficialLRGP} Bruno goes P10 with his first soft run, Vitaly goes P5 and asked to box.\\
+2011-11-26 16:18:35 \emph{@OfficialLRGP} Box Bruno, box. Vitaly reports the car is feeling good, but the pit sign needs moving a metre nearer. Take a step to your right Geoff\\
+2011-11-26 16:19:59 \emph{@WilliamsF1Team} Great lap from Rubens. Looks like Pastor's out\\
+2011-11-26 16:20:02 \emph{@InsideFerrari} Felipe came in as no one can beat his time and he is safely in Q2\\
+2011-11-26 16:20:05 \emph{@MyTeamLotus} Heikki joins Jarno back on track for final runs of Q1.\\
+2011-11-26 16:20:50 \emph{@HRTF1Team} Tonio supera a los Virgin y a Daniel con un 1'16.631 para colocarse P21 | Tonio beats the Virgins and Daniel with a 1'16.631 to jump to P21\\
+2011-11-26 16:21:04 \emph{@InsideFerrari} Fernando slightly improved and finished 9th in 1.13.969, Felipe is 13th.\\
+2011-11-26 16:21:08 \emph{@MyTeamLotus} Jarno crosses the line with 5 seconds to spare for his last quick lap. Heikki told to box after getting down to 1.15.068, putting him 19th\\
+2011-11-26 16:21:30 \emph{@OfficialLRGP} Rain is reportedly getting close so we'll head back out again pretty sharpish\\
+2011-11-26 16:21:37 \emph{@MyTeamLotus} Jarno finishes in 20th on 1.15.358\\
+2011-11-26 16:22:01 \emph{@redbullracing} \#RedBullRacing Q1 results from the \#BrazilianGP : Mark P3 with 1:13.467 after 6 laps \& Sebastian P5 with 1:13.664 after 8 laps.\\
+2011-11-26 16:22:06 \emph{@clubforce} Fairly routine Q1. Adrian was 4th fastest and Paul was 7th. Q2 coming up.\\
+2011-11-26 16:22:14 \emph{@TheFifthDriver} Q1 is over - Jenson and Lewis are P1 and P2! Their best laps are 1:13.281s and 1:13.361s respectively.\\
+2011-11-26 16:22:17 \emph{@OfficialSF1Team} \#Checo and \#Kamui through to Q2.\\
+2011-11-26 16:22:59 \emph{@OfficialMGP} \#F1 End of Q1 in Intergalos. Michael P6 1.13.694, Nico P10 1.14.083. OUT in Q1 MAL, KOV, TRU, LIU, RIC, DAM, GLO\\
+2011-11-26 16:23:42 \emph{@ToroRossoSpy} Brazilian GP Qualifying: Q1 - ALG 1.14.225 pos. 12, BUE 1.14.500 pos. 16.
+Q2 now...\\
+2011-11-26 16:24:46 \emph{@InsideFerrari} The nearest shower is at 2.5 km, without any movement but may suddenly extend towards the track, said Meteo France.\\
+2011-11-26 16:25:11 \emph{@HRTF1Team} Tiempos y clasificacin de la Q1 | Q1 times and standings http://t.co/OJoF4pUx\\
+2011-11-26 16:26:18 \emph{@InsideFerrari} One minute to Q2\\
+2011-11-26 16:26:27 \emph{@OfficialMGP} \#F1 Clouds are getting closer... Monitoring the weather closely\\
+2011-11-26 16:26:29 \emph{@InsideFerrari} Better not to wait too much time today\\
+2011-11-26 16:26:39 \emph{@HRTF1Team} Q1 is over. Tonio is P21 (1:16.631/8 laps) and Daniel is P22 (1:16.890/9 laps)\\
+2011-11-26 16:27:10 \emph{@OfficialMGP} \#F1 Q2 is on!\\
+2011-11-26 16:27:18 \emph{@HRTF1Team} Acaba la Q1. Tonio es P21 (1:16.631/8 vueltas) y Daniel es P22 (1:16.890/9 vueltas)\\
+2011-11-26 16:27:24 \emph{@OfficialLRGP} Both cars out on new softs for their final runs in Q1. Rain hasn't appeared. Yet\\
+2011-11-26 16:27:26 \emph{@InsideFerrari} Pit lane open, both drivers are already out on Softs.\\
+2011-11-26 16:27:37 \emph{@InsideFerrari} It will be crowded out there...\\
+2011-11-26 16:28:07 \emph{@OfficialMGP} \#F1 Nico and Michael joining the track\\
+2011-11-26 16:28:13 \emph{@OfficialLRGP} Both cars out for Q2 runs - new softs\\
+2011-11-26 16:28:31 \emph{@InsideFerrari} Everyone is obviously on Softs\\
+2011-11-26 16:30:03 \emph{@OfficialLRGP} Comedy qualifying tweet error due to lack of timing screen in vicinity of captain tweet. It's been a long year alright!\\
+2011-11-26 16:30:13 \emph{@OfficialSF1Team} Soft compounds for both drivers! Traffic as everybody is out! Rain predicted!\\
+2011-11-26 16:30:29 \emph{@OfficialLRGP} Box time Bruno, currently P7\\
+2011-11-26 16:30:47 \emph{@OfficialMGP} \#F1  1.12.569 for Nico just now - P2 at the moment\\
+2011-11-26 16:31:40 \emph{@OfficialMGP} \#F1 Big lockup for Michael down in T1. Checking the tyre over radio\\
+2011-11-26 16:31:54 \emph{@OfficialLRGP} Both cars heading back, a tweak to the front wing for Vitaly\\
+2011-11-26 16:32:05 \emph{@OfficialMGP} \#F1 Nico is back in the pits after his first run of Q2\\
+2011-11-26 16:32:27 \emph{@OfficialMGP} \#F1 1.13.684 for Michael first flying lap of Q2\\
+2011-11-26 16:33:25 \emph{@OfficialMGP} \#F1 Michael pitted - he'll come back out soon\\
+2011-11-26 16:33:34 \emph{@InsideFerrari} P6 for Fernando in 1.12.870, P8 for Felipe in 1.13.291\\
+2011-11-26 16:34:01 \emph{@OfficialMGP} \#F1 New set fitted for Michael\\
+2011-11-26 16:35:02 \emph{@OfficialMGP} \#F1 7 minutes remaining. Nico currently P2, Michael P11\\
+2011-11-26 16:35:16 \emph{@InsideFerrari} Now the question is: do we run again?\\
+2011-11-26 16:36:47 \emph{@OfficialSF1Team} New set of soft tyres for the last run in Q2. Should stay dry!\\
+2011-11-26 16:38:12 \emph{@InsideFerrari} Felipe is ready to on a new set of Softs\\
+2011-11-26 16:38:57 \emph{@OfficialMGP} \#F1 Michael back out now\\
+2011-11-26 16:38:58 \emph{@InsideFerrari} The top six remained in the garage\\
+2011-11-26 16:40:23 \emph{@OfficialMGP} \#F1 Michael starting his flying lap\\
+2011-11-26 16:40:52 \emph{@OfficialLRGP} Both cars out on new softs for final Q2 runs. Really.\\
+2011-11-26 16:41:24 \emph{@WilliamsF1Team} Rubens sets the 12th quickest lap and has one more quick one to go...come on!\\
+2011-11-26 16:41:32 \emph{@OfficialMGP} \#F1 1.13.571 for Michael\\
+2011-11-26 16:42:57 \emph{@InsideFerrari} No one improved\\
+2011-11-26 16:43:01 \emph{@OfficialMGP} \#F1 Michael is now back in the pits\\
+2011-11-26 16:43:03 \emph{@ToroRossoSpy} Q2- ALG 1.13.804 pos. 13, BUE 1.13.919 pos. 14.
+see you tomorrow...a domani la gara!\\
+2011-11-26 16:43:04 \emph{@WilliamsF1Team} Tyres given up - so close!\\
+2011-11-26 16:43:16 \emph{@MarussiaVirgin} Timo and Jerome stop for a chat with @BBC's @jakehumphreyf1 and Eddie Jordan http://t.co/DNupbidC\\
+2011-11-26 16:43:49 \emph{@TheFifthDriver} At the end of Q2, Lewis and Jenson are P4 and P5 with times of 1:12.811s and 1:12.820s.\\
+2011-11-26 16:43:58 \emph{@redbullracing} Q2 \#redbullracing \#f1 results from Interlagos: Seb in P1 with 1:12.446 and Mark in P3 with 1:12.658 after 11 and 10 laps respectively.\\
+2011-11-26 16:44:05 \emph{@OfficialMGP} \#F1 End of Q2 - Nico P2 1.12.569, Michael P10 1.13.571. Out of Q2 DIR, BAR, ALG, BUE, PET, KOB, PER\\
+2011-11-26 16:44:12 \emph{@OfficialLRGP} P9 for Bruno and through to Q3, P15 for Vitaly\\
+2011-11-26 16:46:05 \emph{@InsideFerrari} So Fernando is 6th and Felipe 8th\\
+2011-11-26 16:46:20 \emph{@OfficialSF1Team} P17 for @checoperez17. P16 for \#Kamui. Not what we expected! Room for improvement for 2morrow.\\
+2011-11-26 16:48:15 \emph{@OfficialMGP} \#F1 Few minutes before Q3...\\
+2011-11-26 16:48:39 \emph{@InsideFerrari} End of the 2.5 km shower. Decreasing risk for Q3, said Meteo France\\
+2011-11-26 16:50:07 \emph{@OfficialMGP} \#F1 Q3 just started... for the last time this year!\\
+2011-11-26 16:50:27 \emph{@OfficialMGP} \#F1 Nico is out on track already\\
+2011-11-26 16:51:15 \emph{@OfficialMGP} \#F1 Nico about to start his first flying lap of Q3\\
+2011-11-26 16:52:07 \emph{@InsideFerrari} Fernando left the garage for his first run on Softs in Q3\\
+2011-11-26 16:52:26 \emph{@InsideFerrari} How many runs people will do in this session?\\
+2011-11-26 16:52:43 \emph{@InsideFerrari} Felipe, Michael, Senna and Sutil are still in the garage\\
+2011-11-26 16:54:05 \emph{@OfficialMGP} \#F1 1.13.159 for Nico just now\\
+2011-11-26 16:55:10 \emph{@InsideFerrari} 1.12.821 for Fernando, currently 4th\\
+2011-11-26 16:55:12 \emph{@clubforce} Paul will start P11 tomorrow. Let's see what Adrian can do in Q3!\\
+2011-11-26 16:55:23 \emph{@InsideFerrari} Felipe is still in the garage\\
+2011-11-26 16:55:24 \emph{@OfficialMGP} \#F1 Nico is now back in the pits\\
+2011-11-26 16:55:45 \emph{@InsideFerrari} Red Bulls quickest ahead of Button\\
+2011-11-26 16:56:00 \emph{@OfficialMGP} \#F1 4 minutes remaining in Q3.\\
+2011-11-26 16:56:53 \emph{@MarussiaVirgin} No just unfortunate wording on TV. Name will change but Virgin remain with us RT @indythedoguk has Richard called it a day with Virgin then\\
+2011-11-26 16:56:55 \emph{@InsideFerrari} Still time for another run\\
+2011-11-26 16:57:48 \emph{@InsideFerrari} Both Fernando and Felipe are back on track\\
+2011-11-26 16:58:16 \emph{@OfficialMGP} \#F1 Nico coming out again. Followed by Michael\\
+2011-11-26 16:58:18 \emph{@InsideFerrari} Everyone is on track\\
+2011-11-26 17:01:09 \emph{@InsideFerrari} Nothing new in Brazil, 5th place for Fernando...\\
+2011-11-26 17:01:33 \emph{@OfficialMGP} \#F1 End of Q3. Nico P6 1.13.050, Michael P10.\\
+2011-11-26 17:01:34 \emph{@InsideFerrari} FElipe did a 7th place so at least he will start from the clean side of the grid\\
+2011-11-26 17:01:35 \emph{@OfficialLRGP} P9 for Bruno on used softs - nice work!\\
+2011-11-26 17:03:57 \emph{@redbullracing} Q3 results for \#redbullracing from Sao Paulo: Sebastian finishes in P1 with 1:11.918/ 17 laps and Mark in P2 with 1:12.099/16 laps.\\
+
+\end{document}
