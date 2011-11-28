@@ -1312,7 +1312,305 @@ battleplot(25)
 \section{Official Tweets}
 Status updates from official team Twitter accounts.
 
-\subsection{Red Bull Racing}
+\subsection{Preamble}
+
+2011-11-27 11:05:52 \emph{@InsideFerrari} Good morning from the Interlagos circuit in Sao Paulo.\\
+2011-11-27 11:06:30 \emph{@InsideFerrari} The main question mark of the day - at least until the race will start - regards weather conditions.\\
+2011-11-27 11:07:48 \emph{@InsideFerrari} At the moment the weather is reasonably fine. Forecasts are a bit confusing: sill high risk of showers but th (cont) http://t.co/gbsB3Yu5\\
+2011-11-27 11:34:17 \emph{@MyTeamLotus} So, back to the track ... latest weather update is that even though it's started better than predicted, there's still an 80% chance of rain\\
+2011-11-27 12:03:23 \emph{@WilliamsF1Team} Good news for us this morning - longstanding partner Randstad have just increased their partnership with the team: http://t.co/ep9dL1zs\\
+2011-11-27 12:08:50 \emph{@MarussiaVirgin} At this stage in our dev't, a 2-car finish. RT@LawlessonF1 At the end of every w'end what is rewarding for the team - puts a smile on faces?\\
+2011-11-27 12:09:49 \emph{@MarussiaVirgin} A driver can lose around 3kgs in a race like Singapore RT @Thereal\_Charlee What's the average weight lose of both Timo and Jerome?\\
+2011-11-27 12:25:05 \emph{@MarussiaVirgin} To see the engineers for a debrief RT @APublicFigure Where do the drivers go when they have finished all of their post-race interviews?\\
+2011-11-27 12:29:38 \emph{@MarussiaVirgin} His mechs wait for him \& a grid girl holds a sign: 'Stop here Timo' RT @David\_Zero\_Five How does Timo know EXACTLY where to stop on the grid\\
+2011-11-27 12:33:31 \emph{@WilliamsF1Team} Our team photo of 2012... http://t.co/bXcEdE5H\\
+2011-11-27 12:36:25 \emph{@MarussiaVirgin} 6 Jan is first sea freight to Australia RT @APublicFigure When do the team first send out freight to the first race of the season?\\
+2011-11-27 12:41:51 \emph{@MarussiaVirgin} We use both but send as much as we can sea freight as less expensive RT @a2shi62 sea freight?! i thought you use DHL air freight.\\
+2011-11-27 12:43:24 \emph{@MarussiaVirgin} In the garage, with a radio and a timing screen - and here, an incredible view of T1 RT @TiGoAr How do you watch the race? And where?\\
+2011-11-27 12:56:09 \emph{@MarussiaVirgin} FOM decide where to position the cameras RT @Thereal\_Charlee Do you have here camera view on the helmets?\\
+2011-11-27 13:02:43 \emph{@WilliamsF1Team} Sunday briefing time. Chance of rain gone down to 80\% and will be less severe. High chance of a wet start\\
+2011-11-27 13:03:31 \emph{@WilliamsF1Team} Delta between medium and soft tyre quite small\\
+2011-11-27 13:04:35 \emph{@MyTeamLotus} Team Lotus 2011:  http://t.co/H7g23QS6\\
+2011-11-27 13:05:02 \emph{@MyTeamLotus} Jarno's car crew 2011 http://t.co/VJyRgBkj\\
+2011-11-27 13:06:12 \emph{@WilliamsF1Team} One stops unlikely due to tyre deg\\
+2011-11-27 13:14:03 \emph{@MyTeamLotus} RT @JRobertsF1: The real Caterham is back...\&gt;\&gt;\&gt; OI - Less of that now please....\\
+2011-11-27 13:20:04 \emph{@WilliamsF1Team} Expect to see first pitstops in the early to mid-20 laps\\
+2011-11-27 13:30:10 \emph{@clubforce} Race day in Sao Paulo and there's still a big question mark over the weather. Sunny 1 moment \& cloudy the next. Wet or dry - I'd say 50/50.\\
+2011-11-27 14:08:38 \emph{@MyTeamLotus} Less than 2 hours to go. There's still no rain here yet but it's hot and humid and the forecast is still for rain around 1400....\\
+2011-11-27 14:29:11 \emph{@clubforce} Drivers' parade underway. http://t.co/xxF0BC5O\\
+2011-11-27 14:30:30 \emph{@WilliamsF1Team} Last drivers' parade! http://t.co/h7Ksa07t\\
+2011-11-27 14:30:53 \emph{@MarussiaVirgin} Official Photo http://t.co/VjA0jGYr\\
+2011-11-27 14:51:25 \emph{@clubforce} It has just started spitting with rain in the paddock. Just over an hour until the race.\\
+2011-11-27 14:54:24 \emph{@InsideFerrari} 65 minutes to the start of the race and there is still sun here at Interlagos...\\
+2011-11-27 14:56:27 \emph{@WilliamsF1Team} Looks like the rain is definitely on its way - somewhat annoying as someone's walked off with my rain jacket!\\
+2011-11-27 15:08:05 \emph{@InsideFerrari} Showers are developping, around the circuit at the moment. Others may develop nearer or on the track. Due t (cont) http://t.co/HTmxMDmj\\
+2011-11-27 15:12:38 \emph{@WilliamsF1Team} Radios checks commenced...am hoping for some of Tom's (Rubens' engineer) brilliant 'hunt him down' messages this afternoon....\\
+2011-11-27 15:14:25 \emph{@MyTeamLotus} As the clock ticks down to lights out Juan's gone through the race plan with Heikki's car crew, Gianluca doing the same now - 45 mins to go\\
+2011-11-27 15:23:14 \emph{@MyTeamLotus} Dieter Gass' pitwall seat. Prepared for every eventuality \& ready with his towel out early. Total pro. German. http://t.co/aI3IdSxr\\
+2011-11-27 15:23:16 \emph{@MarussiaVirgin} Almost time to go to the grid for the last race of the season. Excitement aplenty from the grandstands! \#ohnothatwallagain\\
+2011-11-27 15:23:24 \emph{@InsideFerrari} The nearest shower is at 11km in the north but without any movement towards us. Few drops already possible due to the present clouds.\\
+2011-11-27 15:25:11 \emph{@InsideFerrari} Five minutes to the opening of the pit lane\\
+2011-11-27 15:26:03 \emph{@HRTF1Team} 30 min para la carrera y Daniel sube al coche | 30 min for the start of the race and Daniel jumps in http://t.co/MYT9idgf\\
+2011-11-27 15:29:13 \emph{@HRTF1Team} No se espera lluvia en los prximos 30 min. Podran caer algunas gotas | No rain expected in the next 30 min. Drops possible at times\\
+2011-11-27 15:29:53 \emph{@MyTeamLotus} Heikki's car's fired up, clutch scrub done and he's on his way\\
+
+\subsection{Pit Lane Open}
+
+2011-11-27 15:29:59 \emph{@InsideFerrari} Pit lane is opne\\
+2011-11-27 15:30:05 \emph{@InsideFerrari} Open...\\
+2011-11-27 15:31:06 \emph{@WilliamsF1Team} Rubens and family now in the garage http://t.co/ebTbMnY8\\
+2011-11-27 15:31:30 \emph{@InsideFerrari} Fernando left the garage\\
+2011-11-27 15:31:35 \emph{@InsideFerrari} Felipe did it now\\
+2011-11-27 15:32:03 \emph{@InsideFerrari} As usual, there will be a few passages through the pit lane to practice starts\\
+2011-11-27 15:32:23 \emph{@HRTF1Team} Se abre el pit lane. Salimos a parrilla | Pit lane opens. Going to the grid \#F1 http://t.co/rhtdl9MV\\
+2011-11-27 15:33:10 \emph{@MyTeamLotus} Jarno joins Heikki on his way to the grid. 1 lap through the pitlane for both cars\\
+2011-11-27 15:33:30 \emph{@InsideFerrari} The nearest shower is 4 km. According to its development, rain expected on the track.\\
+2011-11-27 15:34:23 \emph{@clubforce} The sun has come out again and it's boiling on the grid. No sign of the rain as yet.\\
+2011-11-27 15:37:14 \emph{@MarussiaVirgin} Laps to the grid for Timo with pitstop practice in between\\
+2011-11-27 15:40:28 \emph{@clubforce} Arrival on the grid for Adrian. http://t.co/PLniDWO4\\
+2011-11-27 15:41:04 \emph{@MyTeamLotus} Best grid atmosphere of the year. As Rubens appears the chants of "RUBINHO RUBINHO" start. The sun's shining \& the stands are packed. Mega!!\\
+2011-11-27 15:42:49 \emph{@HRTF1Team} Increble el ambiente en las gradas. Brasil! | Incredible atmosphere at the grandstands. Bravo! http://t.co/Yh2vhJQZ\\
+2011-11-27 15:46:16 \emph{@OfficialMGP} Very hot and sunny on the grid but there is rain in the area... the engineers are keeping a close eye on the radar!\\
+2011-11-27 15:49:29 \emph{@WilliamsF1Team} The boys are just doing final bits on Rubens' car http://t.co/pV2sLREX\\
+2011-11-27 15:49:30 \emph{@clubforce} Will it rain? Billy Brakes ponders that question on the grid! http://t.co/hMJZT4g0\\
+2011-11-27 15:53:52 \emph{@WilliamsF1Team} Oh so chilled on the grid! http://t.co/p1t6HbM5\\
+2011-11-27 15:54:54 \emph{@OfficialMGP} \#F1 5 minutes to formation lap...\\
+2011-11-27 15:55:05 \emph{@OfficialLRGP} Both drivers poised and ready on the grid. 28C ambient, 40C track. Feels hot. Scattered showers in the vicinity, but looks dry here.. so far\\
+2011-11-27 15:55:34 \emph{@redbullf1spy} They tried to say goodbye and they choked. Tried to walk away and they stumbled. http://t.co/EUZENPDG\\
+2011-11-27 15:56:35 \emph{@InsideFerrari} Four minutes: the rain was dying away so it should be  a dry start\\
+2011-11-27 15:56:36 \emph{@OfficialMGP} \#F1 25C air temp, 46C track temp. Rain 2 kms away from track but no rain expected for the next 45min on location\\
+2011-11-27 15:56:57 \emph{@HRTF1Team} Daniel preparado en la parrilla | Daniel ready to go on the grid http://t.co/aZZhUanB\\
+2011-11-27 15:57:43 \emph{@MarussiaVirgin} Gosh it's HOT! Hard to believe any chance of rain, but I did feel a drop when I was talking to the extremely pleasant @ipburrows earlier\\
+2011-11-27 15:57:50 \emph{@HRTF1Team} Tonio tambin ultimando detalles | Tonio also taking in the last details http://t.co/708MXVcK\\
+2011-11-27 15:58:21 \emph{@InsideFerrari} Two minutes, ignition on\\
+2011-11-27 15:58:31 \emph{@HRTF1Team} 5 minutos para que empiece la carrera | 5 minutes until the race gets underway http://t.co/ZoHaFAaf\\
+
+\subsection{Formation Lap}
+
+2011-11-27 15:59:46 \emph{@OfficialSF1Team} formation lap. both cars on soft tyres. pushing at the start and see how the race develops. no rain predicted for race start.\\
+2011-11-27 16:00:01 \emph{@InsideFerrari} Green light for the formation lap\\
+2011-11-27 16:00:09 \emph{@MarussiaVirgin} Last grid shot of the year http://t.co/9jlSZqYa\\
+2011-11-27 16:00:09 \emph{@OfficialMGP} \#F1 Formation lap...\\
+2011-11-27 16:00:25 \emph{@OfficialSF1Team} Both Toro Rosso on softs as well. So is PET.\\
+2011-11-27 16:00:34 \emph{@InsideFerrari} The start and the first lap will be crucial, as usual. Let's see if we can gain some positions.\\
+2011-11-27 16:00:52 \emph{@HRTF1Team} Everything is ready in Brazil for the last race of the season http://t.co/gS7VFZeQ\\
+2011-11-27 16:01:05 \emph{@OfficialLRGP} both our cars starting on Pirelli's soft tyre. Bruno as he qualified in the top ten and used that tyre, Vitaly as the strategy call\\
+2011-11-27 16:01:31 \emph{@OfficialMGP} Don't forget to log on our website to follow the LIVE telemetry of our two cars on track at Interglagos! http://t.co/8LaRxD95\\
+2011-11-27 16:02:19 \emph{@InsideFerrari} Cars are arriving on the grid\\
+2011-11-27 16:02:44 \emph{@OfficialMGP} \#F1 Back on the grid...\\
+2011-11-27 16:03:09 \emph{@InsideFerrari} THe start is uphill, another difficulty\\
+
+\subsection{Race}
+
+2011-11-27 16:03:15 \emph{@OfficialMGP} \#F1 The race is on!\\
+2011-11-27 16:03:45 \emph{@HRTF1Team} Y comienza el Gran Premio de Brasil! | And the Brazilian Grand Prix begins!\\
+2011-11-27 16:03:49 \emph{@InsideFerrari} Fernando is ahead of Hamilton\\
+2011-11-27 16:04:08 \emph{@InsideFerrari} Felipe ahead of Rosberg\\
+2011-11-27 16:04:15 \emph{@OfficialMGP} \#F1 LAP 1 Nico P7, Michael P11\\
+2011-11-27 16:04:24 \emph{@MyTeamLotus} One of the toughest treks back from the grid for the boys in the garage. Up the hill to the pitlane then all the way down to the garage.\\
+2011-11-27 16:05:09 \emph{@OfficialMGP} \#F1 Nico 0.8s behind MAS, Michael reclaims P10 from DIR\\
+2011-11-27 16:05:10 \emph{@MarussiaVirgin} Told you it would be AMAZING http://t.co/OMuoIy97\\
+2011-11-27 16:05:13 \emph{@MyTeamLotus} Yet another brilliant start from KOV who's up to 15th. Jarno's also made up places to 18th\\
+2011-11-27 16:05:51 \emph{@MarussiaVirgin} It was indeed! "@Andrea\_Eyre: Excellent start by @MarussiaVirgin @thereal\_JDA :-))))"\\
+2011-11-27 16:05:55 \emph{@OfficialLRGP} Great start Vitaly - up to 12th from 15th. Bruno sitting pretty in 9th\\
+2011-11-27 16:06:18 \emph{@InsideFerrari} Fernando is closing on Button\\
+2011-11-27 16:06:18 \emph{@HRTF1Team} Tonio pierde una posicin por el adelantamiento de DAM y Daniel dos (DAM y GLO)\\
+2011-11-27 16:06:24 \emph{@InsideFerrari} DRS enabled\\
+2011-11-27 16:06:42 \emph{@HRTF1Team} Tonio loses one place after being overtaken by DAM, Daniel loses two places (DAM and GLO)\\
+2011-11-27 16:07:02 \emph{@OfficialMGP} \#F1 Nico P7 0.9s behind MAS, 0.7s in front of SUT, Michael P10 0.2s in front of DIR, 0.9s behind SEN\\
+2011-11-27 16:07:55 \emph{@HRTF1Team} DRS habilitado | DRS activated\\
+2011-11-27 16:08:04 \emph{@clubforce} Clean starts for Adrian and Paul. Lap 3 and Adrian is P8 and Paul P11.\\
+2011-11-27 16:09:04 \emph{@OfficialMGP} \#F1 Personal bests for Nico and Michael in the last lap\\
+2011-11-27 16:09:04 \emph{@OfficialLRGP} Two clicks forward on the brake balance Vitaly. And a wave for the crowd\\
+2011-11-27 16:09:22 \emph{@InsideFerrari} The DRS zone looks a bit short...\\
+2011-11-27 16:10:06 \emph{@OfficialMGP} \#F1 Michael getting closer to SEN\\
+2011-11-27 16:10:39 \emph{@InsideFerrari} Fernando is in a sandwich between the two McLarens\\
+2011-11-27 16:11:25 \emph{@MarussiaVirgin} So Jerome has stormed ahead to P21 with LIU the meat in an @MarussiaVirgin sandwich and RIC bringing up the rear!\\
+2011-11-27 16:12:23 \emph{@OfficialLRGP} Bruno's resisting the attentions of Michael Schumacher very well, skies not looking rainful so when will the pit stops start?\\
+2011-11-27 16:13:53 \emph{@HRTF1Team} Tanto Daniel como Tonio han salido con neumticos blandos | Both Daniel and Tonio have started on soft tyres\\
+2011-11-27 16:14:48 \emph{@InsideFerrari} Stable situation at the moment\\
+2011-11-27 16:15:09 \emph{@OfficialMGP} \#F1 Michael 0.3s behind SEN...\\
+2011-11-27 16:15:54 \emph{@OfficialMGP} \#F1 Puncture for Michael... Contact with SEN\\
+2011-11-27 16:16:18 \emph{@InsideFerrari} Contact between Michael and Bruno Senna: the German suffered a puncture\\
+2011-11-27 16:16:21 \emph{@OfficialMGP} \#F1 Michael making his way back to the pits slowly\\
+2011-11-27 16:17:29 \emph{@InsideFerrari} A great move from Fernando who is ahead of BUtton\\
+2011-11-27 16:17:39 \emph{@HRTF1Team} DAM abre hueco con respecto a Tonio pero Daniel est encima de GLO (+0.3)\\
+2011-11-27 16:17:46 \emph{@OfficialMGP} \#F1 Michael in the pits\\
+2011-11-27 16:18:09 \emph{@HRTF1Team} DAM opens up the gap to Tonio but Daniel is ahead of GLO (+0.3)\\
+2011-11-27 16:18:31 \emph{@OfficialLRGP} Resilient defence from Bruno, Vitaly gains a place\\
+2011-11-27 16:18:34 \emph{@OfficialMGP} \#F1 Michael is now back on track, P24. Lot of work to do now...\\
+2011-11-27 16:18:38 \emph{@HRTF1Team} Todos ganan una posicin por el pinchazo de MSC | Everyone goes up one place after MSC's puncture\\
+2011-11-27 16:19:20 \emph{@clubforce} Lap 12 of 71. Adrian running well in P8 less than a second behind Rosberg. Paul now up to P10 after Schumacher's puncture.\\
+2011-11-27 16:20:11 \emph{@OfficialLRGP} Quick stop for Bruno, softs for softs\\
+2011-11-27 16:20:39 \emph{@OfficialMGP} \#F1 Lap 13. Nico P7, 6.1s behind MAS, 0.3s in front of SUT. Michael P24, 31s behind RIC\\
+2011-11-27 16:21:40 \emph{@OfficialLRGP} Great stop from Vitaly's crew - softs to softs\\
+2011-11-27 16:21:59 \emph{@HRTF1Team} Muchos neumticos en el box. Hay que tener todas las opciones (seco e intermedios) listas http://t.co/ThXNyWHE\\
+2011-11-27 16:22:39 \emph{@HRTF1Team} A lot of tyres in the garage. Need to have every option (dry and intermediates) ready http://t.co/I6IzrXNF\\
+2011-11-27 16:23:25 \emph{@InsideFerrari} Button pitted\\
+2011-11-27 16:23:39 \emph{@clubforce} Adrian pits for a fresh set of softs.\\
+2011-11-27 16:23:54 \emph{@OfficialLRGP} Bruno coming in for his pit stop http://t.co/AzwrZJph\\
+2011-11-27 16:24:16 \emph{@InsideFerrari} Ready for Fernando in the pits\\
+2011-11-27 16:24:46 \emph{@OfficialMGP} \#F1 Nico in the pits\\
+2011-11-27 16:25:03 \emph{@InsideFerrari} Hamilton pitted as well\\
+2011-11-27 16:25:14 \emph{@InsideFerrari} Fernando still ahead of Button\\
+2011-11-27 16:25:27 \emph{@OfficialMGP} \#F1 Nico rejoins P13\\
+2011-11-27 16:25:37 \emph{@OfficialSF1Team} well done boys. great start. \#Kamui's lap times are still dropping so we can go on with the first set of soft tyres.\\
+2011-11-27 16:26:31 \emph{@InsideFerrari} Vettel pitted\\
+2011-11-27 16:26:54 \emph{@InsideFerrari} Webber is in aas well\\
+2011-11-27 16:26:55 \emph{@MyTeamLotus} Heikki's first to pit. Straight back out on softs for second stint\\
+2011-11-27 16:27:13 \emph{@OfficialLRGP} Here's Vitaly departing his rapid stop http://t.co/gEYCJJBi\\
+2011-11-27 16:27:49 \emph{@clubforce} Lap 18: Paul also dives into the pits for another set of soft tyres.\\
+2011-11-27 16:27:50 \emph{@MarussiaVirgin} Status remains the same for us, albeit MSC now bringing up the rear. DAM 20 GLO 22\\
+2011-11-27 16:28:05 \emph{@OfficialLRGP} Drive through for Bruno. Rubbing's racing surely?\\
+2011-11-27 16:28:30 \emph{@InsideFerrari} Felipe is leading the race now\\
+2011-11-27 16:29:10 \emph{@InsideFerrari} Fernando is behind the two Red Bulls\\
+2011-11-27 16:29:29 \emph{@OfficialMGP} \#F1 Nico fighting with the yet to pit ALG\\
+2011-11-27 16:30:23 \emph{@OfficialSF1Team} box \#Checo box. soft tyres again.\\
+2011-11-27 16:30:23 \emph{@HRTF1Team} Half the drivers have made their first pitstop. The HRT's shouldn't be too long\\
+2011-11-27 16:30:35 \emph{@OfficialMGP} \#F1 Nico now P9\\
+2011-11-27 16:30:42 \emph{@MarussiaVirgin} Jerome in now!\\
+2011-11-27 16:30:44 \emph{@InsideFerrari} Felipe has been overtaken by Vettel and is coming in\\
+2011-11-27 16:31:09 \emph{@HRTF1Team} DAM, Tonio, GLO y Daniel ruedan en los mismos tiempos | DAM, Tonio, GLO and Daniel are setting the same times\\
+2011-11-27 16:31:32 \emph{@OfficialSF1Team} and now \#Kamui. box in this lap. keep frontwing position. soft tyres.\\
+2011-11-27 16:31:54 \emph{@InsideFerrari} Clean pit stop and he is back on track\\
+2011-11-27 16:31:56 \emph{@MarussiaVirgin} Timo in now!\\
+2011-11-27 16:31:58 \emph{@OfficialLRGP} Vitaly's back to 12th and behind Perez. He's been here before...\\
+2011-11-27 16:32:27 \emph{@OfficialLRGP} Bruno, post drive through is sat in 17th - time for some Brazilian rain dancing\\
+2011-11-27 16:34:03 \emph{@MarussiaVirgin} Here is Jerome's stop http://t.co/cluJIVBt\\
+2011-11-27 16:34:32 \emph{@OfficialMGP} \#F1 Michael now up to P20, 4s behind TRU\\
+2011-11-27 16:34:38 \emph{@HRTF1Team} Primera parada de Daniel | Daniel's first pitstop http://t.co/HNO6AasO\\
+2011-11-27 16:34:38 \emph{@InsideFerrari} Fernando is five seconds behind Webber\\
+2011-11-27 16:35:53 \emph{@OfficialLRGP} P9 for Vitaly now, keep it going... P16 for Bruno\\
+2011-11-27 16:36:11 \emph{@HRTF1Team} Gran pitstop del coche de Tonio y hemos pasado a Glock | Great pitstop on Tonio's car and we're ahead of Glock http://t.co/fmwqqeOr\\
+2011-11-27 16:36:45 \emph{@HRTF1Team} Abandono de GLO que ha perdido una rueda trasera | GLO abandons as he loses a rear tyre\\
+2011-11-27 16:36:56 \emph{@clubforce} Lap 25. Adrian running P7 ahead of Rosberg following pit stops. Paul now in P10. Both on soft tyres.\\
+2011-11-27 16:37:06 \emph{@InsideFerrari} Felipe is lying 10 seconds behind Hamilton\\
+2011-11-27 16:37:08 \emph{@HRTF1Team} Todos los coches han hecho ya su primer pitstop | Every car has made its first pitstop\\
+2011-11-27 16:37:36 \emph{@OfficialSF1Team} same picture after first pit stops. KOB, BUE, PER. keep on fighting and targeting P10!\\
+2011-11-27 16:38:28 \emph{@MarussiaVirgin} For those who didn't see Timo lost a wheel in the pit lane exit\\
+2011-11-27 16:38:43 \emph{@HRTF1Team} De nuevo Daniel y Tonio han apostado por blandos | Daniel and Tonio are on softs again\\
+2011-11-27 16:39:12 \emph{@OfficialLRGP} a soupon forwards on the brake balance Vitaly, all in the quest to go a soupon forwards on track position\\
+2011-11-27 16:39:21 \emph{@InsideFerrari} Webber is pushing very hard\\
+2011-11-27 16:41:29 \emph{@OfficialLRGP} Box Bruno box - Bruno does have gearbox problems - nothing we can rectify remotely.\\
+2011-11-27 16:41:35 \emph{@MarussiaVirgin} Investigation after the race but for now the right thing to do is stay focused on the race\\
+2011-11-27 16:42:11 \emph{@InsideFerrari} WEbber overtook Vettel in an interesting way...\\
+2011-11-27 16:42:23 \emph{@OfficialLRGP} We've gone to the medium Pirelli tyres to try something different on Bruno's strategy\\
+2011-11-27 16:43:42 \emph{@OfficialMGP} Lap 31. Nico P8, 6.1s behind SUT, 4.9s in front of PET. Michael P17, 17.0s behind KOV\\
+2011-11-27 16:44:37 \emph{@InsideFerrari} Button pitted and switched on Medium\\
+2011-11-27 16:44:52 \emph{@HRTF1Team} Tonio y Daniel ganan una posicin por el abandono de MAL | Tonio and Daniel gain a place after MAL retires\\
+2011-11-27 16:45:16 \emph{@MyTeamLotus} We've been joined in the garage by Chase and Status and DJ legend Sasha... http://t.co/3wnDdzoA\\
+2011-11-27 16:45:23 \emph{@OfficialSF1Team} \#Kamui is increasing the gap to BUE. \#Checo just 0.6 behind BUE. Still yellow turn 7. PET on three stops.\\
+2011-11-27 16:45:28 \emph{@OfficialLRGP} Softs to softs for Vitaly http://t.co/5e8jOBHb\\
+2011-11-27 16:45:51 \emph{@OfficialMGP} \#F1 Nico 1.9s behind SUT now\\
+2011-11-27 16:46:30 \emph{@OfficialMGP} \#F1 Nico P7 after SUT stop\\
+2011-11-27 16:46:42 \emph{@OfficialLRGP} Checking tyre temperature, pressure and appearance after they come off Vitaly's car http://t.co/rWELNiPR\\
+2011-11-27 16:46:53 \emph{@clubforce} Lap 31, Adrian makes pit stop number two. Sticking with the soft tyres.\\
+2011-11-27 16:47:15 \emph{@OfficialMGP} \#F1 Second stop of the day for Michael\\
+2011-11-27 16:47:54 \emph{@InsideFerrari} Meteo France said rain is expected in 10 minutes...\\
+2011-11-27 16:49:21 \emph{@InsideFerrari} Fernando is in the pits\\
+2011-11-27 16:50:21 \emph{@HRTF1Team} El radar da lluvia en 15 minutos aunque mirando al cielo no lo parece\\
+2011-11-27 16:50:36 \emph{@InsideFerrari} Fernando is still ahead of BUtton, who at the moment is just behind Felipe\\
+2011-11-27 16:50:42 \emph{@OfficialSF1Team} car is ok. \#Checo can continue. "no problems" he says.\\
+2011-11-27 16:52:07 \emph{@OfficialLRGP} Rain dancing working - it's supposed to be on its way. Here's the sky at half-race distance http://t.co/d8GWD1LN\\
+2011-11-27 16:52:13 \emph{@MyTeamLotus} Midway through the race. Heikki's made two stops and is currently 16th, Jarno 18th\\
+2011-11-27 16:52:14 \emph{@HRTF1Team} The radar forecasts rain in 15 mins but looking at the sky you wouldn't think it\\
+2011-11-27 16:53:00 \emph{@OfficialLRGP} Bruno - Michael's the next car behind you. Remember him?\\
+2011-11-27 16:53:09 \emph{@InsideFerrari} Webber is in the pits\\
+2011-11-27 16:54:30 \emph{@InsideFerrari} And now Vettel is in the pits\\
+2011-11-27 16:54:53 \emph{@OfficialSF1Team} \#Kamui is closing on DIR and opening on BUE.\\
+2011-11-27 16:55:00 \emph{@InsideFerrari} Button passed Felipe\\
+2011-11-27 16:57:49 \emph{@clubforce} Lap 41, Paul pits and changes his softs for a set of mediums.\\
+2011-11-27 16:57:57 \emph{@OfficialSF1Team} no rain within the next 30 minutes. we are happy with that as pace is strong under dry conditions.\\
+2011-11-27 16:58:06 \emph{@InsideFerrari} Fernando is 7 seconds behind Vettel, 6 ahead of Button\\
+2011-11-27 16:58:35 \emph{@OfficialMGP} \#F1 Nico now defending on SUT who has fresher tyres...\\
+2011-11-27 16:59:17 \emph{@OfficialMGP} \#F1 Nico in the pits for his second stop\\
+2011-11-27 17:00:14 \emph{@OfficialMGP} \#F1 Nico rejoins P9\\
+2011-11-27 17:00:43 \emph{@OfficialSF1Team} box \#Kamui. medium tyres for him.\\
+2011-11-27 17:01:44 \emph{@HRTF1Team} Hay que aguantar unas vueltas ms por si finalmente se pusiera a llover y tocara montar intermedios en lugar de medios...\\
+2011-11-27 17:02:10 \emph{@MarussiaVirgin} Jerome stops and switches from the Soft to the Medium tyre\\
+2011-11-27 17:02:27 \emph{@OfficialSF1Team} box, \#Checo. slight front wing adjustment. medium tyres.\\
+2011-11-27 17:02:28 \emph{@InsideFerrari} Hamilton pitted once more and now Felipe is coming in as well\\
+2011-11-27 17:03:28 \emph{@InsideFerrari} He should be ahead of Hamilton\\
+2011-11-27 17:03:30 \emph{@HRTF1Team} The drivers have to hold on a few laps in case it starts raining and they have to switch to intermediates instead of mediums...\\
+2011-11-27 17:03:34 \emph{@OfficialMGP} \#F1 Michael is now fighting for P16 on lap 46\\
+2011-11-27 17:04:26 \emph{@HRTF1Team} Daniel's tyres say enough is enough and he comes in for a set of mediums\\
+2011-11-27 17:04:41 \emph{@OfficialMGP} \#F1 SUT pitted, Nico P7\\
+2011-11-27 17:04:57 \emph{@InsideFerrari} Hamilton is forced to stop\\
+2011-11-27 17:06:20 \emph{@OfficialLRGP} Vitaly boxes for a set of new mediums - what position finish can they predict? http://t.co/eyHFpLm3\\
+2011-11-27 17:06:55 \emph{@OfficialMGP} \#F1 Same again with Nico defending on SUT, on a fresher set\\
+2011-11-27 17:07:07 \emph{@clubforce} Adrian up to P7 and chasing Rosberg for P6. Paul now up to P9. Lap 49 of 71.\\
+2011-11-27 17:07:32 \emph{@OfficialMGP} \#F1 Nice defensive move from Nico down in T1\\
+2011-11-27 17:08:49 \emph{@OfficialMGP} \#F1 Move done this time... Nico now P7\\
+2011-11-27 17:09:23 \emph{@clubforce} Adrian up to P6 after an ace move on Rosberg. 20 laps to go.\\
+2011-11-27 17:10:52 \emph{@OfficialLRGP} Bruno coming in with a set of mediums http://t.co/VnEzRoYZ\\
+2011-11-27 17:10:59 \emph{@InsideFerrari} At this moment, the showers are too far for spreading towards the circuit, said Meteo France\\
+2011-11-27 17:11:44 \emph{@InsideFerrari} Button is in the pits\\
+2011-11-27 17:11:51 \emph{@HRTF1Team} Tonio comes in for his set of medium tyres and goes back out between DAM and Daniel http://t.co/zoq7W2bA\\
+2011-11-27 17:12:10 \emph{@OfficialLRGP} Changing Bruno to a set of used softs http://t.co/geQKsaE8\\
+2011-11-27 17:12:11 \emph{@OfficialMGP} \#F1 Michael in the pits\\
+2011-11-27 17:13:48 \emph{@InsideFerrari} Ready for the pit stop\\
+2011-11-27 17:13:52 \emph{@HRTF1Team} Both drivers gain a place after HAM's retirement (LIU P20 and RIC P21)\\
+2011-11-27 17:14:04 \emph{@InsideFerrari} Fernando is in the pits\\
+2011-11-27 17:14:52 \emph{@InsideFerrari} He is still ahead of Button\\
+2011-11-27 17:15:51 \emph{@InsideFerrari} Button very wuick now\\
+2011-11-27 17:15:57 \emph{@InsideFerrari} quick...\\
+2011-11-27 17:18:18 \emph{@OfficialSF1Team} well done \#Checo!!!! he found his pace again. strong performance with medium tyres after he slightly overheated the rear with the softs.\\
+2011-11-27 17:19:29 \emph{@InsideFerrari} Button is much quicker than Fernando on Medium..\\
+2011-11-27 17:19:29 \emph{@OfficialLRGP} We want strong, consistent laps Vitaly - who promptly sets his fastest lap of the race - that'll do nicely\\
+2011-11-27 17:20:42 \emph{@InsideFerrari} Both Red Bulls pitted and went on Medium for the last stint\\
+2011-11-27 17:20:48 \emph{@OfficialMGP} \#F1 Lap 60. Nico P7 (2 stops), 8.5s behind SUT, 6.5s in front of DIR. Michael P15 (3 stops), 6.8s behind BAR\\
+2011-11-27 17:22:52 \emph{@InsideFerrari} It is going to be difficult to keep him behind\\
+2011-11-27 17:23:31 \emph{@MarussiaVirgin} Jerome P19 from LIU and RIC with 10 laps remaining\\
+2011-11-27 17:24:18 \emph{@InsideFerrari} And Buttton passed him with the DRS\\
+2011-11-27 17:28:14 \emph{@InsideFerrari} So it looks that we will not have another podium in this last race of the season....\\
+2011-11-27 17:29:34 \emph{@OfficialMGP} \#F1 5 laps left\\
+2011-11-27 17:34:45 \emph{@HRTF1Team} Tonio abandons the race with 7 laps to go due to an alternator failure. It's a real shame to finish the season like that\\
+2011-11-27 17:35:28 \emph{@MyTeamLotus} The final lap for Team Lotus. Emotional moments as the job is done. Well done to everyone in the team and thank you for so much hard work.\\
+2011-11-27 17:36:23 \emph{@OfficialLRGP} P10 for Vitaly, P17 for Bruno\\
+2011-11-27 17:36:32 \emph{@redbullracing} By all accounts that's a \#REDBULLRACING \#F1 1,2 FINISH by @aussiegrit \& \#Vettel respectively here in BRAZIL!!!\#BIGBADWOLVESINTHEHOUSETONIGHT\\
+2011-11-27 17:36:35 \emph{@OfficialSF1Team} \#Kamui is finishing 9th and is saving P7 in the \#F1 constructor championship for us. great news after a nerve-stretching race.\\
+2011-11-27 17:37:41 \emph{@OfficialMGP} \#F1 End of a tough race for the boys today in Interlagos. Nico P7, Michael P15 after an early puncture/contact with SEN.\\
+2011-11-27 17:38:31 \emph{@OfficialSF1Team} "Thank you guys" from \#Kamui over the radio to his race engineer and team.\\
+2011-11-27 17:40:28 \emph{@HRTF1Team} Finaliza el Gran Premio de Brasil, el ltimo del ao, con Daniel en P20 y Tonio DNF\\
+2011-11-27 17:41:19 \emph{@HRTF1Team} The Brazilian Grand Prix, the last race of the season, comes to an end with Daniel in P20 and Tonio DNF\\
+2011-11-27 17:42:20 \emph{@TheFifthDriver} Mark Webber wins the Brazilian Grand Prix. Jenson will join him on the podium in third. Lewis retired on lap 48 with gearbox issues.\\
+2011-11-27 17:42:35 \emph{@HRTF1Team} Clasificacin final del GP de Brasil | Final classification of the Brazilian GP http://t.co/e9i7R8Rw\\
+2011-11-27 17:42:54 \emph{@MarussiaVirgin} Well done Jerome - P19 - and well done team for being just that - a real Team - through thick and thin, throughout a difficult season\\
+2011-11-27 17:45:38 \emph{@TheFifthDriver} The top 10 for you: 1) WEB, 2) VET, 3) Jenson, 4) ALO, 5) MAS, 6) SUT, 7) ROS, 8) DIR, 9) KOB, 10) PET.\\
+2011-11-27 17:48:19 \emph{@TheFifthDriver} Here's the podium for you with @JensonButton definitely looking forward to spraying the champagne :-) http://t.co/9Knk0ibI\\
+
+\subsection{Post-Race}
+
+2011-11-27 17:50:58 \emph{@InsideFerrari} THe race finished with two Ferraris just outside the podium. This meant that Fernando is 4th in the Championship and Felipe 6th.\\
+2011-11-27 17:51:37 \emph{@clubforce} Excellent result in Sao Paulo. P6 for Adrian and P8 for @pauldirestaf1 - equalling our best result of year and securing P6 in championship.\\
+2011-11-27 17:55:13 \emph{@OfficialLRGP} That's all folks: http://t.co/4PqLkYs1\\
+2011-11-27 17:59:26 \emph{@TheFifthDriver} Forget the champagne, can you spot @JensonButton hiding behind the awesome ticker tape! http://t.co/FMp740So\\
+2011-11-27 18:03:42 \emph{@TheFifthDriver} A well deserved swig of fizz for the West Country's finest @JensonButton http://t.co/UqWYc5gb\\
+2011-11-27 18:05:12 \emph{@InsideFerrari} BRA - Just off the podium http://t.co/ENxhij86\\
+2011-11-27 18:14:01 \emph{@TheFifthDriver} And then on to the final FIA press conference of the 2011 season for our podium man... http://t.co/vyqvXN4q\\
+2011-11-27 18:47:33 \emph{@OfficialSF1Team} freeze the moment! Smiling faces all over in our paddock club suite and \#Kamui in the middle of it! http://t.co/ZL3fvqpe\\
+2011-11-27 19:06:17 \emph{@OfficialSF1Team} Peter Sauber: "Thanks to the whole team at the track, in Hinwil and to our partners"!\\
+2011-11-27 19:07:32 \emph{@OfficialSF1Team} \#Kamui:"We worked a lot on the race pace and Im happy that I was able to score in the final two races of the season."\\
+2011-11-27 19:08:49 \emph{@OfficialSF1Team} \#Checo: "The teams main target for today was to make sure we finished the season in seventh, and I am very happy that this was achieved!"\\
+2011-11-27 19:12:34 \emph{@HRTF1Team} Brazilian Grand Prix http://t.co/kp0XYb4S\\
+2011-11-27 19:12:56 \emph{@OfficialMGP} \#F1 Ross We know that we need to put everything together next year http://t.co/YSI4Etd1\\
+2011-11-27 19:13:00 \emph{@OfficialMGP} \#F1 Michael I am confident we can make another step forward to where Mercedes belongs; fighting at the top http://t.co/gjlocNJ7\\
+2011-11-27 19:13:03 \emph{@OfficialMGP} \#F1 Nico I look forward to an exciting time in the winter as we work hard to develop a better car for next year http://t.co/910GocSQ\\
+2011-11-27 19:13:44 \emph{@redbullracing} \#WINNING http://t.co/F9g4LlMt\\
+2011-11-27 19:14:04 \emph{@OfficialSF1Team} By far the most creative \#MO in our team! Cheers from \#Interlagos \#F1 to @MovemberUK! http://t.co/762L2En4\\
+2011-11-27 19:20:12 \emph{@OfficialSF1Team} You do not want to mess with the real \#MOtorheads of \#MOtorsports in \#MOvember..;-). Go \#MO! http://t.co/aK2bfZZo\\
+2011-11-27 19:42:41 \emph{@WilliamsF1Team} It hasn't stopped for rubens since he got out the car - 1st debrief, now media work! http://t.co/xVQNmm4S\\
+2011-11-27 20:03:53 \emph{@OfficialSF1Team} RT @Formel28: by far ROSS is friendliest bodywork man of any team - we Scrutineers will miss him loads at races next year! - THX!!!!\\
+2011-11-27 20:18:24 \emph{@WilliamsF1Team} Disappointing end to the season for Pastor - Rubens drove well to 14th and passed 50,000 raced miles today. Amazing.\\
+2011-11-27 20:29:03 \emph{@WilliamsF1Team} If you want to read our last race report of the year, it's now ready here: http://t.co/Ol4yGPIf\\
+2011-11-27 20:50:10 \emph{@InsideFerrari} BRA - Just off the podium. Alonso: "Proud of the team anyway" http://t.co/kTdSdDAy\\
+2011-11-27 20:50:38 \emph{@OfficialSF1Team} Congratulations to \#Federer for his outstanding performance in London and Master title number 6! Wow!\\
+2011-11-27 20:51:58 \emph{@HRTF1Team} A punto de terminar la jornada, solo queda dar las gracias a todo el equipo que ha trabajado tan duro esta... http://t.co/WnMaO59x\\
+2011-11-27 20:53:44 \emph{@HRTF1Team} A tough day is drawing to a close, all that's left is to thank the whole team that has worked so hard this... http://t.co/667Ul8Tt\\
+2011-11-27 20:54:04 \emph{@MarussiaVirgin} For the full story of today's season finale in Sao Paulo check out http://t.co/yjdnzrJO\\
+2011-11-27 20:59:25 \emph{@MarussiaVirgin} The team announces its driver line-up for 2012, with Charles Pic partnering Timo Glock next season http://t.co/YtUV2UYT\\
+2011-11-27 21:01:33 \emph{@InsideFerrari} BRA - Podium dreams fail to come true http://t.co/d3YEgGNx\\
+2011-11-27 21:02:35 \emph{@WilliamsF1Team} That's it from us from the race track till testing - thank you for following and sticking with us. We will be back fighting again in 2012!\\
 
 \newpage
 \section{Feedback}
