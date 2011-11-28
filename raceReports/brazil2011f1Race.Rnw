@@ -1292,7 +1292,7 @@ racePosChart(hrtPos)
 \begin{minipage}[b]{0.5\linewidth}
 \centering
 <<VIRbattle1,echo=F,fig=T,width=5,height=7>>=
-battleplot(22)
+battleplot(24)
 @
 \caption{Battle Plot, \emph{GLO}}
 \end{minipage}
@@ -1300,7 +1300,7 @@ battleplot(22)
 \begin{minipage}[b]{0.5\linewidth}
 \centering
 <<VIRbattle2,echo=F,fig=T,width=5,height=7>>=
-battleplot(23)
+battleplot(25)
 @
 \caption{Battle Plot, \emph{AMB}}
 \end{minipage}
