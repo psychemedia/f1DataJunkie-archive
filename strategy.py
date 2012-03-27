@@ -9,8 +9,11 @@ tyredegradation={}
 #tyremodel: bias, phase1 degradation, start of phase2, phase2 degradation
 tyredegradation['H']=(1,0.05,99,0.05)
 tyredegradation['S']=(0,0.1,15,0.5)
-pitloss=16
-laps=52
+pitloss=17
+pitstop=4
+laps=60
+
+pitTime=pitloss+pitstop
 
 #If I'm right in remembering sum of i from 1 to N is 0.5*N(N+1)...
 def stintTime(lapstodo,tyremodel):
@@ -38,7 +41,7 @@ for strategy in strategies:
 	for lap in range(1,laps-1):
 		tp1=stintTime(lap,tyredegradation[tph1])
 		tp2=stintTime(laps-lap,tyredegradation[tph2])
-		t=tp1+pitloss+tp2
+		t=tp1+pitTime+tp2
 		#print 'One stop: stop on lap',lap,'timeloss:',t,'from phase 1',tp1,', phase 2',tp2
 		if t<min:
 			opt=(lap,t)
@@ -60,7 +63,7 @@ for strategy in strategies:
 			tp2=stintTime(endstint2-endstint1,tyredegradation[tph2])
 			tp3=stintTime(laps-endstint2,tyredegradation[tph3])
 			
-			t=tp1+pitloss+tp2+pitloss+tp3
+			t=tp1+pitTime+tp2+pitTime+tp3
 			#print 'One stop: stop on lap',lap,'timeloss:',t,'from phase 1',tp1,', phase 2',tp2
 			if t<min:
 				opt=(endstint1,endstint2,t)
@@ -73,7 +76,7 @@ strategies=[['H','S','S','S'],['H','S','S','H'],['H','S','H','S'],['H','S','H','
 for strategy in strategies:
 	min=999
 	t=0
-	print "Strategy",strategy
+	#print "Strategy",strategy
 	tph1,tph2,tph3,tph4=strategy
 	for endstint1 in range(1,laps-2):
 		for endstint2 in range(endstint1+1,laps-1):
@@ -84,7 +87,7 @@ for strategy in strategies:
 				tp3=stintTime(endstint3-endstint2,tyredegradation[tph3])
 				tp4=stintTime(laps-endstint3,tyredegradation[tph4])
 				
-				t=tp1+pitloss+tp2+pitloss+tp3+pitloss+tp4
+				t=tp1+pitTime+tp2+pitTime+tp3+pitTime+tp4
 				#print 'One stop: stop on lap',lap,'timeloss:',t,'from phase 1',tp1,', phase 2',tp2
 				if t<min:
 					opt=(endstint1,endstint2,endstint3,t)
