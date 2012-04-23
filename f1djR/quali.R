@@ -1,11 +1,12 @@
+#rm(list=ls(all=T))
 library("RSQLite")
-
+require(plyr)
 require(ggplot2)
 
 threeLetterID <- read.csv("~/code/f1/f1TimingData/f1djR/threeLetterID.csv")
 
-
-dbname='../data/f1_timing_chn_2012.sqlite'
+stub='F1 2012 Bahrain'
+dbname='../data/f1_timing_bhn_2012.sqlite'
 
 #via http://stackoverflow.com/questions/9802680/importing-files-with-extension-sqlite-into-r/9805131#comment12506437_9805131
 ## connect to db
@@ -50,10 +51,15 @@ qtx=merge(qtx,threeLetterID,by.x='name',by.y='Name')
 qtx$sector=subsplit(qtx$sector_driver,1)
 qtx$driverNum=subsplit(qtx$sector_driver,2)
 
-ggplot(subset(qtx,sector==1),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
-ggplot(subset(qtx,sector==2),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
-ggplot(subset(qtx,sector==3),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
-
+g=ggplot(subset(qtx,sector==1),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
+g=g+opts(title=paste(stub,'- Quali Sector 1'))+xlab('Sector time (s)')+ylab('Sector speed (kph)')
+print(g)
+g=ggplot(subset(qtx,sector==2),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
+g=g+opts(title=paste(stub,'- Quali Sector 2'))+xlab('Sector time (s)')+ylab('Sector speed (kph)')
+print(g)
+g=ggplot(subset(qtx,sector==3),aes(x=sectortime,y=speed,label=TLID))+geom_text(size=4,angle=45)
+g=g+opts(title=paste(stub,'- Quali Sector 3'))+xlab('Sector time (s)')+ylab('Sector speed (kph)')
+print(g)
 
 quali_class$q1s=tconv(quali_class$q1_time)
 quali_class$q2s=tconv(quali_class$q2_time)
@@ -65,3 +71,15 @@ quali_times=ddply(quali_times,.(driverNum),transform,cuml=cumsum(laptimeInS))
 #Qualification times
 
 ggplot(quali_class)+geom_point(aes(x=name,y=q1s),colour='red')+geom_point(aes(x=name,y=q2s),colour='blue')+geom_point(aes(x=name,y=q3s),colour='green')+opts( axis.text.x=theme_text( angle=90 ), legend.position="none") +xlab(NULL)
+
+
+qsession=function(t){if (t<2500) return(1) else if (t<3600) return(2) else return(3)}
+quali_times$session=sapply(quali_times$cuml,qsession)
+quali_times=merge(quali_times,threeLetterID,by.x='name',by.y='Name')
+g=ggplot(subset(quali_times,laptimeInS<100),aes(x=cuml,y=laptimeInS,colour=factor(session),label=TLID))
+g=g+geom_text(size=2.5,angle=45)+xlab('Qualifying session elapsed time (s)')+ylab('Laptime (s)')+scale_color_discrete('Session')
+g=g+opts(title=paste(stub,'- Qualifying times by session elapsed time'))
+print(g)
+
+
+
