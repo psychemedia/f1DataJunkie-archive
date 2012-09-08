@@ -6,6 +6,8 @@ require(ggplot2)
 threeLetterID <- read.csv("~/code/f1/f1TimingData/f1djR/threeLetterID.csv")
 
 stub='F1 2012 Bahrain'
+
+#DATA IMPORT
 dbname='../data/f1_timing_bhn_2012.sqlite'
 
 #via http://stackoverflow.com/questions/9802680/importing-files-with-extension-sqlite-into-r/9805131#comment12506437_9805131

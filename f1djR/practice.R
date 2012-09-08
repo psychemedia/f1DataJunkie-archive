@@ -37,6 +37,7 @@ for (r in tables){
   rc=rc+1
 }
 
+#FUNCTIONS
 fpSessionUtilisation=function(sessiondata,title="Practice Utilisation"){
   p=ggplot(sessiondata) + geom_point(aes(x=cuml,y=factor(driverNum)),pch=1) + xlab('Elapsed time in session (s)') +ylab(NULL)
   p=p+scale_y_discrete(labels=dro)+opts(title=title)
