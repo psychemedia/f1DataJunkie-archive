@@ -34,8 +34,10 @@ belqresult$TLID=reorder(belqresult$TLID, belqresult$driverNum)
 
 require(plyr)
 nullmin=function(d) {if (is.finite(min(d,na.rm=T))) return(min(d,na.rm=T)) else return(NA)}
+nullmin2=function(d) nullmin(min(d,na.rm=T))
 
 ultimate=ddply(.variables=c("driverName"),.data=belqs,.fun= function(d) data.frame(ultimate=sum(d$sectortime,na.rm=T)))
+#ultimate=subset(ultimate,ultimate>80)
 belqresult=merge(belqresult,ultimate,by='driverName')
 
 #Find the fastest time recorded in each sector
@@ -126,18 +128,92 @@ g=g+xlab(NULL)+ylab("Speed (km/h)")
 g=g+ggtitle(mktitle('Quali Sector Speeds vs Position'))
 print(g)
 
-g=ggplot(belqresult)+geom_text(aes(x=TLID,y=q1time-ultimate),label='1',col='blue')
-g=g+geom_text(aes(x=TLID,y=q2time-ultimate),label='2',col='purple')
-g=g+geom_text(aes(x=TLID,y=q3time-ultimate),label='3',col='red')
-g=xRot(g)+scale_y_reverse()
-print(g)
-
 require(reshape)
 belqresult$q1delta=belqresult$q1time-belqresult$ultimate
 belqresult$q2delta=belqresult$q2time-belqresult$ultimate
 belqresult$q3delta=belqresult$q3time-belqresult$ultimate
 tmp=subset(belqresult,select=c('TLID','q1delta','q2delta','q3delta'))
-mb2=melt(tmp,id=c('TLID'))
-g=ggplot(mb2)+geom_point(aes(x=TLID,y=value,col=variable))
-g=xRot(g)+scale_y_reverse()
+tmp2=melt(tmp,id=c('TLID'))
+g=ggplot(tmp2)+geom_point(aes(x=TLID,y=value,col=variable))
+g=xRot(g)+scale_y_reverse()+ylab("Delta (s)")
+g=g+guides(colour=guide_legend(title="Session"))
+g=g+ggtitle(mktitle('Quali Times/Ultimate Laptime'))
+print(g)
+
+g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, fill=factor(variable)) )
+g=g+facet_wrap(~TLID)
+g=xRot(g,6)
+g=g+ggtitle(mktitle("Quali Session Time vs Personal Ultimate Deltas"))
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt ultimate (s)')
+print(g)
+
+
+belqresult$q1mdelta=belqresult$q1time-min(belqresult$q1time,na.rm=T)
+belqresult$q2mdelta=belqresult$q2time-min(belqresult$q2time,na.rm=T)
+belqresult$q3mdelta=belqresult$q3time-min(belqresult$q3time,na.rm=T)
+tmp=subset(belqresult,select=c('TLID','q1mdelta','q2mdelta','q3mdelta'))
+tmp2=melt(tmp,id=c('TLID'))
+g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, fill=factor(variable)) )
+g=g+facet_wrap(~TLID)
+g=xRot(g,6)
+g=g+ggtitle(mktitle("Quali Session Time vs Session Best Deltas"))
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt ultimate (s)')
+print(g)
+
+  
+teambestq1=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teambestq1=nullmin2(d$q1time)))
+teambestq2=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teambestq2=nullmin2(d$q2time)))
+teambestq3=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teambestq3=nullmin2(d$q3time)))
+belqresult=merge(belqresult,teambestq1,by='team')
+belqresult=merge(belqresult,teambestq2,by='team')
+belqresult=merge(belqresult,teambestq3,by='team')
+belqresult$q1tdelta=belqresult$q1time-belqresult$teambestq1
+belqresult$q2tdelta=belqresult$q2time-belqresult$teambestq2
+belqresult$q3tdelta=belqresult$q3time-belqresult$teambestq3
+
+tmp=subset(belqresult,select=c('TLID','team','q1tdelta','q2tdelta','q3tdelta'))
+tmp2=melt(tmp,id=c('TLID','team'))
+g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, group=TLID,fill=factor(variable)) )
+g=g+facet_wrap(~TLID)
+g=xRot(g,6)
+g=g+ggtitle(mktitle("Quali Session Time vs Team Session Best Deltas"))
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team sesion best (s)')
+print(g)
+
+#---
+
+teamultq=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teamultq=nullmin2(d$ultimate)))
+belqresult=merge(belqresult,teamultq,by='team')
+belqresult$q1ultdelta=belqresult$q1time-belqresult$teamultq
+belqresult$q2ultdelta=belqresult$q2time-belqresult$teamultq
+belqresult$q3ultdelta=belqresult$q3time-belqresult$teamultq
+
+tmp=subset(belqresult,select=c('TLID','team','q1ultdelta','q2ultdelta','q3ultdelta'))
+tmp2=melt(tmp,id=c('TLID','team'))
+g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, group=TLID,fill=factor(variable)) )
+g=g+facet_wrap(~TLID)
+g=xRot(g,6)
+g=g+ggtitle(mktitle("Quali Session Time vs Team Ultimate Deltas"))
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team sesion best (s)')
+print(g)
+
+#---
+
+tmp=subset(belqresult,select=c('TLID','q1time','q2time','q3time','ultimate'))
+tmp2=melt(tmp,id=c('TLID'))
+g=ggplot(tmp2)+geom_point(aes(x=TLID,y=value,col=variable))
+g=xRot(g)+scale_y_reverse()+ylab("Laptime (s)")
+g=g+guides(colour=guide_legend(title="Session"))
+g=g+ggtitle(mktitle('Quali Time/Personal Ultimate Laptime Deltas'))
+print(g)
+
+tmp=subset(belqresult,select=c('TLID','q1time','q2time','q3time'))
+tmp2=melt(tmp,id=c('TLID'))    
+persbest=ddply(.variables=c("TLID"),.data=tmp2,.fun= function(d) data.frame(persbest=nullmin2(d$value)))
+ultimate=ddply(.variables=c("TLID"),.data=belqs,.fun= function(d) data.frame(ultimate=sum(d$sectortime,na.rm=T)))
+persbest=merge(persbest,ultimate,by="TLID")
+g=ggplot(persbest)+geom_point(aes(x=persbest,y=ultimate),col='grey')
+g=g+ggtitle(mktitle('Quali Personal Best vs Personal Ultimate'))
+g=g+geom_abline(col='grey')
+g=g+geom_text(size=3,aes(x=persbest,y=ultimate,label=TLID,colour=persbest-ultimate))
 print(g)

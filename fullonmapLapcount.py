@@ -21,7 +21,7 @@ f2=open('../generatedfiles/'+f2name+".csv","wb+")
 csv_file = csv.writer(f2)
 csv_file.writerow([ "file",'timestamp','NGPSLatitude','NGPSLongitude', 'NGear','nEngine','rThrottlePedal','pBrakeF','gLat','gLong','sLap','vCar','Lap','lat/lng','latlng'])
 
-samplelaps=[5]
+samplelaps=[24]
 distSamples=[]
 
 f3=open('../generatedfiles/'+f2name+".gdf","wb+")
@@ -31,6 +31,10 @@ gdf_file.writerow([ "nodedef>name VARCHAR",'label VARCHAR','NGPSLatitude DOUBLE'
 f4=open('../generatedfiles/'+f2name+"-elevation.csv","wb+")
 el_file = csv.writer(f4)
 el_file.writerow([ "elevation","lat","long","distance" ])
+
+f5=open('../generatedfiles/'+f2name+"_samplelaps"+"_".join(str(samplelaps))+".csv","wb+")
+csv_fileS = csv.writer(f5)
+csv_fileS.writerow([ "file",'timestamp','NGPSLatitude','NGPSLongitude', 'NGear','nEngine','rThrottlePedal','pBrakeF','gLat','gLong','sLap','vCar','Lap','lat/lng','latlng'])
 
 
 heightsamples=''
@@ -46,9 +50,11 @@ for i in listing:
 		f.seek(0)
 		txt=f.read()
 		f.close()
+		txt=txt.replace('MCL.jsonCallback(','')
 		txt=txt.replace('Dashboard.jsonCallback(\'','')
 		txt=txt.replace('\\','')
 		txt=txt.replace('\');','')
+		txt=txt.replace(');','')
 		#print txt
 		data=''
 		try:
@@ -89,12 +95,14 @@ for i in listing:
 							if f2i in samplelaps:
 								heightsamples = heightsamples + str(d['NGPSLatitude']) + ',' + str(d['NGPSLongitude'])+'|'
 								distSamples.append(d['sLap'])
+								csv_fileS.writerow([ i,d['timestamp'],d['NGPSLatitude'],d['NGPSLongitude'], d['NGear'],d['nEngine'],d['rThrottlePedal'],d['pBrakeF'],d['gLat'],d['gLong'],d['sLap'],d['vCar'],f2i,str(d['NGPSLatitude'])+','+str(d['NGPSLongitude']),str(d['NGPSLatitude'])+':'+str(d['NGPSLongitude']) ])
+								
 gdf_file.writerow(["edgedef>from INT","to INT"])
 for laps in lapdata:
 	gdf_file.writerow(laps)
 
 '''
-heightsamples=heightsamples.rstrip('|')
+#heightsamples=heightsamples.rstrip('|')
 url='http://maps.googleapis.com/maps/api/elevation/json?locations='+heightsamples+'&sensor=false'
 
 print url
