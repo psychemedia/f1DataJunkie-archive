@@ -26,8 +26,14 @@ xRot=function(g,s=5,lab=NULL) g+theme(axis.text.x=element_text(angle=-90,size=s)
 #----
 
 raceflaps=floader("raceFastlaps")
-
 xraceflaps=configData(raceflaps,"ITALY")
+
+raceResults=floader("raceResults")
+xraceResults=configData(raceResults,"ITALY")
+xraceResults$posN=as.integer(as.character(xraceResults$pos))
+
+tmp=subset(xraceflaps,select=c('TLID','stime'))
+xraceResults=merge(xraceResults,tmp,by='TLID')
 
 fastlap=min(xraceflaps$stime)
 xraceflaps$normstime=xraceflaps$stime/fastlap
@@ -53,8 +59,15 @@ g=g+ggtitle(mktitle("Race - Fastest Lap Attainment"))
 g=g+xlab("Lap")+ylab("Fastest Laptime (s)")
 print(g)
 
+g=ggplot(xraceResults)+geom_text(aes(x=posN,y=stime,label=TLID),size=4,angle=45)
+g=g+ggtitle(mktitle("Race - Fastest Lap Vs Final Classification"))
+g=g+xlab("Final Classification (Preliminary)")+ylab("Fastest Laptime (s)")
+print(g)
+
 g=ggplot(xraceflaps)+geom_bar(aes(x=TLID,y=fastdelta,stat="identity"))
 g=g+ggtitle(mktitle("Race - Fastest Lap Delta to Fastest Overall"))
 g=g+xlab("Lap")+ylab("Fastest Laptime Delta (s)")
 g=xRot(g)
 print(g)
+
+
