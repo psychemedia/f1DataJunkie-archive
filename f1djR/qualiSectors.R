@@ -178,7 +178,7 @@ g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, group=TLID,fil
 g=g+facet_wrap(~TLID)
 g=xRot(g,6)
 g=g+ggtitle(mktitle("Quali Session Time vs Team Session Best Deltas"))
-g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team sesion best (s)')
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team session best (s)')
 print(g)
 
 #---
@@ -219,28 +219,30 @@ g=g+geom_abline(col='grey')
 g=g+geom_text(size=3,aes(x=persbest,y=ultimate,label=TLID,colour=persbest-ultimate))
 print(g)
 
-teambar=function(dd,ll){
-  dd=dd[with(dd, order(driverNum)), ]
-  tmp=subset(belqresult,select=c('TLID','team',ll))
-  tt=melt(tmp,id=c('TLID','team'))    
-  tt2=subset(tt,select=c('team','variable','value'))
-  tx=cast(tt2,team ~variable,diff)
-  tn=melt(tx,id='team')
-  tn$team=orderTeams(tn$team)
-  tn$variable=factor(tn$variable,levels=c("q3time","q2time","q1time"))
-  return(tn)
-}
+#teambar=function(dd,ll){
+#  tmp=subset(belqresult,select=c('TLID','team',ll))
+#  dd=dd[with(dd, order(driverNum)), ]
+#  tt=melt(tmp,id=c('TLID','team'))    
+#  tt2=subset(tt,select=c('team','variable','value'))
+#  tx=cast(tt2,team ~variable,diff)
+#  tn=melt(tx,id='team')
+#  tn$team=orderTeams(tn$team)
+#  tn$variable=factor(tn$variable,levels=c("q3time","q2time","q1time"))
+#  return(tn)
+#}
 
-#belqresult=belqresult[with(belqresult, order(driverNum)), ]
-#tmp=subset(belqresult,select=c('TLID','team','q1time','q2time','q3time'))
-#tt=melt(tmp,id=c('TLID','team'))    
-#tt2=subset(tt,select=c('team','variable','value'))
-#tx=cast(tt2,team ~variable,diff)
-#tn=melt(tx,id='team')
-#tn$team=orderTeams(tn$team)
-#tn$variable=factor(tn$variable,levels=c("q3time","q2time","q1time"))
-tn=teambar(belqresult,c('q1time','q2time','q3time'))
-g=ggplot(tn)+geom_bar(aes(x=variable,y=-value,stat='identity',fill=(value>0)))+facet_wrap(~team)
+belqresult=belqresult[with(belqresult, order(driverNum)), ]
+belqresult$teamDriver=sapply(belqresult$driverNum,teamDriver)
+#tmp=subset(belqresult,select=c('TLID','team','teamDriver','q1time','q2time','q3time'))
+tmp=subset(belqresult,select=c('team','teamDriver','q1time','q2time','q3time'))
+tt=melt(tmp,id=c('teamDriver','team'))
+tx=cast(tt,team+variable~teamDriver)
+tx$delta=tx$`0`-tx$`1`
+tx$team=orderTeams(tx$team)
+tx$variable=factor(tx$variable,levels=c("q3time","q2time","q1time"))
+
+#tx=teambar(belqresult,c('q1time','q2time','q3time'))
+g=ggplot(tx)+geom_bar(aes(x=variable,y=delta,stat='identity',fill=(delta<0)))+facet_wrap(~team)
 g=g+coord_flip()+ylab("Delta (s)")+xlab(NULL)+theme(legend.position="none")
 g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
 g=g+ggtitle(mktitle('Quali - Intra-team session best deltas'))
