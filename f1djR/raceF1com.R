@@ -3,7 +3,6 @@
 orderTeams=function (teams) factor(teams,levels=c("Red Bull Racing-Renault","McLaren-Mercedes","Ferrari","Mercedes","Lotus-Renault","Force India-Mercedes","Sauber-Ferrari","STR-Ferrari","Williams-Renault","Caterham-Renault","HRT-Cosworth","Marussia-Cosworth"),ordered=T)
 tlid=data.frame(driverName=c("Sebastian Vettel","Mark Webber","Jenson Button", "Lewis Hamilton", "Fernando Alonso","Felipe Massa","Michael Schumacher","Nico Rosberg", "Kimi Räikkönen","Jerome D'Ambrosio", "Paul di Resta", "Nico Hulkenberg","Kamui Kobayashi","Sergio Perez","Daniel Ricciardo","Jean-Eric Vergne","Pastor Maldonado","Bruno Senna","Heikki Kovalainen","Vitaly Petrov", "Pedro de la Rosa","Narain Karthikeyan","Timo Glock" ,"Charles Pic" ),TLID= c('VET','WEB','BUT','HAM','ALO','MAS','MSC','ROS','RAI','DAM','DIR','HUL','KOB','PER','RIC','VER','MAL','SEN','KOV','PET','DEL','KAR','GLO','PIC'))
 
-mktitle=function(subtitle,event='Italy',year='2012') return(paste('F1 ',year,event,'-',subtitle))
 
 floader=function(table){
   temporaryFile <- tempfile()
@@ -21,12 +20,16 @@ configData=function(d,r){
 }
 
 xRot=function(g,s=5,lab=NULL) g+theme(axis.text.x=element_text(angle=-90,size=s))+xlab(lab)
+mktitle=function(subtitle,event='Italy',year='2012') return(paste('F1 ',year,event,'-',subtitle))
 
 
 #----
 
 raceflaps=floader("raceFastlaps")
 xraceflaps=configData(raceflaps,"ITALY")
+
+racepits=floader("racePits")
+xracePits=configData(racepits,"ITALY")
 
 raceResults=floader("raceResults")
 xraceResults=configData(raceResults,"ITALY")
@@ -70,4 +73,42 @@ g=g+xlab("Lap")+ylab("Fastest Laptime Delta (s)")
 g=xRot(g)
 print(g)
 
+g=ggplot(xracePits)+geom_text(aes(x=lap,y=pitTime,label=TLID,col=stops),size=4,angle=45)
+g=g+ggtitle(mktitle("Race - Pit Stops by Lap"))+xlab("Lap")
+g=g+ylab("Pit time (s)")
+g=g+theme(legend.position="none")
+print(g)
 
+g=ggplot(xracePits,aes(x=TLID,y=pitTime,fill=factor(stops),stat='identity'))
+g=g+ geom_bar( ) 
+g=g+guides(fill=guide_legend(title="Stop"))
+g=xRot(g)
+g=g+ggtitle(mktitle("Race - Cumulative Pit Stop Times"))
+g=g+ylab("Culmulative Pit Time (s)")
+print(g)
+
+
+#Ex- of DTs
+xxracePits=subset(xracePits,pitTime>16)
+pmin=min(xxracePits$pitTime)-0.01
+xxracePits$pdelta=xxracePits$pitTime-pmin
+
+g=ggplot(xxracePits)+geom_text(aes(x=lap,y=pitTime,label=TLID,col=stops),size=4,angle=45)
+g=g+ggtitle(mktitle("Race - Pit Stops by Lap"))+xlab("Lap")
+g=g+ylab("Pit time (s)")
+g=g+theme(legend.position="none")
+print(g)
+
+g=ggplot(xxracePits)+geom_bar(aes(x=TLID,y=pdelta,stat="identity"))
+g=g+facet_wrap(~stops)
+g=xRot(g)
+g=g+ggtitle(mktitle("Race - Pit Stop Deltas from Overall Best Pit"))
+g=g+ylab("Pit Deltas (s)")
+print(g)
+
+g=ggplot(xxracePits)+geom_bar(aes(x=TLID,y=pdelta,stat="identity",fill=factor(stops)))
+g=xRot(g)
+g=g+guides(fill=guide_legend(title="Stop"))
+g=g+ggtitle(mktitle("Race - Pit Stop Deltas from Overall Best Pit"))
+g=g+ylab("Cumulative Pit Deltas (s)")
+print(g)

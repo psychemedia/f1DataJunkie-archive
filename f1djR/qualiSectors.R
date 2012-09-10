@@ -10,6 +10,7 @@ floader=function(table){
   read.csv(temporaryFile)
 }
 
+teamDriver=function(d) if (d>13) return(d %% 2) else return((1+d) %% 2)
 
 qualisectors=floader("qualiSectors")
 
@@ -216,4 +217,48 @@ g=ggplot(persbest)+geom_point(aes(x=persbest,y=ultimate),col='grey')
 g=g+ggtitle(mktitle('Quali Personal Best vs Personal Ultimate'))
 g=g+geom_abline(col='grey')
 g=g+geom_text(size=3,aes(x=persbest,y=ultimate,label=TLID,colour=persbest-ultimate))
+print(g)
+
+teambar=function(dd,ll){
+  dd=dd[with(dd, order(driverNum)), ]
+  tmp=subset(belqresult,select=c('TLID','team',ll))
+  tt=melt(tmp,id=c('TLID','team'))    
+  tt2=subset(tt,select=c('team','variable','value'))
+  tx=cast(tt2,team ~variable,diff)
+  tn=melt(tx,id='team')
+  tn$team=orderTeams(tn$team)
+  tn$variable=factor(tn$variable,levels=c("q3time","q2time","q1time"))
+  return(tn)
+}
+
+#belqresult=belqresult[with(belqresult, order(driverNum)), ]
+#tmp=subset(belqresult,select=c('TLID','team','q1time','q2time','q3time'))
+#tt=melt(tmp,id=c('TLID','team'))    
+#tt2=subset(tt,select=c('team','variable','value'))
+#tx=cast(tt2,team ~variable,diff)
+#tn=melt(tx,id='team')
+#tn$team=orderTeams(tn$team)
+#tn$variable=factor(tn$variable,levels=c("q3time","q2time","q1time"))
+tn=teambar(belqresult,c('q1time','q2time','q3time'))
+g=ggplot(tn)+geom_bar(aes(x=variable,y=-value,stat='identity',fill=(value>0)))+facet_wrap(~team)
+g=g+coord_flip()+ylab("Delta (s)")+xlab(NULL)+theme(legend.position="none")
+g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
+g=g+ggtitle(mktitle('Quali - Intra-team session best deltas'))
+print(g)
+
+tmp=subset(belqresult,select=c('team','driverNum'))
+belqs=merge(belqs,tmp,by='driverNum')
+belqs=belqs[with(belqs, order(sector,driverNum)), ]
+
+belqs$teamDriver=sapply(belqs$driverNum,teamDriver)
+tt=subset(belqs,select=c('team','sector','teamDriver','sectortime'))
+tx=cast(tt,team+sector~teamDriver)
+tx$delta=tx$`0`-tx$`1`
+tx$team=orderTeams(tx$team)
+tx$sector=factor(tx$sector,levels=c("3","2","1"))
+g=ggplot(tx)+geom_bar(aes(x=factor(sector),y=delta,stat='identity',fill=(delta<0)))+facet_wrap(~team)
+g=g+ylim(-0.5,0.5)
+g=g+coord_flip()+ylab("Delta (s)")+xlab("Sector")+theme(legend.position="none")
+g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
+g=g+ggtitle(mktitle('Quali - Intra-team sector times'))
 print(g)
