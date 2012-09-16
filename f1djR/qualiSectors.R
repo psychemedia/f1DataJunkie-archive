@@ -1,16 +1,6 @@
-orderTeams=function (teams) factor(teams,levels=c("Red Bull Racing-Renault","McLaren-Mercedes","Ferrari","Mercedes","Lotus-Renault","Force India-Mercedes","Sauber-Ferrari","STR-Ferrari","Williams-Renault","Caterham-Renault","HRT-Cosworth","Marussia-Cosworth"),ordered=T)
-tlid=data.frame(driverName=c("Sebastian Vettel","Mark Webber","Jenson Button", "Lewis Hamilton", "Fernando Alonso","Felipe Massa","Michael Schumacher","Nico Rosberg", "Kimi Räikkönen","Jerome D'Ambrosio", "Paul di Resta", "Nico Hulkenberg","Kamui Kobayashi","Sergio Perez","Daniel Ricciardo","Jean-Eric Vergne","Pastor Maldonado","Bruno Senna","Heikki Kovalainen","Vitaly Petrov", "Pedro de la Rosa","Narain Karthikeyan","Timo Glock" ,"Charles Pic" ),TLID= c('VET','WEB','BUT','HAM','ALO','MAS','MSC','ROS','RAI','DAM','DIR','HUL','KOB','PER','RIC','VER','MAL','SEN','KOV','PET','DEL','KAR','GLO','PIC'))
+source('core.R')
 
 mktitle=function(subtitle,event='Italy',year='2012') return(paste('F1 ',year,event,'-',subtitle))
-
-floader=function(table){
-  temporaryFile <- tempfile()
-  fn=paste("https://api.scraperwiki.com/api/1.0/datastore/sqlite?format=csv&name=f1comscraper&query=select+*+from+`",table,"`&apikey=",sep='')
-  download.file(fn,destfile=temporaryFile, method="curl")
-  read.csv(temporaryFile)
-}
-
-teamDriver=function(d) if (d>13) return(d %% 2) else return((1+d) %% 2)
 
 qualisectors=floader("qualiSectors")
 
@@ -263,4 +253,15 @@ g=g+ylim(-0.5,0.5)
 g=g+coord_flip()+ylab("Delta (s)")+xlab("Sector")+theme(legend.position="none")
 g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
 g=g+ggtitle(mktitle('Quali - Intra-team sector times'))
+print(g)
+
+
+g=ggplot(belqs)+geom_point(aes(group=sector,col=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team)
+g=g+ggtitle(mktitle('Quali - Intra-team sector times'))
+g=g+scale_y_reverse()+ylab("Delta to session best (s)")+xlab('Team Driver')
+print(g)
+
+g=ggplot(belqs)+geom_bar(aes(stat='identity',position='dodge',fill=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team+sector)
+g=g+ggtitle(mktitle('Quali - Intra-team sector times'))
+g=g+xlab('Team Driver')
 print(g)
