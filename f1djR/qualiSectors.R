@@ -8,21 +8,21 @@ race=toupper(event)
 qualisectors=floader("qualiSectors")
 
 qualisectors=merge(qualisectors,tlid,by='driverName')
-belqs=subset(qualisectors,race==race)
+belqs=subset(qualisectors,race==toupper(event))
 belqs$driverName=reorder(belqs$driverName, belqs$driverNum)
 belqs$TLID=reorder(belqs$TLID, belqs$driverNum)
 
 
 qualiSpeeds=floader("qualiSpeeds")
 qualiSpeeds=merge(qualiSpeeds,tlid,by='driverName')
-belqspeed=subset(qualiSpeeds,race==race)
+belqspeed=subset(qualiSpeeds,race==toupper(event))
 belqspeed$driverName=reorder(belqspeed$driverName, belqspeed$driverNum)
 belqspeed$TLID=reorder(belqspeed$TLID, belqspeed$driverNum)
 
 
 qualiResults=floader("qualiResults")
 qualiResults=merge(qualiResults,tlid,by='driverName')
-belqresult=subset(qualiResults,race==race)
+belqresult=subset(qualiResults,race==toupper(event))
 belqresult$driverName=reorder(belqresult$driverName, belqresult$driverNum)
 belqresult$TLID=reorder(belqresult$TLID, belqresult$driverNum)
 
