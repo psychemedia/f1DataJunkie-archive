@@ -3,8 +3,6 @@ source('core.R')
 event='Italy'
 mktitle=function(subtitle,event=event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 
-race=toupper(event)
-
 qualisectors=floader("qualiSectors")
 
 qualisectors=merge(qualisectors,tlid,by='driverName')
