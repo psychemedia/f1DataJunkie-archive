@@ -103,20 +103,24 @@ g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
 
 belqs$TLID=reorder(belqs$TLID, belqs$pos)
+#the belqs$pos is not race pos
+#need to reorder by TLID order for pos in belqresult
+qr=subset(belqresult,select=c("TLID","pos"))
+colnames(qr)=c("TLID","qpos")
+belqs=merge(belqs,qr,by='TLID')
+belqs$TLID=reorder(belqs$TLID, as.numeric(as.character(belqs$qpos)))
 g=qplot(TLID, data=belqs, geom="bar", weight = delta, fill=factor(sector)) 
-g=xRot(g,6)
+g=xRot(g,7)
 g=g+ggtitle(mktitle("Quali Sector Times (Deltas, Classification Order)"))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
-belqs$TLID=reorder(belqs$TLID, belqs$driverNum)
-
-
 #Same again, but as ggplot rather than qplot
 g=ggplot(data=belqs)+geom_bar(aes(x=TLID, weight = delta, fill=factor(sector)) )
-g=xRot(g,6)
+g=xRot(g,7)
 g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
+belqs$TLID=reorder(belqs$TLID, belqs$driverNum)
 
 g=ggplot(data=belqs)+geom_bar(position='dodge',stat='identity',aes(x=TLID,y = delta, fill=factor(sector)) )
 g=xRot(g,6)
@@ -223,7 +227,7 @@ belqresult$TLID=reorder(belqresult$TLID, as.integer(as.character(belqresult$pos)
 tmp=subset(belqresult,select=c('TLID','q1time','q2time','q3time','ultimate'))
 tmp2=melt(tmp,id=c('TLID'))
 g=ggplot(tmp2)+geom_point(aes(x=TLID,y=value,col=variable))
-g=xRot(g)+scale_y_reverse()+ylab("Laptime (s)")
+g=xRot(g,7)+scale_y_reverse()+ylab("Laptime (s)")
 g=g+guides(colour=guide_legend(title="Session"))
 g=g+ggtitle(mktitle('Quali Time/Personal Ultimate Laptimes (Class Rank)'))
 print(g)
