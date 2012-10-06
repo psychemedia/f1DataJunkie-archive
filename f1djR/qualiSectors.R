@@ -1,7 +1,7 @@
 source('core.R')
 
 event='Japan'
-session="P2"
+session="Quali"
 
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,event)}
@@ -51,13 +51,13 @@ print(g)
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=delta))+facet_wrap(~sector)
 g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
-g=xRot(g)
+g=xRot(g,6)
 g=g+xlab(NULL)+ylab("Delta from best (s)")+scale_y_reverse()
 print(g)
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=delta,col=factor(sector)))
 g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
-g=xRot(g)
+g=xRot(g,6)
 g=g+scale_colour_discrete(name = "Sector")
 g=g+xlab(NULL)+ylab("Delta from best (s)")+scale_y_reverse()
 print(g)
@@ -65,7 +65,7 @@ print(g)
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=norm,col=factor(sector)))
 g=g+ggtitle(mktitle(paste(session,"Sector Times (Norms)")))
-g=xRot(g)
+g=xRot(g,6)
 g=g+scale_colour_discrete(name = "Sector")
 g=g+xlab(NULL)+ylab("Normalised time")+scale_y_reverse()
 print(g)
@@ -109,13 +109,45 @@ print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
 g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
-g=g+xlab('Classification')+ylab("Delta (s)")
+g=g+xlab('Session Classification')+ylab("Delta (s)")
+print(g)
+
+g=ggplot(belqs)+geom_text(aes(x=qpos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
+g=g+xlab('Overall Classification')+ylab("Delta (s)")
+print(g)
+
+g=ggplot(belqs)+geom_abline(col='grey')
+g=g+geom_text(aes(x=pos,y=qpos,label=TLID),size=3)+facet_wrap(~sector)
+g=g+ggtitle(mktitle(paste(session,"Sector Rank vs Overall Classification")))
+g=g+ylab('Overall Classification')+xlab("Sector Rank")
 print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=norm,label=TLID),size=3)+facet_wrap(~sector)
 g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
 print(g)
 
+g=ggplot(belqs)+geom_boxplot(aes(x=team,y=delta))+facet_wrap(~sector)
+g=g+ggtitle(mktitle(paste(session,"Team Average Deltas vs sector")))+ylab("Team delta(s)")
+g=xRot(g,6)
+print(g)
+
+g=ggplot(belqs)+geom_point(aes(x=team,y=delta,col=factor(teamDriver)))+facet_wrap(~sector)
+g=g+ggtitle(mktitle(paste(session,"Team Average Deltas vs sector")))+ylab("Team delta(s)")+theme(legend.position="none")
+g=xRot(g,6)
+print(g)
+
+g=ggplot(belqs,aes(x=team,y=delta))+geom_point(aes(col=factor(teamDriver)))+facet_wrap(~sector)
+g=g+ggtitle(mktitle(paste(session,"Team Average Deltas vs sector")))+ylab("Team delta(s)")+theme(legend.position="none")
+g=xRot(g,6)
+g=g+stat_summary (fun.y = mean, geom="point",pch=4)
+print(g)
+
+g=ggplot(belqs,aes(x=sector,y=delta))+geom_point(aes(col=factor(teamDriver)))+facet_wrap(~team)
+g=g+ggtitle(mktitle(paste(session,"Team Average Deltas vs sector")))+ylab("Team delta(s)")+theme(legend.position="none")
+g=xRot(g,6)
+g=g+stat_summary (fun.y = mean, geom="point",pch=4)
+print(g)
 
 g=ggplot(belqs)+geom_line(aes(x=factor(sector),y=norm,group=driverName,col=factor(teamDriver)))+facet_wrap(~team)
 g=g+ggtitle(mktitle(paste(session,"Norm sector times by team")))
@@ -165,7 +197,7 @@ belqresult$q3delta=belqresult$q3time-belqresult$ultimate
 tmp=subset(belqresult,select=c('TLID','q1delta','q2delta','q3delta'))
 tmp2=melt(tmp,id=c('TLID'))
 g=ggplot(tmp2)+geom_point(aes(x=TLID,y=value,col=variable))
-g=xRot(g)+scale_y_reverse()+ylab("Delta (s)")
+g=xRot(g,6)+scale_y_reverse()+ylab("Delta (s)")
 g=g+guides(colour=guide_legend(title="Session"))
 g=g+ggtitle(mktitle(paste(session,"Times/Ultimate Laptime")))
 print(g)
@@ -224,7 +256,7 @@ g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, group=TLID,fil
 g=g+facet_wrap(~TLID)
 g=xRot(g,6)
 g=g+ggtitle(mktitle("Quali Session Time vs Team Ultimate Deltas"))
-g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team sesion best (s)')
+g=g+scale_fill_hue(name="Session")+ylab('Delta wrt team session best (s)')
 print(g)
 
 #---
