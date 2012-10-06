@@ -1,30 +1,14 @@
 source('core.R')
 
-event='Singapore'
+event='Japan'
+session="P2"
+
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,event)}
 
-qualisectors=floader("qualiSectors")
-
-qualisectors=merge(qualisectors,tlid,by='driverName')
-belqs=subset(qualisectors,race==toupper(event))
-belqs$driverName=reorder(belqs$driverName, belqs$driverNum)
-belqs$TLID=reorder(belqs$TLID, belqs$driverNum)
-
-
-qualiSpeeds=floader("qualiSpeeds")
-qualiSpeeds=merge(qualiSpeeds,tlid,by='driverName')
-belqspeed=subset(qualiSpeeds,race==toupper(event))
-belqspeed$driverName=reorder(belqspeed$driverName, belqspeed$driverNum)
-belqspeed$TLID=reorder(belqspeed$TLID, belqspeed$driverNum)
-
-
-qualiResults=floader("qualiResults")
-qualiResults=merge(qualiResults,tlid,by='driverName')
-belqresult=subset(qualiResults,race==toupper(event))
-belqresult$driverName=reorder(belqresult$driverName, belqresult$driverNum)
-belqresult$TLID=reorder(belqresult$TLID, belqresult$driverNum)
-
+belqs=f_driverOrderings(floader(paste(tolower(session),"Sectors",sep=''),event))
+belqspeed=f_driverOrderings(floader(paste(tolower(session),"Speeds",sep=''),event))
+belqresult=f_driverOrderings(floader(paste(tolower(session),"Results",sep=''),event))
 
 nullmin=function(d) {if (is.finite(min(d,na.rm=T))) return(min(d,na.rm=T)) else return(NA)}
 nullmin2=function(d) nullmin(min(d,na.rm=T))
@@ -45,41 +29,34 @@ belqspeed$norm=belqspeed$qspeed/maxsp
 
 belqs$delta=belqs$sectortime-belqs$minqxt
 
-g=ggplot(belqs)+geom_point(aes(x=TLID,y=sectortime))+facet_wrap(~sector)
-g=g+ggtitle(mktitle("Quali Sector Times"))
-#g=g+theme(axis.text.x=element_text(angle=-90,size=5))
-g=xRot(g)
-g=g+xlab(NULL)+ylab("Sectortime (s)")
-print(g)
+f_sectorTimes(belqs,paste(session, "Sector Times"))
+f_sectorTimesNorm(belqs,paste(session,"Sector Times (Normalised)"))
+
 
 g=ggplot(belqresult)+geom_point(aes(x=TLID,y=time-ultimate))
 g=xRot(g)
-g=g+ggtitle(mktitle("P3 - Proximity to personal ultimate lap"))
+g=g+ggtitle(mktitle(paste(session,"- Proximity to personal ultimate lap")))
 g=g+xlab(NULL)+ylab("Delta between personal best and personal ultimate (s)")
 print(g)
 
-
+teamultq=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teamultq=nullmin2(d$ultimate)))
+belqresult=merge(belqresult,teamultq,by='team')
 g=ggplot(belqresult)+geom_point(aes(x=TLID,y=time-teamultq))
 g=xRot(g)
-g=g+ggtitle(mktitle("P3 - Proximity to team ultimate lap"))
+g=g+ggtitle(mktitle(paste(session,"- Proximity to team ultimate lap")))
 g=g+xlab(NULL)+ylab("Delta between personal best and personal ultimate (s)")
 print(g)
 
-g=ggplot(belqs)+geom_point(aes(x=TLID,y=norm))+facet_wrap(~sector)
-g=g+ggtitle(mktitle("Quali Sector Times (Normalised)"))
-g=xRot(g)
-g=g+xlab(NULL)+ylab("Normalised sectortime")+scale_y_reverse()
-print(g)
 
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=delta))+facet_wrap(~sector)
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
 g=xRot(g)
 g=g+xlab(NULL)+ylab("Delta from best (s)")+scale_y_reverse()
 print(g)
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=delta,col=factor(sector)))
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
 g=xRot(g)
 g=g+scale_colour_discrete(name = "Sector")
 g=g+xlab(NULL)+ylab("Delta from best (s)")+scale_y_reverse()
@@ -87,22 +64,22 @@ print(g)
 
 
 g=ggplot(belqs)+geom_point(aes(x=TLID,y=norm,col=factor(sector)))
-g=g+ggtitle(mktitle("Quali Sector Times (Norms)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Norms)")))
 g=xRot(g)
 g=g+scale_colour_discrete(name = "Sector")
 g=g+xlab(NULL)+ylab("Normalised time")+scale_y_reverse()
 print(g)
 g2=g+geom_point(data=belqspeed,aes(x=TLID,y=2-norm),col='black')
-g2=g2+ggtitle(mktitle("Quali Sector Times (Norms, 2-normSpeed)"))
+g2=g2+ggtitle(mktitle(paste(session,"Sector Times (Norms, 2-normSpeed)")))
 print(g2)
 
 g=qplot(TLID, data=belqs, geom="bar", weight = delta, fill=factor(sector)) 
 g=xRot(g,6)
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
 
-belqs$TLID=reorder(belqs$TLID, belqs$pos)
+#belqs$TLID=reorder(belqs$TLID, belqs$pos)
 #the belqs$pos is not race pos
 #need to reorder by TLID order for pos in belqresult
 qr=subset(belqresult,select=c("TLID","pos"))
@@ -111,41 +88,77 @@ belqs=merge(belqs,qr,by='TLID')
 belqs$TLID=reorder(belqs$TLID, as.numeric(as.character(belqs$qpos)))
 g=qplot(TLID, data=belqs, geom="bar", weight = delta, fill=factor(sector)) 
 g=xRot(g,7)
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas, Classification Order)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas, Classification Order)")))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
 #Same again, but as ggplot rather than qplot
 g=ggplot(data=belqs)+geom_bar(aes(x=TLID, weight = delta, fill=factor(sector)) )
 g=xRot(g,7)
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
 belqs$TLID=reorder(belqs$TLID, belqs$driverNum)
 
 g=ggplot(data=belqs)+geom_bar(position='dodge',stat='identity',aes(x=TLID,y = delta, fill=factor(sector)) )
 g=xRot(g,6)
-g=g+ggtitle(mktitle("Quali Sector Times (Deltas)"))
+g=g+ggtitle(mktitle(paste(session,"Sector Times (Deltas)")))
 g=g+scale_fill_hue(name="Sector")+ylab('Total delta (s)')
 print(g)
 
 
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle("Quali Sector Deltas vs position"))
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
 g=g+xlab('Classification')+ylab("Delta (s)")
 print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=norm,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle("Quali Sector Deltas vs position"))
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
+print(g)
+
+
+g=ggplot(belqs)+geom_line(aes(x=factor(sector),y=norm,group=driverName,col=factor(teamDriver)))+facet_wrap(~team)
+g=g+ggtitle(mktitle(paste(session,"Norm sector times by team")))
+g=g+theme(legend.position="none")+xlab('Sector')+ylab('Normalised sector time')
 print(g)
 
 g=ggplot(belqspeed)+geom_point(aes(x=TLID,y=qspeed))
 g=xRot(g)
 g=g+xlab(NULL)+ylab("Speed (km/h)")
-g=g+ggtitle(mktitle('Quali Sector Speeds'))
+g=g+ggtitle(mktitle(paste(session,"Sector Speeds")))
+print(g)
+
+tmp=subset(belqresult,select=c('team','driverNum'))
+belqs=merge(belqs,tmp,by='driverNum')
+belqs=belqs[with(belqs, order(sector,driverNum)), ]
+
+belqs$teamDriver=sapply(belqs$driverNum,teamDriver)
+tt=subset(belqs,select=c('team','sector','teamDriver','sectortime'))
+tx=cast(tt,team+sector~teamDriver)
+tx$delta=tx$`0`-tx$`1`
+tx$team=orderTeams(tx$team)
+tx$sector=factor(tx$sector,levels=c("3","2","1"))
+g=ggplot(tx)+geom_bar(aes(x=factor(sector),y=delta,stat='identity',fill=(delta<0)))+facet_wrap(~team)
+#g=g+ylim(-0.5,0.5)
+g=g+coord_flip()+ylab("Delta (s)")+xlab("Sector")+theme(legend.position="none")
+g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
+g=g+ggtitle(mktitle(paste(session,"- Intra-team sector time deltas")))
+print(g)
+
+belqs$team=orderTeams(belqs$team)
+g=ggplot(belqs)+geom_point(aes(group=sector,col=factor(sector),pch=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team)
+g=g+ggtitle(mktitle(paste(session,"- Intra-team sector deltas")))
+g=g+scale_colour_discrete(name = "Sector")+scale_shape_discrete(name = "Sector")
+g=g+scale_y_reverse()+ylab("Delta to session best (s)")+xlab('Team Driver')
+print(g)
+
+g=ggplot(belqs)+geom_bar(aes(stat='identity',position='dodge',fill=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team+sector)
+g=g+ggtitle(mktitle(paste(session,"- Inter-team sector deltas")))
+g=g+xlab('Team Driver')
 print(g)
 
 
+###THE FOLLOWING RELATE TO QUALI
 belqresult$q1delta=belqresult$q1time-belqresult$ultimate
 belqresult$q2delta=belqresult$q2time-belqresult$ultimate
 belqresult$q3delta=belqresult$q3time-belqresult$ultimate
@@ -154,7 +167,7 @@ tmp2=melt(tmp,id=c('TLID'))
 g=ggplot(tmp2)+geom_point(aes(x=TLID,y=value,col=variable))
 g=xRot(g)+scale_y_reverse()+ylab("Delta (s)")
 g=g+guides(colour=guide_legend(title="Session"))
-g=g+ggtitle(mktitle('Quali Times/Ultimate Laptime'))
+g=g+ggtitle(mktitle(paste(session,"Times/Ultimate Laptime")))
 print(g)
 
 g=ggplot(tmp2)+geom_bar(stat='identity',aes(x=variable,y = value, fill=factor(variable)) )
@@ -199,8 +212,8 @@ print(g)
 
 #---
 
-teamultq=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teamultq=nullmin2(d$ultimate)))
-belqresult=merge(belqresult,teamultq,by='team')
+#teamultq=ddply(.variables=c("team"),.data=belqresult,.fun= function(d) data.frame(teamultq=nullmin2(d$ultimate)))
+#belqresult=merge(belqresult,teamultq,by='team')
 belqresult$q1ultdelta=belqresult$q1time-belqresult$teamultq
 belqresult$q2ultdelta=belqresult$q2time-belqresult$teamultq
 belqresult$q3ultdelta=belqresult$q3time-belqresult$teamultq
@@ -274,32 +287,5 @@ g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90
 g=g+ggtitle(mktitle('Quali - Intra-team session best deltas'))
 print(g)
 
-tmp=subset(belqresult,select=c('team','driverNum'))
-belqs=merge(belqs,tmp,by='driverNum')
-belqs=belqs[with(belqs, order(sector,driverNum)), ]
 
-belqs$teamDriver=sapply(belqs$driverNum,teamDriver)
-tt=subset(belqs,select=c('team','sector','teamDriver','sectortime'))
-tx=cast(tt,team+sector~teamDriver)
-tx$delta=tx$`0`-tx$`1`
-tx$team=orderTeams(tx$team)
-tx$sector=factor(tx$sector,levels=c("3","2","1"))
-g=ggplot(tx)+geom_bar(aes(x=factor(sector),y=delta,stat='identity',fill=(delta<0)))+facet_wrap(~team)
-#g=g+ylim(-0.5,0.5)
-g=g+coord_flip()+ylab("Delta (s)")+xlab("Sector")+theme(legend.position="none")
-g=g+geom_hline(xintercept=0,col='grey')+theme(axis.text.x=element_text(angle=-90))
-g=g+ggtitle(mktitle('Quali - Intra-team sector time deltas'))
-print(g)
-
-belqs$team=orderTeams(belqs$team)
-g=ggplot(belqs)+geom_point(aes(group=sector,col=factor(sector),pch=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team)
-g=g+ggtitle(mktitle('Quali - Intra-team sector deltas'))
-g=g+scale_colour_discrete(name = "Sector")+scale_shape_discrete(name = "Sector")
-g=g+scale_y_reverse()+ylab("Delta to session best (s)")+xlab('Team Driver')
-print(g)
-
-g=ggplot(belqs)+geom_bar(aes(stat='identity',position='dodge',fill=factor(sector),x=factor(teamDriver),y=delta))+facet_wrap(~team+sector)
-g=g+ggtitle(mktitle('Quali - Intra-team sector times'))
-g=g+xlab('Team Driver')
-print(g)
 
