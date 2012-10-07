@@ -86,12 +86,24 @@ rownames(qualisessions) = NULL
 qualisessions$qs <- factor(qualisessions$qs)
 g=ggplot(qualisessions)+geom_line(aes(x=qs,y=qspos,group=driverNum,col=factor(driverNum)))
 g=g+theme(legend.position='none')
-g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=c("DriverNum","Q1","Q2","Q3"))
+g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=c("Car Number","Q1","Q2","Q3"))
 g=g+ggtitle(mktitle(paste(session,"- session classifications")))
 #qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
 g=g+scale_y_discrete( labels=qPosNames)
 g=g+xlab(NULL)+ylab(NULL)
 print(g)
+
+g=ggplot(qualisessions)+geom_line(aes(x=qs,y=24-qspos,group=driverNum,col=factor(driverNum)))
+g=g+theme(legend.position='none')
+g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=c("Car Number","Q1","Q2","Q3"))
+g=g+ggtitle(mktitle(paste(session,"- session classifications")))
+#qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
+g=g+scale_y_discrete( labels=rev(qPosNames))
+g=g+xlab(NULL)+ylab(NULL)
+print(g)
+
+
+
 #####
 
 
