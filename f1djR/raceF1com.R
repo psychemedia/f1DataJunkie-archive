@@ -11,7 +11,7 @@
 #  read.csv(temporaryFile)
 #}
 source("core.R")
-
+##??need to migrate stuff to core?
 configData=function(d,r){
   d=merge(d,tlid,by='driverName')
   tmp=subset(d,race==toupper(r))
