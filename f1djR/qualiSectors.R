@@ -1,7 +1,7 @@
 source('core.R')
 
-event='Japan'
-session="Quali"
+event='Abu Dhabi'
+session="P3"
 
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,event)}
@@ -108,8 +108,8 @@ print(g)
 
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
-g=g+xlab('Session Classification')+ylab("Delta (s)")
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs Overall Classification")))
+g=g+xlab('Sector Classification')+ylab("Delta (s)")
 print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=qpos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
@@ -157,8 +157,17 @@ print(g)
 g=ggplot(belqspeed)+geom_point(aes(x=TLID,y=qspeed))
 g=xRot(g)
 g=g+xlab(NULL)+ylab("Speed (km/h)")
-g=g+ggtitle(mktitle(paste(session,"Sector Speeds")))
+g=g+ggtitle(mktitle(paste(session,"Speeds")))
 print(g)
+
+#
+belqs=merge(belqs,subset(belqspeed,select=c("TLID","qspeed")),by="TLID")
+
+g=ggplot(belqs)+geom_text(aes(x=qpos,y=qspeed,label=TLID))
+g=g+xlab("Overall classification")+ylab("Speed (km/h)")
+g=g+ggtitle(mktitle(paste(session,"Classification vs. Sector Speeds")))
+print(g)
+#
 
 tmp=subset(belqresult,select=c('team','driverNum'))
 belqs=merge(belqs,tmp,by='driverNum')
