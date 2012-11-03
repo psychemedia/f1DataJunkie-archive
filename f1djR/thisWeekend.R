@@ -4,7 +4,8 @@ source("core.R")
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,race)}
 
-race='Japan'
+race='India'
+
 session="Quali"
 p1r=NULL
 p2r=NULL
@@ -38,13 +39,19 @@ qualiresults=floader("qualiResults",race=race)
 qualiresults$session=4
 qr=subset(qualiresults,select=c("pos","driverName","session","race","driverNum"))
 
-#raceresults=floader("raceResults",race=race)
-#gridresults=floader("raceResults",race=race)
-#gridresults$session=5
-#gr=subset(qualiresults,select=c("grid","driverName","session","race","driverNum"))
-#colnames(gr)=c("pos","driverName","session","race","driverNum")
-#raceresults$session=6
-#rr=subset(raceresults,select=c("pos","driverName","session","race","driverNum"))
+raceresults=floader("raceResults",race=race)
+raceresults$unclass=sapply(raceresults$timeOrRetired,function(xx) if (grepl("^[A-Z]+", xx)) return(as.character(xx)) else return(NA)) 
+raceresults$unclass=sapply(raceresults$unclass,function(xx) if (!(grepl("^Winner+", xx))) return(as.character(xx)) else return(NA)) 
+
+
+gridresults=raceresults
+gridresults$session=5
+gr=subset(gridresults,select=c("grid","driverName","session","race","driverNum"))
+colnames(gr)=c("pos","driverName","session","race","driverNum")
+raceresults$session=6
+rr=subset(raceresults,select=c("pos","driverName","session","race","driverNum"))
+
+driverNames=reorder(qualiresults$driverName,qualiresults$driverNum)
 
 xResults=rbind(p0r,p1r,p2r,p3r,qr,gr,rr)
 
@@ -80,29 +87,48 @@ l=length(q3res$q3time)
 q3res$qspos=1:l
 q3res$qs=3
 
+qlabels=c("Car Number","Q1","Q2","Q3")
 
 qualisessions=rbind(q0res,subset(q1res,select=binders), subset(q2res,select=binders), subset(q3res,select=binders))
 rownames(qualisessions) = NULL
 qualisessions$qs <- factor(qualisessions$qs)
 g=ggplot(qualisessions)+geom_line(aes(x=qs,y=qspos,group=driverNum,col=factor(driverNum)))
 g=g+theme(legend.position='none')
-g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=c("Car Number","Q1","Q2","Q3"))
+g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=qlabels)
 g=g+ggtitle(mktitle(paste(session,"- session classifications")))
-#qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
+qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
 g=g+scale_y_discrete( labels=qPosNames)
 g=g+xlab(NULL)+ylab(NULL)
 print(g)
 
 g=ggplot(qualisessions)+geom_line(aes(x=qs,y=24-qspos,group=driverNum,col=factor(driverNum)))
 g=g+theme(legend.position='none')
-g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=c("Car Number","Q1","Q2","Q3"))
+g=g+scale_x_discrete(limits = rev(levels(qualisessions$qs)),breaks = 0:3,labels=qlabels)
 g=g+ggtitle(mktitle(paste(session,"- session classifications")))
 #qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
 g=g+scale_y_discrete( labels=rev(qPosNames))
 g=g+xlab(NULL)+ylab(NULL)
 print(g)
 
+qualisessions=merge(qualisessions,tlid,by='driverName')
+g=ggplot(subset(qualisessions,subset=(qs!=0)))+geom_text(aes(x=qs,y=qspos,label=paste(TLID," (",qspos,")",sep='')),size=4)
+g=g+theme(legend.position='none')
+g=g+scale_x_discrete(labels=c("Q1","Q2","Q3"))
+g=g+ggtitle(mktitle(paste(session,"- session classifications")))
+#qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
+g=g+xlab(NULL)+ylab(NULL)
+g=g+scale_y_reverse()
+print(g)
 
+g=ggplot(subset(qualisessions,subset=(qs!=0)))+geom_line(aes(x=qs,y=qspos,group=driverNum,col=factor(driverNum)),size=1.5)
+g=g+geom_text(aes(x=qs,y=qspos,label=paste(TLID," (",qspos,")",sep='')),size=4)
+g=g+theme(legend.position='none')
+g=g+scale_x_discrete(labels=c("Q1","Q2","Q3"))
+g=g+ggtitle(mktitle(paste(session,"- session classifications")))
+#qPosNames=reorder(qualiresults$driverName,qualiresults$pos)
+g=g+xlab(NULL)+ylab(NULL)
+g=g+scale_y_reverse()
+print(g)
 
 #####
 
@@ -113,26 +139,34 @@ g=ggplot(xResults)+geom_line(aes(x=session,y=pos,group=driverName,col=driverName
 #g=g+facet_wrap(~race)
 g=g+theme(legend.position="none")
 g=g+ggtitle("F1 2012 Classification by Session") +xlab(NULL)
-g=g+scale_x_discrete(breaks = 0:4, labels=c("Driver","P1","P2","P3","Quali"))
-g=g+scale_y_discrete( labels=xResults$driverName)
+g=g+scale_x_discrete(breaks = 0:6, labels=c("Driver","P1","P2","P3","Quali","Grid","Race"))
+g=g+scale_y_discrete( labels=levels(driverNames))
 g=g+ylab(NULL)
-#g=g+scale_x_discrete(breaks = 1:5, labels=c("P1","P2","P3","Quali","Race"))
+#g=g+scale_x_discrete(breaks = 1:5, labels=c("P1","P2","P3","Quali","Grid,"Race"))
 print(g)
 
+numCol.f=function(x) if (x==0) return("grey") else return("black")
+numCol=sapply(xResults$session,numCol.f)
+g=ggplot(xResults)+geom_text(aes(x=session,y=driverName,label=pos,size=5),col=numCol)
+g=g+ggtitle(paste("F1 2012",race,"Session Classifications")) +xlab(NULL)+theme(legend.position="none")
+g=g+scale_x_discrete(breaks = 0:6, labels=c("Driver","P1","P2","P3","Quali","Grid","Race"))
+#g=g+scale_y_discrete( labels=levels(driverNames))
+g=g+ylab(NULL)
+print(g)
 
 #Need to set tmp to be that most recent session
-tmp=subset(xResults,subset=(session=='4'))
+tmp=subset(xResults,subset=(session=='6'))
 tmp2=subset(xResults,subset=(session!='0'))
 tmp2$session <- factor(tmp2$session)
 currPosNames=reorder(tmp$driverName,tmp$pos)
 g=ggplot(tmp2)+geom_line(aes(x=session,y=pos,group=driverName,col=driverName))
 #g=g+facet_wrap(~race)
-g=g+theme(legend.position="none")+scale_x_discrete(limits = rev(levels(tmp2$session)))
+g=g+theme(legend.position="none")#+scale_x_discrete(limits = rev(levels(tmp2$session)))
 g=g+ggtitle("F1 2012 Classification by Session") +xlab(NULL)
 #g=g+scale_x_discrete(breaks = 1:2, labels=c("P1","P2"))
 g=g+scale_y_discrete( labels=currPosNames)
 g=g+ylab(NULL)
-g=g+scale_x_discrete(breaks = 5:1, labels=c("Driver","P1","P2","P3","Quali"))
+g=g+scale_x_discrete(breaks = 6:0, labels=c("Driver","P1","P2","P3","Quali","Grid","Race"))
 print(g)
 
 ###REMEMEBER REVERSED SESSIONS
@@ -143,10 +177,10 @@ g=g+ggtitle("F1 2012 Classification by Driver") +xlab(NULL)
 g=g+scale_x_discrete(breaks = 1:5, labels=c("P1","P2","P3","Quali","Race"))
 print(g)
 
-g=ggplot(xResults)+geom_boxplot(aes(x=factor(session),y=pos))
+g=ggplot(subset(xResults,subset=(session!=0)))+geom_boxplot(aes(x=factor(session),y=pos))
 g=g+facet_wrap(~driverName)+theme(legend.position="none")
 g=g+ggtitle("F1 2012 Classification by Driver") +xlab(NULL)
-g=g+scale_x_discrete(breaks = 1:5, labels=c("P1","P2","P3","Quali","Race"))
+g=g+scale_x_discrete(breaks = 1:6, labels=c("P1","P2","P3","Quali","Grid","Race"))
 print(g)
 
 tmpq=subset(xResults,select=c('driverName','driverNum','pos','race'),subset=(session==4))
