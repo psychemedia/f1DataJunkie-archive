@@ -9,9 +9,9 @@ for (i in 1:length(packages.list)) {
 
 
 #Ordering functions
-orderRaces=function (races) factor(races,levels=c('AUSTRALIA','MALAYSIA','CHINA','BAHRAIN','SPAIN','MONACO','CANADA','EUROPE','GREAT BRITAIN','GERMANY','HUNGARY','BELGIUM','ITALY','SINGAPORE','JAPAN'))
+orderRaces=function (races) factor(races,levels=c('AUSTRALIA','MALAYSIA','CHINA','BAHRAIN','SPAIN','MONACO','CANADA','EUROPE','GREAT BRITAIN','GERMANY','HUNGARY','BELGIUM','ITALY','SINGAPORE','JAPAN','KOREA','INDIA',"ABU DHABI"))
 orderTeams=function (teams) factor(teams,levels=c("Red Bull Racing-Renault","McLaren-Mercedes","Ferrari","Mercedes","Lotus-Renault","Force India-Mercedes","Sauber-Ferrari","STR-Ferrari","Williams-Renault","Caterham-Renault","HRT-Cosworth","Marussia-Cosworth"),ordered=T)
-tlid=data.frame(driverName=c("Sebastian Vettel","Mark Webber","Jenson Button", "Lewis Hamilton", "Fernando Alonso","Felipe Massa","Michael Schumacher","Nico Rosberg", "Kimi Räikkönen","Romain Grosjean","Jerome D'Ambrosio", "Paul di Resta", "Nico Hulkenberg","Kamui Kobayashi","Sergio Perez","Daniel Ricciardo","Jean-Eric Vergne","Pastor Maldonado","Bruno Senna","Heikki Kovalainen","Vitaly Petrov", "Pedro de la Rosa","Narain Karthikeyan","Timo Glock" ,"Charles Pic","Giedo van der Garde","Valtteri  Bottas" ),TLID= c('VET','WEB','BUT','HAM','ALO','MAS','MSC','ROS','RAI','GRO','DAM','DIR','HUL','KOB','PER','RIC','VER','MAL','SEN','KOV','PET','DEL','KAR','GLO','PIC','VDG','BOT'))
+tlid=data.frame(driverName=c("Sebastian Vettel","Mark Webber","Jenson Button", "Lewis Hamilton", "Fernando Alonso","Felipe Massa","Michael Schumacher","Nico Rosberg", "Kimi Räikkönen","Romain Grosjean","Jerome D'Ambrosio", "Paul di Resta", "Nico Hulkenberg","Kamui Kobayashi","Sergio Perez","Daniel Ricciardo","Jean-Eric Vergne","Pastor Maldonado","Bruno Senna","Heikki Kovalainen","Vitaly Petrov", "Pedro de la Rosa","Narain Karthikeyan","Timo Glock" ,"Charles Pic","Giedo van der Garde","Valtteri  Bottas","Max Chilton" ),TLID= c('VET','WEB','BUT','HAM','ALO','MAS','MSC','ROS','RAI','GRO','DAM','DIR','HUL','KOB','PER','RIC','VER','MAL','SEN','KOV','PET','DEL','KAR','GLO','PIC','VDG','BOT','CHI'))
 
 #ggplot chart helpers
 xRot=function(g,s=5,lab=NULL) g+theme(axis.text.x=element_text(angle=-90,size=s))+xlab(lab)
@@ -29,13 +29,9 @@ floader=function(table,race=NULL){
 #Data table annoations
 teamDriver=function(d) if (d>13) return(d %% 2) else return((1+d) %% 2)
 
-fetchAndAnnotate = function(t,race=NA){
-  dt=floader(t)
-  if (!is.na(race)) {
-    tmp=toupper(race)
-    d=subset(dt,race==tmp)
-  } else {
-    d=dt
+fetchAndAnnotate = function(t,race=NULL){
+  d=floader(t,race)
+  if (is.null(race)) {
     d$race=orderRaces(d$race)
   }
   d=merge(d,tlid,by='driverName')
