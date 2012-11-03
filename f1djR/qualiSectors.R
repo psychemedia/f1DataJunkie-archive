@@ -1,7 +1,7 @@
 source('core.R')
 
 event='Abu Dhabi'
-session="P3"
+session="Quali"
 
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,event)}
@@ -108,12 +108,12 @@ print(g)
 
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs Overall Classification")))
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs Classification")))
 g=g+xlab('Sector Classification')+ylab("Delta (s)")
 print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=qpos,y=delta,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
+g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs Overall Classification")))
 g=g+xlab('Overall Classification')+ylab("Delta (s)")
 print(g)
 
@@ -124,7 +124,8 @@ g=g+ylab('Overall Classification')+xlab("Sector Rank")
 print(g)
 
 g=ggplot(belqs)+geom_text(aes(x=pos,y=norm,label=TLID),size=3)+facet_wrap(~sector)
-g=g+ggtitle(mktitle(paste(session,"Sector Deltas vs position")))
+g=g+ggtitle(mktitle(paste(session,"Normalised Sector Times vs Classification")))
+g=g+ylab('Normalised laptime')+xlab("Sector Classification")
 print(g)
 
 g=ggplot(belqs)+geom_boxplot(aes(x=team,y=delta))+facet_wrap(~sector)
@@ -155,17 +156,29 @@ g=g+theme(legend.position="none")+xlab('Sector')+ylab('Normalised sector time')
 print(g)
 
 g=ggplot(belqspeed)+geom_point(aes(x=TLID,y=qspeed))
-g=xRot(g)
+g=xRot(g,7)
 g=g+xlab(NULL)+ylab("Speed (km/h)")
 g=g+ggtitle(mktitle(paste(session,"Speeds")))
 print(g)
 
 #
+#CHECK - have we already done this merge?
+belqresult=merge(belqresult,subset(belqspeed,select=c("TLID","qspeed")),by="TLID")
 belqs=merge(belqs,subset(belqspeed,select=c("TLID","qspeed")),by="TLID")
 
-g=ggplot(belqs)+geom_text(aes(x=qpos,y=qspeed,label=TLID))
+g=ggplot(belqresult)+geom_text(aes(x=pos,y=qspeed,label=TLID))
 g=g+xlab("Overall classification")+ylab("Speed (km/h)")
-g=g+ggtitle(mktitle(paste(session,"Classification vs. Sector Speeds")))
+g=g+ggtitle(mktitle(paste(session,"Classification vs. Speed")))
+print(g)
+
+g=ggplot(belqresult)+geom_text(aes(x=ultimate,y=qspeed,label=TLID))
+g=g+xlab("Ultimate laptime (s)")+ylab("Speed (km/h)")
+g=g+ggtitle(mktitle(paste(session,"Ultimate Laptime vs. Speed")))
+print(g)
+
+g=ggplot(belqs)+geom_text(aes(x=delta,y=qspeed,label=TLID),size=4)+facet_wrap(~sector)
+g=g+xlab("Sector delta (s)")+ylab("Speed (km/h)")
+g=g+ggtitle(mktitle(paste(session,"Sector delta vs. Speed")))
 print(g)
 #
 
@@ -293,10 +306,11 @@ tmp2=melt(tmp,id=c('TLID'))
 persbest=ddply(.variables=c("TLID"),.data=tmp2,.fun= function(d) data.frame(persbest=nullmin2(d$value)))
 ultimate=ddply(.variables=c("TLID"),.data=belqs,.fun= function(d) data.frame(ultimate=sum(d$sectortime,na.rm=T)))
 persbest=merge(persbest,ultimate,by="TLID")
-g=ggplot(persbest)+geom_point(aes(x=persbest,y=ultimate),col='grey')
+g=ggplot(persbest)+geom_point(aes(y=persbest,x=ultimate),col='grey')
 g=g+ggtitle(mktitle('Quali Personal Best vs Personal Ultimate'))
 g=g+geom_abline(col='grey')
-g=g+geom_text(size=3,aes(x=persbest,y=ultimate,label=TLID,colour=persbest-ultimate))
+g=g+xlab("Ultimate laptime (s)")+ylab("Personal best laptime (s)")
+g=g+geom_text(size=3,aes(y=persbest,x=ultimate,label=TLID,colour=persbest-ultimate))
 print(g)
 
 #teambar=function(dd,ll){
