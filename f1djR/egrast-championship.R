@@ -38,6 +38,11 @@ test3=subset(test,( driverID=='vettel' | driverID=='alonso' ))
 test4=subset(test,( driverID=='raikkonen'|driverID=='webber' | driverID=='hamilton'|driverID=='button' ))
 
 ggplot(test4)+geom_line(aes(x=round,y=position,group=driverID),col='lightgrey')+geom_line(data=test3,aes(x=round,y=position,group=driverID,col=driverID))+labs(title="F1 2012 - Race to the Championship")
-> ggplot(test4)+geom_line(aes(x=round,y=points,group=driverID),col='lightgrey')+geom_line(data=test3,aes(x=round,y=points,group=driverID,col=driverID))+labs(title="F1 2012 - Race to the Championship")
+ggplot(test4)+geom_line(aes(x=round,y=points,group=driverID),col='lightgrey')+geom_line(data=test3,aes(x=round,y=points,group=driverID,col=driverID))+labs(title="F1 2012 - Race to the Championship")
+
+
+#Fudge the colour
+ggplot(test4)+geom_line(aes(x=round,y=points,group=driverID),col='lightgrey')+geom_line(data=subset(test3,driverID=='vettel'),aes(x=round,y=points,group=driverID),col='blue')+geom_line(data=subset(test3,driverID=='alonso'),aes(x=round,y=points,group=driverID),col='red')+labs(title="F1 2012 - Race to the Championship")
+ggplot(test4)+geom_line(aes(x=round,y=position,group=driverID),col='lightgrey')+geom_line(data=subset(test3,driverID=='vettel'),aes(x=round,y=position,group=driverID),col='blue')+geom_line(data=subset(test3,driverID=='alonso'),aes(x=round,y=position,group=driverID),col='red')+labs(title="F1 2012 - Race to the Championship")
 
 #I wonder if it would be worth annotating the chart with labels explaining any DNF reasons at parts where points stall?
