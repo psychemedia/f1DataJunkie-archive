@@ -1,5 +1,6 @@
 library(shiny)
 library(ggplot2)
+library(reshape)
 
 # Define server logic required to generate and plot a random distribution
 shinyServer(function(input, output) {
@@ -17,6 +18,12 @@ shinyServer(function(input, output) {
     pp
   }
   
+  pdiff=matrix(ncol = nrow(points), nrow = nrow(points))
+  for (i in 1:nrow(points)){
+    for (j in 1:nrow(points))
+      pdiff[[i,j]]=points[[i,2]]-points[[j,2]]
+  }
+  
   ppx=pospoints(a,v,pdiff,points)
   
   winmdiff=function(vadiff,pdiff,points){
@@ -24,8 +31,8 @@ shinyServer(function(input, output) {
     for (i in 1:nrow(points)){
       for (j in 1:nrow(points))
         if (i==j) win[[i,j]]=''
-      else if ((vadiff+pdiff[[i,j]])>=0) win[[i,j]]='VET'
-      else win[[i,j]]='ALO'
+        else if ((vadiff+pdiff[[i,j]])>=0) win[[i,j]]='VET'
+        else win[[i,j]]='ALO'
     }
     win
   }
