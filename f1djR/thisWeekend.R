@@ -4,7 +4,7 @@ source("core.R")
 mktitle2=function(subtitle,event,year='2012') return(paste('F1 ',year,event,'-',subtitle))
 mktitle=function(subtitle){mktitle2(subtitle,race)}
 
-race='India'
+race='United States'
 
 session="Quali"
 p1r=NULL
@@ -148,6 +148,15 @@ print(g)
 numCol.f=function(x) if (x==0) return("grey") else return("black")
 numCol=sapply(xResults$session,numCol.f)
 g=ggplot(xResults)+geom_text(aes(x=session,y=driverName,label=pos,size=5),col=numCol)
+g=g+ggtitle(paste("F1 2012",race,"Session Classifications")) +xlab(NULL)+theme(legend.position="none")
+g=g+scale_x_discrete(breaks = 0:6, labels=c("Driver","P1","P2","P3","Quali","Grid","Race"))
+#g=g+scale_y_discrete( labels=levels(driverNames))
+g=g+ylab(NULL)
+print(g)
+
+xxResults=xResults
+xxResults$driverName=reorder(xxResults$driverName,-xxResults$driverNum)
+g=ggplot(xxResults)+geom_text(aes(x=session,y=driverName,label=pos,size=5),col=numCol)
 g=g+ggtitle(paste("F1 2012",race,"Session Classifications")) +xlab(NULL)+theme(legend.position="none")
 g=g+scale_x_discrete(breaks = 0:6, labels=c("Driver","P1","P2","P3","Quali","Grid","Race"))
 #g=g+scale_y_discrete( labels=levels(driverNames))
