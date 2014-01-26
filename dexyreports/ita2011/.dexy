@@ -1,7 +1,0 @@
-{
- "f12011itafpreport.html|jinja" : {
-    "allinputs" : true
-  },
-  "*.R|fn|idio|rint|pyg" : {},
-  "*.R|idio" : {}
-}
