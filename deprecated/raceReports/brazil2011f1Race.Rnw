@@ -1,0 +1,1640 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dDlZWmE4cUNxeDJtS1BYc1BVNnJMU3c'
+
+library("ggplot2")
+require(RCurl)
+require(xtable)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+racestats=gsqAPI(sskey,'select *',gid='13')
+racestats$driverName=factor(racestats$driverNum,labels = driverLabels)
+
+# Grab data from the Race Proximity sheet
+proximity=gsqAPI(sskey,'select *',gid='12')
+proximity$stop=by(proximity, 1:nrow(proximity), function(row) if (row$pitstop==1) row$pitstop else NA)
+
+# The diff calculation is wrong? It doesn't use 0 for the first item in a factor?
+# add lap zero row - add 24 lap vals=0 not 1 etc?
+gridrow=data.frame(lap=0,car=racestats$driverNum,pos=racestats$grid,timeToPosInFront=0,timeToPosBehind=0,timeToTrackInFront=0, timeToTrackBehind=0,pitstop=0,laptime=0,fuelcorrlaptime=0,stop=NA)
+gridproximity=rbind(proximity,gridrow)
+#sort the dataframe by criver/car and lap, then do the diff?
+gridproximity=gridproximity[with(gridproximity, order(car,lap)), ]
+gridproximity$posdelta=c(0,diff(gridproximity$pos))
+
+proximity=subset(gridproximity,lap>0)
+proximity$driverName <- factor(proximity$car,labels = driverLabels)
+gridproximity$driverName <- factor(gridproximity$car,labels = driverLabels)
+
+
+maxLap=max(proximity$lap)
+firstLap=subset(proximity,lap==1)
+
+# Grab data from the Comprehensive Race Laptimes Sheet
+times=gsqAPI(sskey,'select *',10)
+times$driverName=factor(times$car,labels = driverLabels)
+
+ttmp=subset(times,fuelCorrectedLaptime>0)
+fuelcorrThreshold=min(ttmp$fuelCorrectedLaptime)*1.1
+yrange=c(min(ttmp$fuelCorrectedLaptime),fuelcorrThreshold)
+
+mycolours=c(26,26,178,178,33,33,270,270,142,142,254,254,13,128,128,630,630,139,139,501,501,32,32,55,55)
+mycolourfn=function(x) colours()[mycolours[x]]
+myshapes=c(1,2,1,2,1,2,1,2,1,2,1,2,5,1,2,1,2,1,2,1,2,1,2,1,2)
+myshapefn=function(x) myshapes[x]
+
+speedTime=function(racestats,timeData,speedData,speedRange,driverName='driverName'){
+#racestats=subset(racestats,timeData>0 & speedData>0)
+p=ggplot(racestats,aes_string(x=timeData,y=speedData,label=driverName))+ geom_text(size=4,angle=45)+scale_x_continuous('Time (s)')+opts(legend.position = "none") + scale_y_continuous('Speed (km/h)',limits=speedRange)
+print(p)
+}
+
+timesDistribution=function(timeData,ydat,ytxt,xdat='driverName'){
+p=ggplot(timeData)+geom_boxplot(aes_string(x=xdat,y=ydat))+opts(legend.position = "none") + scale_y_continuous(ytxt)+opts(axis.text.x=theme_text(angle=90))+xlab(NULL)
+print(p)
+}
+
+raceStintBox=function(stintTimes,fct,yrange){
+  if (fct>0) stintTimes=subset(stintTimes,fuelCorrectedLaptime<fct)
+  stintTimes$driverName=factor(stintTimes$driverName)
+  p=ggplot( stintTimes ) +
+    geom_boxplot( aes( x=interaction( stint, driverName, sep=":" ), y=fuelCorrectedLaptime ) ) +
+		scale_y_continuous( "Fuel Corrected Laptime (s)",limits=yrange) +
+		scale_x_discrete( "Race Stint:Driver" ) +
+		opts( legend.position="none" ) 
+  print(p)
+}
+
+nullChart=function(){
+  p = qplot(data.frame(),x=' ',y=' ',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)
+  print(p)
+}
+
+racePosChart=function(posData){
+p=ggplot(posData) + geom_line(aes(x=lap,y=pos,group=driverName,col=car)) + geom_point(aes(x=lap,y=pos*stop,col=car)) + scale_y_discrete( "Race Position",limits=1:24,breaks=1:24) + scale_x_continuous('Lap',limits=c(0,maxLap+1)) + opts(legend.position="none")
+print(p)
+}
+
+battleplot=function(x){
+  #try with gridproximity for just geom_line?? Change delta on subset lap>0
+battledata=subset(proximity,car==x)
+p=ggplot(battledata)  + geom_point(aes(y=-5*posdelta,x=lap)) + geom_point(aes(y=timeToPosInFront,x=lap,pch=3,col=5)) + geom_point(aes(y=timeToPosBehind,x=lap,col=5,pch=4)) + geom_line(aes(x=lap,y=pos,group=driverName,col=1),data=subset(gridproximity,car==x)) + scale_y_continuous( "Time Delta (s)",limits=c(-20,25)) + scale_x_continuous( limits=c(0,maxLap+1) ) + geom_point(aes(x=lap,y=-7*stop,pch=0,col=2)) + opts( legend.position="none", panel.grid.major = theme_blank(), panel.grid.minor = theme_line(linetype = "2925"), panel.background = theme_blank())
+print (p)
+}
+
+# I can't get the colour mappings to work in ggplot, so falling back on plot
+battlePlotByPos=function(x){
+dummy=plot(-5*posdelta~lap,data=subset(proximity,pos==x),col=mycolourfn(car),ylim=c(-20,25),pch=myshapefn(car),xlab='Lap',ylab='Time difference (s)') + points(timeToPosInFront~lap,data=subset(proximity,pos==x),pch=3,col=8)+points(timeToPosBehind~lap,data=subset(proximity,pos==x),pch=4,col=8)
+}
+
+# Race Summary Chart
+# Thanks to Joran on Stack Overflow for helping improve the code used to genearte this image
+# http://stackoverflow.com/questions/7861771/omitting-a-missing-x-axis-value-in-ggplot2-convert-range-to-categorical-variabl
+raceSummaryChart=function(){
+  p=ggplot() + 
+    geom_step(aes(x=proximity$driverName, y=proximity$pos, group=proximity$driverName)) + 
+    geom_point(aes(x=firstLap$driverName, y=firstLap$pos, pch=3, size=2)) + 
+    geom_point(aes(x=racestats$driverName, y=racestats$classification,size=2), label='Final') + 
+    geom_point(aes(x=racestats$driverName, y=racestats$grid, col='red')) + 
+    ylab("Position") + 
+    scale_y_discrete("Race Position",breaks=1:24,limits=1:24) + opts(legend.position = "none") + 
+    opts(axis.text.x=theme_text(angle=90, hjust=0)) + xlab(NULL)
+print(p)
+}
+
+#Pit stop chart
+pitChart=function(times){
+  p=ggplot(times)+geom_point(aes(y=driverName, x=lap,col=stint,size=(stoppingLap==1))) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")+ylab(NULL)
+  print(p)
+}
+
+posExchange=function(proximity){
+ #p=ggplot(proximity)+geom_point(aes(x=lap,y=car,size=abs(posdelta),col=(posdelta<0)))+scale_colour_hue("Position Change",breaks = c(FALSE,TRUE),labels=c('Loss','Gain'))+scale_size("Places") 
+  #p=ggplot(proximity)+geom_point(aes(x=lap,y=car,pch=4*pitstop-1,size=0))+geom_point(aes(x=lap,y=car,size=abs(posdelta),pch=abs(2*sign(posdelta))-1,col=factor(sign(-posdelta))))+scale_colour_hue("Position Change",breaks = c(-1,1),labels=c('Loss','Gain'))+scale_size("Places")  
+ 
+  p=ggplot(proximity)+geom_point(aes(x=lap,y=driverName,pch=4*pitstop-1,size=0))+geom_point(aes(x=lap,y=driverName,size=abs(posdelta),pch=abs(2*sign(posdelta))-1,col=factor(sign(-posdelta))))+scale_colour_hue("Position Change",breaks = c(-1,1),labels=c('Loss','Gain'))+scale_size("Places") + ylab(NULL) + xlab('Lap')
+  
+  print(p)
+}
+  
+#pitpos chart
+pitPosChart=function(proximity,times){
+p=ggplot(proximity)+geom_point(aes(x=lap,y=car,size=abs(posdelta),col=(posdelta<0)))
+p=ggplot()+geom_point(aes(x=proximity$lap,y=proximity$driverName,size=abs(proximity$posdelta),col=(proximity$posdelta<0)))+geom_point(aes(y=times$driverName, x=times$lap,col=times$stint,pch=2,size=(times$stoppingLap==1))) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")+ylab(NULL)
+  print(p)
+}
+
+timeRegression=function(vtimes,cap=''){
+  vs=lm(lapTime ~ lap,data=vtimes)
+  print(xtable(vs),floating = FALSE)
+}
+
+
+#timeLinechart
+timeLineChart=function(df){
+  p=ggplot(df)+geom_line(aes(x=calcElapsedTime,y=lapTime,group=stint,order=car,col=factor(car)))+xlab("Elapsed Time (s)")+ylab("Time (s)")+scale_colour_discrete(name = "Car")
+  print(p)
+}
+
+#FuelCorrected timeLinechart
+fctimeLineChart=function(df){
+  p=ggplot(df)+geom_line(aes(x=calcElapsedTime,y=fuelCorrectedLaptime,group=stint,order=car,col=factor(car)))+xlab("Elapsed Time (s)")+ylab("Fuel Corrected Laptime (s)")+scale_colour_discrete(name = "Car")
+  print(p)
+}
+
+@
+
+\title{F1 2011 Brazil (Race)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+\newpage
+\section{Race Summary Data}
+This report has been automatically generated from timing data scraped from the official FIA F1 Timing press releases.
+
+In this section, you will be able to find macroscopic charts that summarise the race over the whole field.
+
+\subsection{Race Summary Chart}
+The \emph{Race Summary Chart} attempts to summarise position related data across the whole race, and for each driver.
+
+\textbf{Key}
+The \emph{red dot} denotes the GRID position;
+the \emph{black dot} denotes the FINAL position;
+the \emph{horizontal line} denotes the END OF FIRST LAP position;
+the \emph{vertical line} denotes the RANGE OF RACE POSITIONS held during the race
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+raceSummaryChart()
+@
+\caption{Race Summary Chart}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for}
+Who makes or loses places from the start (do the GRID and END OF FIRST LAP positions differ)?
+Do have drivers have a particularly good race, as denoted by a large gain in places comparing GRID and FINAL positions?
+Drivers who were placed in a wide variety of positions may have had an eventful race.
+\\
+\noindent\textbf{Feedback} The \emph{Race Summary Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
+
+\newpage
+\subsection{Position Density Chart}
+The \emph{Position Density Chart} attempts to capture the amount of time each driver held each race position. It is inspired by the commonly reported cross-season statistic, 'number of laps in lead'.
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(proximity, aes(pos, ..density..)) + geom_histogram(binwidth = 1) + facet_grid(driverName ~ .)  +  opts(axis.text.y = theme_blank()) + scale_x_continuous('Race Position') + scale_y_continuous('Position Density, by Car')+opts(strip.text.y = theme_text(size = 8))
+
+print(p)
+@
+\caption{Position Density Chart}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for} Was the race a procession, (cars holding the same positions for much of the race), or does there appear to have been some position changes (e.g. with cars taking different race positions for a significant amount of the race)? Note that if a car was in first position for half the race, and second place for half the race, we would not be able to distinguish this from a case where first and second changed places each lap! 
+\\
+\noindent\textbf{To do} Explore the possibility of a complementary chart that captures the number of position changes for each car over the course of the race.
+\\
+\noindent\textbf{Feedback} The \emph{Position Density Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
+
+
+
+\newpage
+\subsection{Laptime Distributions}
+The laptime distributions summarise the overall distributions of recorded and fuel corrected lap times for each driver. This is not necessarily very informative, (the stint analysis laptime distributions provided for each team may be more useful).
+
+The scatterplot of laptime vs. lap clearly identifies safety car laps, in which all the cars will tend to post a slow time.
+
+The chart showing \emph{ultimate laptime} vs. \emph{fastest laptime} shows how well put together each driver's fastet lap was (the ultimate lap time is calculated by adding together the fastest individual sector times for each driver. (Hmmm... what would the corollary be for speeds?)). The nodes/labels are coloured to show how far away from the ultimate lap the fastet lap was. This chart really needs some label tweaking, but I'm not sure how to do that? (I think the labels need distancing from the points and then connecting by arrows?) The grey line identifies the times for which fastest and ultimate times are the same. Points above this line show that the driver's fastest lap was slower than the ultimate lap. Points can never go below this line (the fastest lap can't be faster than the ultimate lap, only equal to it or slower than it, by definition).
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<laptimescatterbylap,echo=F,fig=T,width=5,height=5>>=
+p=qplot(x=lap,y=lapTime, data=times)
+print(p)
+@
+\caption{Laptimes by lap)}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fclaptimescatterbylap,echo=F,fig=T,width=5,height=5>>=
+p=qplot(x=lap,y=fuelCorrectedLaptime, data=times)
+print(p)
+@
+\caption{Fuel corrected laptimes)}}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<laptimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'lapTime','Recorded laptimes (s)')
+@
+\caption{Laptime distribution}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fcTimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'fuelCorrectedLaptime','Fuel corrected laptimes (s)')
+@
+\caption{Fuel corrected laptime distribution}
+\end{minipage}
+\end{figure}
+
+%ffs - needs fixing
+%\begin{figure}
+%\begin{center}
+%<<fig = T, echo = F, width=7,height=7>>=
+%td=subset(times,fuelCorrectedLaptime<fuelcorrThreshold)
+%timesDistribution(td,'fuelCorrectedLaptime','Fuel corrected laptimes (s) [slow laps omitted]')
+%@
+%\caption{Fuel Corrected Laptime Distribution (Slow laps omitted)}
+%\end{center}
+%\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+#ffs hack
+p=qplot(x=ultimate,y=fastestlap,data=subset(racestats,fastestlap>0 & ultimate>0 &fastestlap<110),label=driverName,col=10*(fastestlap-ultimate))+geom_abline(col='grey')+geom_text(size=3)+opts(legend.position = "none")
+print(p)
+@
+\caption{Fastest lap vs. ultimate lap comparison}
+\end{center}
+\end{figure}
+
+\section{Simple Fuel Penalty Effect Model}
+
+Run a simple linear regression over the laptimes for all drivers to try to get an idea of the \emph{fuel penalty effect} across the race. (Note that this model might also implicitly include a track evolution component.)
+
+The key parameter is the \emph{lap estimate}. This value is the anticipated laptime change per lap resulting from reducing fuel load and track evolution. Note that there may be a tyre component in there too, particularly if all cars pit at similar times. As stints are identified, if we can factor in a \emph{lap in stint} component, we can add an interaction component to the model for the stint lap to try to take into account a tyre effect.
+
+When I get a chance, I'll add in models for each car.
+\\
+\\
+\emph{Overall}:\\
+\\
+<<echo=FALSE,results=tex>>=
+timeRegression(times)
+@
+\\
+
+\newpage
+\subsection{(Sector) Times and Speeds}
+How do the drivers compare in terms of speed and laptime/sector time?
+
+\noindent\textbf{Things to look for}
+Do the fastest cars in each sector also record the smallest times?
+How do drivers in each team compare?
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS1,echo=F,fig=T,width=5,height=5>>=
+tmp=subset(racestats,inter1>0 & sector1>0)
+speedTime(tmp,'sector1','inter1',c(min(tmp$inter1)-2,max(tmp$inter1)+2))
+@
+\caption{Sector 1/Inter1 Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS2,echo=F,fig=T,width=5,height=5>>=
+tmp=subset(racestats,inter2>0.7*max(inter2) & sector2>0)
+speedTime(tmp,'sector2','inter2',c(min(tmp$inter2)-2,max(tmp$inter2)+2))
+@
+\caption{Sector 2/Inter2 Comparison}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS3,echo=F,fig=T,width=5,height=5>>=
+tmp=subset(racestats,finish>0 & sector3>0)
+speedTime(tmp,'sector3','finish',c(min(tmp$finish)-2,max(tmp$finish)+2))
+@
+\caption{Sector 3/Finish Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeRace,echo=F,fig=T,width=5,height=5>>=
+tmp=subset(racestats,trap>0 & fastestlap>0)
+speedTime(tmp,'fastestlap','trap',c(min(tmp$trap)-2,max(tmp$trap)+2))
+@
+\caption{Fastest Lap/Trap Comparison}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Pit Event Summary}
+The \emph{pit event summary} chart summarises pit events, which includes drive through penalties and stop-and-go penalties as well as actual pit stops.
+
+\noindent\textbf{To do} find some way of marking pit stops vs DT etc. Colour stint by tyre (prime/option, new/old)
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+pitChart(times)
+@
+\caption{Pit Event Summary; colours denote stint number. \emph{(Note that drive-through/DT and stop-and-go penalties result in an increase in the stint count.)}}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+stopCount=aggregate(times$stoppingLap, by=list(Lap=times$lap),FUN=sum)
+p=ggplot()+geom_point(aes(stopCount$Lap,stopCount$x))+ylab("Number of stops")+xlab("Lap")
+print(p)
+@
+\caption{Pit Event Summary (count by lap). This chart summarises the number of pit events per lap. This view might help identify particular phases of the race (for example, including the onset of wet weather, perhaps?) \emph{(Note that drive-through/DT and stop-and-go penalities result in an increase in the stint count.)}}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for} Does the timing and number of pit stops suggest different pit stop strategies were in place?
+
+\noindent\textbf{Notes} I have to admit, I don't find this chart very informative, though it is an improvement on the previous stint analysis chart. Is there a better way of presenting the information that allows us to more easily compare stint lengths? A table, perhaps? Maybe colouring by tyre would make this chart more useful, perhaps using an underlaid cross to highlight PIT laps on occasions where drivers move onto the same set of tyres they were using in the previous stint?
+
+\newpage
+\subsection{Position Change Chart}
+The position change chart represents the race position change for each car on each lap compared to the previous lap. The size of the symbol depicts the absolute change in the number of positions and the colour depicts the `direction' of the change (i.e. whether position(s) were gained (greeny blue), or lost (reddy orange)).
+
+The \emph{position change chart} is intended to capture a macroscopic view of the race in terms of when there is a lot of position change activity going on. It might make sense to overlay this chart with some sort of representation of pit events, or would this unnecessarily clutter the image?
+
+(I'm getting infected by the \emph{grammar of graphics} way of thinking about things... might it make sense to come up with a grammar of graphics for descrbing F1 timing charts?!)
+
+\textbf{To do} Pull out fragments of this chart to illustrate the team reports?
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+posExchange(proximity)
+@
+\caption{Position Change Chart}
+\end{center}
+\end{figure}
+
+\subsection{Stint Maps}
+
+The \emph{stint maps} summarise the race from the point of view of stint from the lap and car perspectives. The aim of these graphics to help identify different phases of the race in a clear and unambigous way. The \emph{stint map by lap} probably demonstrates this most clearly.
+
+A similar style of chart may be appropriate for relating tyre choice across the race?
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(times, aes(factor(lap),fill=factor(stint)))+geom_bar()+ylab("Number of cars in stint")+xlab("Lap")+opts(axis.text.x=theme_text(angle=90, hjust=0))
+print(p)
+@
+\caption{Laps broken down to show number of cars per stint}}
+\end{center}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(times, aes(factor(driverName),fill=factor(stint)))+geom_bar()+ylab("Number of Laps in stint")+xlab(NULL)+opts(axis.text.x=theme_text(angle=90, hjust=0))
+print(p)
+@
+\caption{Number of laps in each stint per car)}}
+\end{center}
+\end{figure}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$lapTime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+tmp=subset(minqs,x>0)
+#This is something of a hack ffs
+maxCap=min(tmp$x)*1.1
+tmp2=subset(tmp,x<maxCap)
+p=qplot(x=driverName,y=x, data=tmp2,pch=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)+ylab('Laptime (s)')
+print(p)
+@
+\caption{Fastest laptime per stint per car}
+\end{center}
+\end{figure}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$fuelCorrectedLaptime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+tmp=subset(minqs,x>0)
+#This is something of a hack ffs
+maxCap=min(tmp$x)*1.1
+tmp2=subset(tmp,x<maxCap)
+p=qplot(x=driverName,y=x, data=tmp2,pch=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)+ylab('Fuel Corrected Laptime (s)')
+print(p)
+@
+\caption{Fastest fuel corrected laptime per stint per car}
+\end{center}
+\end{figure}
+
+%\begin{figure}
+%\begin{center}
+%<<fig = T, echo = F>>=
+%pitPosChart(proximity,times)
+%@
+%\caption{Pit and Position Change Chart}
+%\end{center}
+%\end{figure}
+
+\textbf{To do} Would it be worth exploring a combined position change/lap event chart, maybe using different symbols/layers, that attempts to summarise both the pit stop events and the position changes by lap for each driver within the same chart?
+
+%test
+\subsection{Proximity Charts}
+The \emph{proximity charts} are infographics as much as anything, showing how close each car, or the car in each race position, is to the cars in the position immediately ahead and immediately behind. The larger the node, the closer the car is to the car in race position ahead (the car in first place is large because it is zero distance to the car ahead...). The redder the node, the closer the car is to the car in race position immediately behind (the car in last place is bight red becasue it is zero distance away from the car behind).
+
+\begin{figure}[htbp]
+\begin{center}
+<<raceposproximity,echo=F,fig=T,width=5,height=5>>=
+p=ggplot(proximity)+geom_point(aes(x=lap,y=pos,size=1/(timeToPosInFront+0.1)**0.05,col=-(-timeToPosBehind)**0.2))+opts(legend.position="none")+ylab("Race position")
+print(p)
+@
+\caption{Proximity map by position}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<racecarproximity,echo=F,fig=T,width=5,height=5>>=
+p=ggplot(proximity)+geom_point(aes(x=lap,y=driverName,size=1/(timeToPosInFront+0.1)**0.05,col=-(-timeToPosBehind)**0.2))+opts(legend.position="none")+ylab(NULL)
+print(p)
+@
+\caption{Proximity Map by car}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{Battle Plots for Position}
+The \emph{battle plots for position} show activity around the specified race position, depicting the car in the corresponding position on each lap and the time to the cars in the positions immediately ahead and immediately behind.
+
+The colour of the car along the x-axis identifies the team, and the symbol shows whether it is driver 1 (\emph{circle}) or driver 2 (\emph{triangle}) in the team. When the ``position car'' symbol is off the x-axis, it identifies the number of positions that that car \emph{gained} (above the line) or \emph{lost} (below the line) since the last lap in order to enter the specified race position.
+
+The grey + symbols \emph{above} the line identify the time to the car in race position immediately ahead, and the grey x symbols \emph{below} the line identify the time to the car in race immediately behind the car in the race position of interest.
+
+\begin{figure}
+\begin{minipage}[b]{0.9\linewidth}
+\centering
+<<fig = T, echo = F, width=7,height=7>>=
+battlePlotByPos(1)
+@
+\caption{Battle plot for 1st}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP2,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(2)
+@
+\caption{Battle plot for 2nd}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP3,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(3)
+@
+\caption{Battle plot for 3rd}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\noindent\textbf{Things to look for} If the car in the race position ahead is close (the + marks above the axis are close to the axis), the car in the current position may be battling for the position ahead. If the car in the race position behind is close (the x marks below the line are close to the axis), the car in the current position may be fighting to keep the position. If car-in-front or car-behind marks are going away from the axis as we move left to right (increasing lap count), that means the car in the current position is either falling behind the car ahead, or pulling away from the car behind.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP4,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(4)
+@
+\caption{Battle plot for 4th}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP5,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(5)
+@
+\caption{Battle plot for 5th}
+\end{minipage}
+\end{figure}
+
+\newpage
+\section{Team Summaries}
+The team summary pages summarise team based statistics, allowing comparisons to be drawn diretly between team members.
+
+The team summaries include the following chart types:
+
+\begin{itemize}
+\item \textbf{Fuel corrected aptime distribution by stint} The \emph{fuel corrected laptime distribution by stint} chart is a graphical statistical summary of fuel corrected lap times by stint for each driver.
+\item \textbf{Race position chart} Inspired by the popular chart that depicts race position for the whole field, the \emph{race position charts} show the positions, by lap, for each car in the team. PIT events are also highlighted.
+\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the previous lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
+\end{itemize}
+
+\newpage
+\subsection{Red Bull Racing (RBR)}
+
+The \textbf{Red Bull Racing} drivers are \emph{Sebastian Vettel (VET, 1)} and \emph{Mark Webber (WEB, 2)}.
+
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRStintTime,echo=F,fig=T,width=5,height=5>>=
+rbrStint=subset(times,(car==1 | car==2) )
+timeLineChart(rbrStint)
+@
+\caption{RBR: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(rbrStint)
+@
+\caption{RBR: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(rbrStint,fuelcorrThreshold,yrange)
+@
+\caption{RBR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRracePos,echo=F,fig=T,width=5,height=5>>=
+#need to try these wuth gridproximity?
+rbrPos=subset(gridproximity,(car==1 | car==2) )
+racePosChart(rbrPos)
+@
+\caption{Position Chart: {\color{blue}VET}, {\color{red}WEB}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(1)
+@
+\caption{Battle Plot, \emph{VET}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(2)
+@
+\caption{Battle Plot, \emph{WEB}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{McLaren (MCL)}
+
+The \textbf{McLaren} drivers are \emph{Lewis Hamilton (HAM, 3)} and \emph{Jenson Button (BUT, 4)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLStintTime,echo=F,fig=T,width=5,height=5>>=
+mclStint=subset(times,(car==3 | car==4) )
+timeLineChart(mclStint)
+@
+\caption{MCL: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(mclStint)
+@
+\caption{MCL: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(mclStint,fuelcorrThreshold,yrange)
+@
+\caption{MCL: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLracePos,echo=F,fig=T,width=5,height=5>>=
+mclPos=subset(gridproximity,(car==3 | car==4) )
+racePosChart(mclPos)
+@
+\caption{Position Chart: {\color{blue}HAM}, {\color{red}BUT}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(3)
+@
+\caption{Battle Plot, \emph{HAM}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(4)
+@
+\caption{Battle Plot, \emph{BUT}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{Ferrari (FER)}
+
+The \textbf{Ferrari} drivers are \emph{Fernando Alonso (ALO, 5)} and \emph{Felipe Massa (MAS, 6)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERStintTime,echo=F,fig=T,width=5,height=5>>=
+ferStint=subset(times,(car==5 | car==6) )
+timeLineChart(ferStint)
+@
+\caption{FER: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(ferStint)
+@
+\caption{FER: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(ferStint,fuelcorrThreshold,yrange)
+@
+\caption{FER: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERracePos,echo=F,fig=T,width=5,height=5>>=
+ferPos=subset(gridproximity,(car==5 | car==6) )
+racePosChart(ferPos)
+@
+\caption{Position Chart: {\color{blue}ALO}, {\color{red}MAS}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(5)
+@
+\caption{Battle Plot, \emph{ALO}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(6)
+@
+\caption{Battle Plot, \emph{MAS}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{Mercedes (MER)}
+
+The \textbf{Mercedes} drivers are \emph{Michael Schumacher (SCH, 7)} and \emph{Nico Rosberg (ROS, 8)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERStintTime,echo=F,fig=T,width=5,height=5>>=
+merStint=subset(times,(car==7 | car==8) )
+timeLineChart(merStint)
+@
+\caption{MER: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(merStint)
+@
+\caption{MER: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(merStint,fuelcorrThreshold,yrange)
+@
+\caption{MER: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERracePos,echo=F,fig=T,width=5,height=5>>=
+merPos=subset(gridproximity,(car==7 | car==8) )
+racePosChart(merPos)
+@
+\caption{Position Chart: {\color{blue}SCH}, {\color{red}ROS}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(7)
+@
+\caption{Battle Plot, \emph{SCH}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(8)
+@
+\caption{Battle Plot, \emph{ROS}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Renault (REN)}
+
+The \textbf{Renault} drivers are \emph{Bruno Senna (SEN, 9)} and \emph{Vitaly Petrov (PET, 10)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENStintTime,echo=F,fig=T,width=5,height=5>>=
+renStint=subset(times,(car==9 | car==10) )
+timeLineChart(renStint)
+@
+\caption{REN: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(renStint)
+@
+\caption{REN: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(renStint,fuelcorrThreshold,yrange)
+@
+\caption{REN: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENracePos,echo=F,fig=T,width=5,height=5>>=
+renPos=subset(gridproximity,(car==9 | car==10) )
+racePosChart(renPos)
+@
+\caption{Position Chart: {\color{blue}SEN}, {\color{red}PET}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(9)
+@
+\caption{Battle Plot, \emph{SEN}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(10)
+@
+\caption{Battle Plot, \emph{PET}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Williams (WIL)}
+
+The \textbf{Williams} drivers are \emph{Rubens Barrichello (BAR, 11)} and \emph{Pastor Maldonado (MAL, 12)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILStintTime,echo=F,fig=T,width=5,height=5>>=
+wilStint=subset(times,(car==11 | car==12) )
+timeLineChart(wilStint)
+@
+\caption{WIL: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(wilStint)
+@
+\caption{WIL: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(wilStint,fuelcorrThreshold,yrange)
+@
+\caption{WIL: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILracePos,echo=F,fig=T,width=5,height=5>>=
+wilPos=subset(gridproximity,(car==11 | car==12) )
+racePosChart(wilPos)
+@
+\caption{Position Chart: {\color{blue}BAR}, {\color{red}MAL}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(11)
+@
+\caption{Battle Plot, \emph{BAR}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(12)
+@
+\caption{Battle Plot, \emph{MAL}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Force India (FOR)}
+
+The \textbf{Force India} drivers are \emph{Adrian Sutil (SUT, 14)} and \emph{Paul di Resta (RES, 15)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORStintTime,echo=F,fig=T,width=5,height=5>>=
+forStint=subset(times,(car==14 | car==15) )
+timeLineChart(forStint)
+@
+\caption{FOR: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(forStint)
+@
+\caption{FOR: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(forStint,fuelcorrThreshold,yrange)
+@
+\caption{FOR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORracePos,echo=F,fig=T,width=5,height=5>>=
+forPos=subset(gridproximity,(car==14 | car==15) )
+racePosChart(forPos)
+@
+\caption{Position Chart: {\color{blue}SUT}, {\color{red}RES}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(14)
+@
+\caption{Battle Plot, \emph{SUT}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(15)
+@
+\caption{Battle Plot, \emph{RES}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Sauber (SAU)}
+
+The \textbf{Sauber} drivers are \emph{Kamui Kobayashi (KOB, 16)} and \emph{Sergio P\'{e}rez (PER, 17)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUStintTime,echo=F,fig=T,width=5,height=5>>=
+sauStint=subset(times,(car==16 | car==17) )
+timeLineChart(sauStint)
+@
+\caption{SAU: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(sauStint)
+@
+\caption{SAU: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(sauStint,fuelcorrThreshold,yrange)
+@
+\caption{SAU: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUracePos,echo=F,fig=T,width=5,height=5>>=
+sauPos=subset(gridproximity,(car==16 | car==17) )
+racePosChart(sauPos)
+@
+\caption{Position Chart: {\color{blue}KOB}, {\color{red}PER}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(16)
+@
+\caption{Battle Plot, \emph{KOB}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(17)
+@
+\caption{Battle Plot, \emph{PER}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Toro Rosso (TOR)}
+
+The \textbf{Toro Rosso} drivers are \emph{S\'{e}bastien Buemi (BUE, 18)} and \emph{Jaime Alguersuari (ALG), 19}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORStintTime,echo=F,fig=T,width=5,height=5>>=
+torStint=subset(times,(car==18 | car==19) )
+timeLineChart(torStint)
+@
+\caption{TOR: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(torStint)
+@
+\caption{TOR: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(torStint,fuelcorrThreshold,yrange)
+@
+\caption{TOR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORracePos,echo=F,fig=T,width=5,height=5>>=
+torPos=subset(gridproximity,(car==18 | car==19) )
+racePosChart(torPos)
+@
+\caption{Position Chart: {\color{blue}BUE}, {\color{red}ALG}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(18)
+@
+\caption{Battle Plot, \emph{BUE}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(19)
+@
+\caption{Battle Plot, \emph{ALG}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Team Lotus (LOT)}
+
+The \textbf{Team Lotus} drivers are \emph{Heikki Kovalainen (KOV, 20)} and \emph{Jarno Trulli (TRU, 21)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTStintTime,echo=F,fig=T,width=5,height=5>>=
+lotStint=subset(times,(car==20 | car==21) )
+timeLineChart(lotStint)
+@
+\caption{LOT: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(lotStint)
+@
+\caption{LOT: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(lotStint,fuelcorrThreshold,yrange)
+@
+\caption{LOT: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTracePos,echo=F,fig=T,width=5,height=5>>=
+lotPos=subset(gridproximity,(car==20 | car==21) )
+racePosChart(lotPos)
+@
+\caption{Position Chart: {\color{blue}KOV}, {\color{red}TRU}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(20)
+@
+\caption{Battle Plot, \emph{KOV}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(21)
+@
+\caption{Battle Plot, \emph{TRU}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{HRT (HRT)}
+
+The \textbf{HRT} drivers are \emph{V Liuzzi (22)} and \emph{Daniel Ricciardo (RIC, 23)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTStintTime,echo=F,fig=T,width=5,height=5>>=
+hrtStint=subset(times,(car==22 | car==23) )
+timeLineChart(hrtStint)
+@
+\caption{HRT: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(hrtStint)
+@
+\caption{HRT: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(hrtStint,fuelcorrThreshold,yrange)
+@
+\caption{HRT: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTracePos,echo=F,fig=T,width=5,height=5>>=
+hrtPos=subset(gridproximity,(car==22 | car==23) )
+racePosChart(hrtPos)
+@
+\caption{Position Chart: {\color{blue}RIC}, {\color{red}LIU}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(22)
+@
+\caption{Battle Plot, \emph{RIC}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(23)
+@
+\caption{Battle Plot, \emph{LIU}}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\subsection{Marussia Virgin (VIR)}
+
+The \textbf{Marussia Virgin} drivers are \emph{Timo Glock (GLO, 24)} and \emph{J\'{e}r\^{o}me d'Ambrosio (AMB, 25)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRStintTime,echo=F,fig=T,width=5,height=5>>=
+virStint=subset(times,(car==24 | car==25) )
+timeLineChart(virStint)
+@
+\caption{VIR: Laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRStintFCTime,echo=F,fig=T,width=5,height=5>>=
+fctimeLineChart(virStint)
+@
+\caption{VIR: Fuel corrected laptimes/stint}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRStintDist,echo=F,fig=T,width=5,height=5>>=
+raceStintBox(virStint,fuelcorrThreshold,yrange)
+@
+\caption{VIR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRracePos,echo=F,fig=T,width=5,height=5>>=
+hrtPos=subset(gridproximity,(car==24 | car==25) )
+racePosChart(hrtPos)
+@
+\caption{Position Chart: {\color{blue}GLO}, {\color{red}AMB}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(24)
+@
+\caption{Battle Plot, \emph{GLO}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(25)
+@
+\caption{Battle Plot, \emph{AMB}}
+\end{minipage}
+\end{figure}
+
+
+
+\newpage
+\section{Official Tweets}
+Status updates from official team Twitter accounts.
+
+\subsection{Preamble}
+
+2011-11-27 11:05:52 \emph{@InsideFerrari} Good morning from the Interlagos circuit in Sao Paulo.\\
+2011-11-27 11:06:30 \emph{@InsideFerrari} The main question mark of the day - at least until the race will start - regards weather conditions.\\
+2011-11-27 11:07:48 \emph{@InsideFerrari} At the moment the weather is reasonably fine. Forecasts are a bit confusing: sill high risk of showers but th (cont) http://t.co/gbsB3Yu5\\
+2011-11-27 11:34:17 \emph{@MyTeamLotus} So, back to the track ... latest weather update is that even though it's started better than predicted, there's still an 80% chance of rain\\
+2011-11-27 12:03:23 \emph{@WilliamsF1Team} Good news for us this morning - longstanding partner Randstad have just increased their partnership with the team: http://t.co/ep9dL1zs\\
+2011-11-27 12:08:50 \emph{@MarussiaVirgin} At this stage in our dev't, a 2-car finish. RT@LawlessonF1 At the end of every w'end what is rewarding for the team - puts a smile on faces?\\
+2011-11-27 12:09:49 \emph{@MarussiaVirgin} A driver can lose around 3kgs in a race like Singapore RT @Thereal\_Charlee What's the average weight lose of both Timo and Jerome?\\
+2011-11-27 12:25:05 \emph{@MarussiaVirgin} To see the engineers for a debrief RT @APublicFigure Where do the drivers go when they have finished all of their post-race interviews?\\
+2011-11-27 12:29:38 \emph{@MarussiaVirgin} His mechs wait for him \& a grid girl holds a sign: 'Stop here Timo' RT @David\_Zero\_Five How does Timo know EXACTLY where to stop on the grid\\
+2011-11-27 12:33:31 \emph{@WilliamsF1Team} Our team photo of 2012... http://t.co/bXcEdE5H\\
+2011-11-27 12:36:25 \emph{@MarussiaVirgin} 6 Jan is first sea freight to Australia RT @APublicFigure When do the team first send out freight to the first race of the season?\\
+2011-11-27 12:41:51 \emph{@MarussiaVirgin} We use both but send as much as we can sea freight as less expensive RT @a2shi62 sea freight?! i thought you use DHL air freight.\\
+2011-11-27 12:43:24 \emph{@MarussiaVirgin} In the garage, with a radio and a timing screen - and here, an incredible view of T1 RT @TiGoAr How do you watch the race? And where?\\
+2011-11-27 12:56:09 \emph{@MarussiaVirgin} FOM decide where to position the cameras RT @Thereal\_Charlee Do you have here camera view on the helmets?\\
+2011-11-27 13:02:43 \emph{@WilliamsF1Team} Sunday briefing time. Chance of rain gone down to 80\% and will be less severe. High chance of a wet start\\
+2011-11-27 13:03:31 \emph{@WilliamsF1Team} Delta between medium and soft tyre quite small\\
+2011-11-27 13:04:35 \emph{@MyTeamLotus} Team Lotus 2011:  http://t.co/H7g23QS6\\
+2011-11-27 13:05:02 \emph{@MyTeamLotus} Jarno's car crew 2011 http://t.co/VJyRgBkj\\
+2011-11-27 13:06:12 \emph{@WilliamsF1Team} One stops unlikely due to tyre deg\\
+2011-11-27 13:14:03 \emph{@MyTeamLotus} RT @JRobertsF1: The real Caterham is back...\&gt;\&gt;\&gt; OI - Less of that now please....\\
+2011-11-27 13:20:04 \emph{@WilliamsF1Team} Expect to see first pitstops in the early to mid-20 laps\\
+2011-11-27 13:30:10 \emph{@clubforce} Race day in Sao Paulo and there's still a big question mark over the weather. Sunny 1 moment \& cloudy the next. Wet or dry - I'd say 50/50.\\
+2011-11-27 14:08:38 \emph{@MyTeamLotus} Less than 2 hours to go. There's still no rain here yet but it's hot and humid and the forecast is still for rain around 1400....\\
+2011-11-27 14:29:11 \emph{@clubforce} Drivers' parade underway. http://t.co/xxF0BC5O\\
+2011-11-27 14:30:30 \emph{@WilliamsF1Team} Last drivers' parade! http://t.co/h7Ksa07t\\
+2011-11-27 14:30:53 \emph{@MarussiaVirgin} Official Photo http://t.co/VjA0jGYr\\
+2011-11-27 14:51:25 \emph{@clubforce} It has just started spitting with rain in the paddock. Just over an hour until the race.\\
+2011-11-27 14:54:24 \emph{@InsideFerrari} 65 minutes to the start of the race and there is still sun here at Interlagos...\\
+2011-11-27 14:56:27 \emph{@WilliamsF1Team} Looks like the rain is definitely on its way - somewhat annoying as someone's walked off with my rain jacket!\\
+2011-11-27 15:08:05 \emph{@InsideFerrari} Showers are developping, around the circuit at the moment. Others may develop nearer or on the track. Due t (cont) http://t.co/HTmxMDmj\\
+2011-11-27 15:12:38 \emph{@WilliamsF1Team} Radios checks commenced...am hoping for some of Tom's (Rubens' engineer) brilliant 'hunt him down' messages this afternoon....\\
+2011-11-27 15:14:25 \emph{@MyTeamLotus} As the clock ticks down to lights out Juan's gone through the race plan with Heikki's car crew, Gianluca doing the same now - 45 mins to go\\
+2011-11-27 15:23:14 \emph{@MyTeamLotus} Dieter Gass' pitwall seat. Prepared for every eventuality \& ready with his towel out early. Total pro. German. http://t.co/aI3IdSxr\\
+2011-11-27 15:23:16 \emph{@MarussiaVirgin} Almost time to go to the grid for the last race of the season. Excitement aplenty from the grandstands! \#ohnothatwallagain\\
+2011-11-27 15:23:24 \emph{@InsideFerrari} The nearest shower is at 11km in the north but without any movement towards us. Few drops already possible due to the present clouds.\\
+2011-11-27 15:25:11 \emph{@InsideFerrari} Five minutes to the opening of the pit lane\\
+2011-11-27 15:26:03 \emph{@HRTF1Team} 30 min para la carrera y Daniel sube al coche | 30 min for the start of the race and Daniel jumps in http://t.co/MYT9idgf\\
+2011-11-27 15:29:13 \emph{@HRTF1Team} No se espera lluvia en los prximos 30 min. Podran caer algunas gotas | No rain expected in the next 30 min. Drops possible at times\\
+2011-11-27 15:29:53 \emph{@MyTeamLotus} Heikki's car's fired up, clutch scrub done and he's on his way\\
+
+\subsection{Pit Lane Open}
+
+2011-11-27 15:29:59 \emph{@InsideFerrari} Pit lane is opne\\
+2011-11-27 15:30:05 \emph{@InsideFerrari} Open...\\
+2011-11-27 15:31:06 \emph{@WilliamsF1Team} Rubens and family now in the garage http://t.co/ebTbMnY8\\
+2011-11-27 15:31:30 \emph{@InsideFerrari} Fernando left the garage\\
+2011-11-27 15:31:35 \emph{@InsideFerrari} Felipe did it now\\
+2011-11-27 15:32:03 \emph{@InsideFerrari} As usual, there will be a few passages through the pit lane to practice starts\\
+2011-11-27 15:32:23 \emph{@HRTF1Team} Se abre el pit lane. Salimos a parrilla | Pit lane opens. Going to the grid \#F1 http://t.co/rhtdl9MV\\
+2011-11-27 15:33:10 \emph{@MyTeamLotus} Jarno joins Heikki on his way to the grid. 1 lap through the pitlane for both cars\\
+2011-11-27 15:33:30 \emph{@InsideFerrari} The nearest shower is 4 km. According to its development, rain expected on the track.\\
+2011-11-27 15:34:23 \emph{@clubforce} The sun has come out again and it's boiling on the grid. No sign of the rain as yet.\\
+2011-11-27 15:37:14 \emph{@MarussiaVirgin} Laps to the grid for Timo with pitstop practice in between\\
+2011-11-27 15:40:28 \emph{@clubforce} Arrival on the grid for Adrian. http://t.co/PLniDWO4\\
+2011-11-27 15:41:04 \emph{@MyTeamLotus} Best grid atmosphere of the year. As Rubens appears the chants of "RUBINHO RUBINHO" start. The sun's shining \& the stands are packed. Mega!!\\
+2011-11-27 15:42:49 \emph{@HRTF1Team} Increble el ambiente en las gradas. Brasil! | Incredible atmosphere at the grandstands. Bravo! http://t.co/Yh2vhJQZ\\
+2011-11-27 15:46:16 \emph{@OfficialMGP} Very hot and sunny on the grid but there is rain in the area... the engineers are keeping a close eye on the radar!\\
+2011-11-27 15:49:29 \emph{@WilliamsF1Team} The boys are just doing final bits on Rubens' car http://t.co/pV2sLREX\\
+2011-11-27 15:49:30 \emph{@clubforce} Will it rain? Billy Brakes ponders that question on the grid! http://t.co/hMJZT4g0\\
+2011-11-27 15:53:52 \emph{@WilliamsF1Team} Oh so chilled on the grid! http://t.co/p1t6HbM5\\
+2011-11-27 15:54:54 \emph{@OfficialMGP} \#F1 5 minutes to formation lap...\\
+2011-11-27 15:55:05 \emph{@OfficialLRGP} Both drivers poised and ready on the grid. 28C ambient, 40C track. Feels hot. Scattered showers in the vicinity, but looks dry here.. so far\\
+2011-11-27 15:55:34 \emph{@redbullf1spy} They tried to say goodbye and they choked. Tried to walk away and they stumbled. http://t.co/EUZENPDG\\
+2011-11-27 15:56:35 \emph{@InsideFerrari} Four minutes: the rain was dying away so it should be  a dry start\\
+2011-11-27 15:56:36 \emph{@OfficialMGP} \#F1 25C air temp, 46C track temp. Rain 2 kms away from track but no rain expected for the next 45min on location\\
+2011-11-27 15:56:57 \emph{@HRTF1Team} Daniel preparado en la parrilla | Daniel ready to go on the grid http://t.co/aZZhUanB\\
+2011-11-27 15:57:43 \emph{@MarussiaVirgin} Gosh it's HOT! Hard to believe any chance of rain, but I did feel a drop when I was talking to the extremely pleasant @ipburrows earlier\\
+2011-11-27 15:57:50 \emph{@HRTF1Team} Tonio tambin ultimando detalles | Tonio also taking in the last details http://t.co/708MXVcK\\
+2011-11-27 15:58:21 \emph{@InsideFerrari} Two minutes, ignition on\\
+2011-11-27 15:58:31 \emph{@HRTF1Team} 5 minutos para que empiece la carrera | 5 minutes until the race gets underway http://t.co/ZoHaFAaf\\
+
+\subsection{Formation Lap}
+
+2011-11-27 15:59:46 \emph{@OfficialSF1Team} formation lap. both cars on soft tyres. pushing at the start and see how the race develops. no rain predicted for race start.\\
+2011-11-27 16:00:01 \emph{@InsideFerrari} Green light for the formation lap\\
+2011-11-27 16:00:09 \emph{@MarussiaVirgin} Last grid shot of the year http://t.co/9jlSZqYa\\
+2011-11-27 16:00:09 \emph{@OfficialMGP} \#F1 Formation lap...\\
+2011-11-27 16:00:25 \emph{@OfficialSF1Team} Both Toro Rosso on softs as well. So is PET.\\
+2011-11-27 16:00:34 \emph{@InsideFerrari} The start and the first lap will be crucial, as usual. Let's see if we can gain some positions.\\
+2011-11-27 16:00:52 \emph{@HRTF1Team} Everything is ready in Brazil for the last race of the season http://t.co/gS7VFZeQ\\
+2011-11-27 16:01:05 \emph{@OfficialLRGP} both our cars starting on Pirelli's soft tyre. Bruno as he qualified in the top ten and used that tyre, Vitaly as the strategy call\\
+2011-11-27 16:01:31 \emph{@OfficialMGP} Don't forget to log on our website to follow the LIVE telemetry of our two cars on track at Interglagos! http://t.co/8LaRxD95\\
+2011-11-27 16:02:19 \emph{@InsideFerrari} Cars are arriving on the grid\\
+2011-11-27 16:02:44 \emph{@OfficialMGP} \#F1 Back on the grid...\\
+2011-11-27 16:03:09 \emph{@InsideFerrari} THe start is uphill, another difficulty\\
+
+\subsection{Race}
+
+2011-11-27 16:03:15 \emph{@OfficialMGP} \#F1 The race is on!\\
+2011-11-27 16:03:45 \emph{@HRTF1Team} Y comienza el Gran Premio de Brasil! | And the Brazilian Grand Prix begins!\\
+2011-11-27 16:03:49 \emph{@InsideFerrari} Fernando is ahead of Hamilton\\
+2011-11-27 16:04:08 \emph{@InsideFerrari} Felipe ahead of Rosberg\\
+2011-11-27 16:04:15 \emph{@OfficialMGP} \#F1 LAP 1 Nico P7, Michael P11\\
+2011-11-27 16:04:24 \emph{@MyTeamLotus} One of the toughest treks back from the grid for the boys in the garage. Up the hill to the pitlane then all the way down to the garage.\\
+2011-11-27 16:05:09 \emph{@OfficialMGP} \#F1 Nico 0.8s behind MAS, Michael reclaims P10 from DIR\\
+2011-11-27 16:05:10 \emph{@MarussiaVirgin} Told you it would be AMAZING http://t.co/OMuoIy97\\
+2011-11-27 16:05:13 \emph{@MyTeamLotus} Yet another brilliant start from KOV who's up to 15th. Jarno's also made up places to 18th\\
+2011-11-27 16:05:51 \emph{@MarussiaVirgin} It was indeed! "@Andrea\_Eyre: Excellent start by @MarussiaVirgin @thereal\_JDA :-))))"\\
+2011-11-27 16:05:55 \emph{@OfficialLRGP} Great start Vitaly - up to 12th from 15th. Bruno sitting pretty in 9th\\
+2011-11-27 16:06:18 \emph{@InsideFerrari} Fernando is closing on Button\\
+2011-11-27 16:06:18 \emph{@HRTF1Team} Tonio pierde una posicin por el adelantamiento de DAM y Daniel dos (DAM y GLO)\\
+2011-11-27 16:06:24 \emph{@InsideFerrari} DRS enabled\\
+2011-11-27 16:06:42 \emph{@HRTF1Team} Tonio loses one place after being overtaken by DAM, Daniel loses two places (DAM and GLO)\\
+2011-11-27 16:07:02 \emph{@OfficialMGP} \#F1 Nico P7 0.9s behind MAS, 0.7s in front of SUT, Michael P10 0.2s in front of DIR, 0.9s behind SEN\\
+2011-11-27 16:07:55 \emph{@HRTF1Team} DRS habilitado | DRS activated\\
+2011-11-27 16:08:04 \emph{@clubforce} Clean starts for Adrian and Paul. Lap 3 and Adrian is P8 and Paul P11.\\
+2011-11-27 16:09:04 \emph{@OfficialMGP} \#F1 Personal bests for Nico and Michael in the last lap\\
+2011-11-27 16:09:04 \emph{@OfficialLRGP} Two clicks forward on the brake balance Vitaly. And a wave for the crowd\\
+2011-11-27 16:09:22 \emph{@InsideFerrari} The DRS zone looks a bit short...\\
+2011-11-27 16:10:06 \emph{@OfficialMGP} \#F1 Michael getting closer to SEN\\
+2011-11-27 16:10:39 \emph{@InsideFerrari} Fernando is in a sandwich between the two McLarens\\
+2011-11-27 16:11:25 \emph{@MarussiaVirgin} So Jerome has stormed ahead to P21 with LIU the meat in an @MarussiaVirgin sandwich and RIC bringing up the rear!\\
+2011-11-27 16:12:23 \emph{@OfficialLRGP} Bruno's resisting the attentions of Michael Schumacher very well, skies not looking rainful so when will the pit stops start?\\
+2011-11-27 16:13:53 \emph{@HRTF1Team} Tanto Daniel como Tonio han salido con neumticos blandos | Both Daniel and Tonio have started on soft tyres\\
+2011-11-27 16:14:48 \emph{@InsideFerrari} Stable situation at the moment\\
+2011-11-27 16:15:09 \emph{@OfficialMGP} \#F1 Michael 0.3s behind SEN...\\
+2011-11-27 16:15:54 \emph{@OfficialMGP} \#F1 Puncture for Michael... Contact with SEN\\
+2011-11-27 16:16:18 \emph{@InsideFerrari} Contact between Michael and Bruno Senna: the German suffered a puncture\\
+2011-11-27 16:16:21 \emph{@OfficialMGP} \#F1 Michael making his way back to the pits slowly\\
+2011-11-27 16:17:29 \emph{@InsideFerrari} A great move from Fernando who is ahead of BUtton\\
+2011-11-27 16:17:39 \emph{@HRTF1Team} DAM abre hueco con respecto a Tonio pero Daniel est encima de GLO (+0.3)\\
+2011-11-27 16:17:46 \emph{@OfficialMGP} \#F1 Michael in the pits\\
+2011-11-27 16:18:09 \emph{@HRTF1Team} DAM opens up the gap to Tonio but Daniel is ahead of GLO (+0.3)\\
+2011-11-27 16:18:31 \emph{@OfficialLRGP} Resilient defence from Bruno, Vitaly gains a place\\
+2011-11-27 16:18:34 \emph{@OfficialMGP} \#F1 Michael is now back on track, P24. Lot of work to do now...\\
+2011-11-27 16:18:38 \emph{@HRTF1Team} Todos ganan una posicin por el pinchazo de MSC | Everyone goes up one place after MSC's puncture\\
+2011-11-27 16:19:20 \emph{@clubforce} Lap 12 of 71. Adrian running well in P8 less than a second behind Rosberg. Paul now up to P10 after Schumacher's puncture.\\
+2011-11-27 16:20:11 \emph{@OfficialLRGP} Quick stop for Bruno, softs for softs\\
+2011-11-27 16:20:39 \emph{@OfficialMGP} \#F1 Lap 13. Nico P7, 6.1s behind MAS, 0.3s in front of SUT. Michael P24, 31s behind RIC\\
+2011-11-27 16:21:40 \emph{@OfficialLRGP} Great stop from Vitaly's crew - softs to softs\\
+2011-11-27 16:21:59 \emph{@HRTF1Team} Muchos neumticos en el box. Hay que tener todas las opciones (seco e intermedios) listas http://t.co/ThXNyWHE\\
+2011-11-27 16:22:39 \emph{@HRTF1Team} A lot of tyres in the garage. Need to have every option (dry and intermediates) ready http://t.co/I6IzrXNF\\
+2011-11-27 16:23:25 \emph{@InsideFerrari} Button pitted\\
+2011-11-27 16:23:39 \emph{@clubforce} Adrian pits for a fresh set of softs.\\
+2011-11-27 16:23:54 \emph{@OfficialLRGP} Bruno coming in for his pit stop http://t.co/AzwrZJph\\
+2011-11-27 16:24:16 \emph{@InsideFerrari} Ready for Fernando in the pits\\
+2011-11-27 16:24:46 \emph{@OfficialMGP} \#F1 Nico in the pits\\
+2011-11-27 16:25:03 \emph{@InsideFerrari} Hamilton pitted as well\\
+2011-11-27 16:25:14 \emph{@InsideFerrari} Fernando still ahead of Button\\
+2011-11-27 16:25:27 \emph{@OfficialMGP} \#F1 Nico rejoins P13\\
+2011-11-27 16:25:37 \emph{@OfficialSF1Team} well done boys. great start. \#Kamui's lap times are still dropping so we can go on with the first set of soft tyres.\\
+2011-11-27 16:26:31 \emph{@InsideFerrari} Vettel pitted\\
+2011-11-27 16:26:54 \emph{@InsideFerrari} Webber is in aas well\\
+2011-11-27 16:26:55 \emph{@MyTeamLotus} Heikki's first to pit. Straight back out on softs for second stint\\
+2011-11-27 16:27:13 \emph{@OfficialLRGP} Here's Vitaly departing his rapid stop http://t.co/gEYCJJBi\\
+2011-11-27 16:27:49 \emph{@clubforce} Lap 18: Paul also dives into the pits for another set of soft tyres.\\
+2011-11-27 16:27:50 \emph{@MarussiaVirgin} Status remains the same for us, albeit MSC now bringing up the rear. DAM 20 GLO 22\\
+2011-11-27 16:28:05 \emph{@OfficialLRGP} Drive through for Bruno. Rubbing's racing surely?\\
+2011-11-27 16:28:30 \emph{@InsideFerrari} Felipe is leading the race now\\
+2011-11-27 16:29:10 \emph{@InsideFerrari} Fernando is behind the two Red Bulls\\
+2011-11-27 16:29:29 \emph{@OfficialMGP} \#F1 Nico fighting with the yet to pit ALG\\
+2011-11-27 16:30:23 \emph{@OfficialSF1Team} box \#Checo box. soft tyres again.\\
+2011-11-27 16:30:23 \emph{@HRTF1Team} Half the drivers have made their first pitstop. The HRT's shouldn't be too long\\
+2011-11-27 16:30:35 \emph{@OfficialMGP} \#F1 Nico now P9\\
+2011-11-27 16:30:42 \emph{@MarussiaVirgin} Jerome in now!\\
+2011-11-27 16:30:44 \emph{@InsideFerrari} Felipe has been overtaken by Vettel and is coming in\\
+2011-11-27 16:31:09 \emph{@HRTF1Team} DAM, Tonio, GLO y Daniel ruedan en los mismos tiempos | DAM, Tonio, GLO and Daniel are setting the same times\\
+2011-11-27 16:31:32 \emph{@OfficialSF1Team} and now \#Kamui. box in this lap. keep frontwing position. soft tyres.\\
+2011-11-27 16:31:54 \emph{@InsideFerrari} Clean pit stop and he is back on track\\
+2011-11-27 16:31:56 \emph{@MarussiaVirgin} Timo in now!\\
+2011-11-27 16:31:58 \emph{@OfficialLRGP} Vitaly's back to 12th and behind Perez. He's been here before...\\
+2011-11-27 16:32:27 \emph{@OfficialLRGP} Bruno, post drive through is sat in 17th - time for some Brazilian rain dancing\\
+2011-11-27 16:34:03 \emph{@MarussiaVirgin} Here is Jerome's stop http://t.co/cluJIVBt\\
+2011-11-27 16:34:32 \emph{@OfficialMGP} \#F1 Michael now up to P20, 4s behind TRU\\
+2011-11-27 16:34:38 \emph{@HRTF1Team} Primera parada de Daniel | Daniel's first pitstop http://t.co/HNO6AasO\\
+2011-11-27 16:34:38 \emph{@InsideFerrari} Fernando is five seconds behind Webber\\
+2011-11-27 16:35:53 \emph{@OfficialLRGP} P9 for Vitaly now, keep it going... P16 for Bruno\\
+2011-11-27 16:36:11 \emph{@HRTF1Team} Gran pitstop del coche de Tonio y hemos pasado a Glock | Great pitstop on Tonio's car and we're ahead of Glock http://t.co/fmwqqeOr\\
+2011-11-27 16:36:45 \emph{@HRTF1Team} Abandono de GLO que ha perdido una rueda trasera | GLO abandons as he loses a rear tyre\\
+2011-11-27 16:36:56 \emph{@clubforce} Lap 25. Adrian running P7 ahead of Rosberg following pit stops. Paul now in P10. Both on soft tyres.\\
+2011-11-27 16:37:06 \emph{@InsideFerrari} Felipe is lying 10 seconds behind Hamilton\\
+2011-11-27 16:37:08 \emph{@HRTF1Team} Todos los coches han hecho ya su primer pitstop | Every car has made its first pitstop\\
+2011-11-27 16:37:36 \emph{@OfficialSF1Team} same picture after first pit stops. KOB, BUE, PER. keep on fighting and targeting P10!\\
+2011-11-27 16:38:28 \emph{@MarussiaVirgin} For those who didn't see Timo lost a wheel in the pit lane exit\\
+2011-11-27 16:38:43 \emph{@HRTF1Team} De nuevo Daniel y Tonio han apostado por blandos | Daniel and Tonio are on softs again\\
+2011-11-27 16:39:12 \emph{@OfficialLRGP} a soupon forwards on the brake balance Vitaly, all in the quest to go a soupon forwards on track position\\
+2011-11-27 16:39:21 \emph{@InsideFerrari} Webber is pushing very hard\\
+2011-11-27 16:41:29 \emph{@OfficialLRGP} Box Bruno box - Bruno does have gearbox problems - nothing we can rectify remotely.\\
+2011-11-27 16:41:35 \emph{@MarussiaVirgin} Investigation after the race but for now the right thing to do is stay focused on the race\\
+2011-11-27 16:42:11 \emph{@InsideFerrari} WEbber overtook Vettel in an interesting way...\\
+2011-11-27 16:42:23 \emph{@OfficialLRGP} We've gone to the medium Pirelli tyres to try something different on Bruno's strategy\\
+2011-11-27 16:43:42 \emph{@OfficialMGP} Lap 31. Nico P8, 6.1s behind SUT, 4.9s in front of PET. Michael P17, 17.0s behind KOV\\
+2011-11-27 16:44:37 \emph{@InsideFerrari} Button pitted and switched on Medium\\
+2011-11-27 16:44:52 \emph{@HRTF1Team} Tonio y Daniel ganan una posicin por el abandono de MAL | Tonio and Daniel gain a place after MAL retires\\
+2011-11-27 16:45:16 \emph{@MyTeamLotus} We've been joined in the garage by Chase and Status and DJ legend Sasha... http://t.co/3wnDdzoA\\
+2011-11-27 16:45:23 \emph{@OfficialSF1Team} \#Kamui is increasing the gap to BUE. \#Checo just 0.6 behind BUE. Still yellow turn 7. PET on three stops.\\
+2011-11-27 16:45:28 \emph{@OfficialLRGP} Softs to softs for Vitaly http://t.co/5e8jOBHb\\
+2011-11-27 16:45:51 \emph{@OfficialMGP} \#F1 Nico 1.9s behind SUT now\\
+2011-11-27 16:46:30 \emph{@OfficialMGP} \#F1 Nico P7 after SUT stop\\
+2011-11-27 16:46:42 \emph{@OfficialLRGP} Checking tyre temperature, pressure and appearance after they come off Vitaly's car http://t.co/rWELNiPR\\
+2011-11-27 16:46:53 \emph{@clubforce} Lap 31, Adrian makes pit stop number two. Sticking with the soft tyres.\\
+2011-11-27 16:47:15 \emph{@OfficialMGP} \#F1 Second stop of the day for Michael\\
+2011-11-27 16:47:54 \emph{@InsideFerrari} Meteo France said rain is expected in 10 minutes...\\
+2011-11-27 16:49:21 \emph{@InsideFerrari} Fernando is in the pits\\
+2011-11-27 16:50:21 \emph{@HRTF1Team} El radar da lluvia en 15 minutos aunque mirando al cielo no lo parece\\
+2011-11-27 16:50:36 \emph{@InsideFerrari} Fernando is still ahead of BUtton, who at the moment is just behind Felipe\\
+2011-11-27 16:50:42 \emph{@OfficialSF1Team} car is ok. \#Checo can continue. "no problems" he says.\\
+2011-11-27 16:52:07 \emph{@OfficialLRGP} Rain dancing working - it's supposed to be on its way. Here's the sky at half-race distance http://t.co/d8GWD1LN\\
+2011-11-27 16:52:13 \emph{@MyTeamLotus} Midway through the race. Heikki's made two stops and is currently 16th, Jarno 18th\\
+2011-11-27 16:52:14 \emph{@HRTF1Team} The radar forecasts rain in 15 mins but looking at the sky you wouldn't think it\\
+2011-11-27 16:53:00 \emph{@OfficialLRGP} Bruno - Michael's the next car behind you. Remember him?\\
+2011-11-27 16:53:09 \emph{@InsideFerrari} Webber is in the pits\\
+2011-11-27 16:54:30 \emph{@InsideFerrari} And now Vettel is in the pits\\
+2011-11-27 16:54:53 \emph{@OfficialSF1Team} \#Kamui is closing on DIR and opening on BUE.\\
+2011-11-27 16:55:00 \emph{@InsideFerrari} Button passed Felipe\\
+2011-11-27 16:57:49 \emph{@clubforce} Lap 41, Paul pits and changes his softs for a set of mediums.\\
+2011-11-27 16:57:57 \emph{@OfficialSF1Team} no rain within the next 30 minutes. we are happy with that as pace is strong under dry conditions.\\
+2011-11-27 16:58:06 \emph{@InsideFerrari} Fernando is 7 seconds behind Vettel, 6 ahead of Button\\
+2011-11-27 16:58:35 \emph{@OfficialMGP} \#F1 Nico now defending on SUT who has fresher tyres...\\
+2011-11-27 16:59:17 \emph{@OfficialMGP} \#F1 Nico in the pits for his second stop\\
+2011-11-27 17:00:14 \emph{@OfficialMGP} \#F1 Nico rejoins P9\\
+2011-11-27 17:00:43 \emph{@OfficialSF1Team} box \#Kamui. medium tyres for him.\\
+2011-11-27 17:01:44 \emph{@HRTF1Team} Hay que aguantar unas vueltas ms por si finalmente se pusiera a llover y tocara montar intermedios en lugar de medios...\\
+2011-11-27 17:02:10 \emph{@MarussiaVirgin} Jerome stops and switches from the Soft to the Medium tyre\\
+2011-11-27 17:02:27 \emph{@OfficialSF1Team} box, \#Checo. slight front wing adjustment. medium tyres.\\
+2011-11-27 17:02:28 \emph{@InsideFerrari} Hamilton pitted once more and now Felipe is coming in as well\\
+2011-11-27 17:03:28 \emph{@InsideFerrari} He should be ahead of Hamilton\\
+2011-11-27 17:03:30 \emph{@HRTF1Team} The drivers have to hold on a few laps in case it starts raining and they have to switch to intermediates instead of mediums...\\
+2011-11-27 17:03:34 \emph{@OfficialMGP} \#F1 Michael is now fighting for P16 on lap 46\\
+2011-11-27 17:04:26 \emph{@HRTF1Team} Daniel's tyres say enough is enough and he comes in for a set of mediums\\
+2011-11-27 17:04:41 \emph{@OfficialMGP} \#F1 SUT pitted, Nico P7\\
+2011-11-27 17:04:57 \emph{@InsideFerrari} Hamilton is forced to stop\\
+2011-11-27 17:06:20 \emph{@OfficialLRGP} Vitaly boxes for a set of new mediums - what position finish can they predict? http://t.co/eyHFpLm3\\
+2011-11-27 17:06:55 \emph{@OfficialMGP} \#F1 Same again with Nico defending on SUT, on a fresher set\\
+2011-11-27 17:07:07 \emph{@clubforce} Adrian up to P7 and chasing Rosberg for P6. Paul now up to P9. Lap 49 of 71.\\
+2011-11-27 17:07:32 \emph{@OfficialMGP} \#F1 Nice defensive move from Nico down in T1\\
+2011-11-27 17:08:49 \emph{@OfficialMGP} \#F1 Move done this time... Nico now P7\\
+2011-11-27 17:09:23 \emph{@clubforce} Adrian up to P6 after an ace move on Rosberg. 20 laps to go.\\
+2011-11-27 17:10:52 \emph{@OfficialLRGP} Bruno coming in with a set of mediums http://t.co/VnEzRoYZ\\
+2011-11-27 17:10:59 \emph{@InsideFerrari} At this moment, the showers are too far for spreading towards the circuit, said Meteo France\\
+2011-11-27 17:11:44 \emph{@InsideFerrari} Button is in the pits\\
+2011-11-27 17:11:51 \emph{@HRTF1Team} Tonio comes in for his set of medium tyres and goes back out between DAM and Daniel http://t.co/zoq7W2bA\\
+2011-11-27 17:12:10 \emph{@OfficialLRGP} Changing Bruno to a set of used softs http://t.co/geQKsaE8\\
+2011-11-27 17:12:11 \emph{@OfficialMGP} \#F1 Michael in the pits\\
+2011-11-27 17:13:48 \emph{@InsideFerrari} Ready for the pit stop\\
+2011-11-27 17:13:52 \emph{@HRTF1Team} Both drivers gain a place after HAM's retirement (LIU P20 and RIC P21)\\
+2011-11-27 17:14:04 \emph{@InsideFerrari} Fernando is in the pits\\
+2011-11-27 17:14:52 \emph{@InsideFerrari} He is still ahead of Button\\
+2011-11-27 17:15:51 \emph{@InsideFerrari} Button very wuick now\\
+2011-11-27 17:15:57 \emph{@InsideFerrari} quick...\\
+2011-11-27 17:18:18 \emph{@OfficialSF1Team} well done \#Checo!!!! he found his pace again. strong performance with medium tyres after he slightly overheated the rear with the softs.\\
+2011-11-27 17:19:29 \emph{@InsideFerrari} Button is much quicker than Fernando on Medium..\\
+2011-11-27 17:19:29 \emph{@OfficialLRGP} We want strong, consistent laps Vitaly - who promptly sets his fastest lap of the race - that'll do nicely\\
+2011-11-27 17:20:42 \emph{@InsideFerrari} Both Red Bulls pitted and went on Medium for the last stint\\
+2011-11-27 17:20:48 \emph{@OfficialMGP} \#F1 Lap 60. Nico P7 (2 stops), 8.5s behind SUT, 6.5s in front of DIR. Michael P15 (3 stops), 6.8s behind BAR\\
+2011-11-27 17:22:52 \emph{@InsideFerrari} It is going to be difficult to keep him behind\\
+2011-11-27 17:23:31 \emph{@MarussiaVirgin} Jerome P19 from LIU and RIC with 10 laps remaining\\
+2011-11-27 17:24:18 \emph{@InsideFerrari} And Buttton passed him with the DRS\\
+2011-11-27 17:28:14 \emph{@InsideFerrari} So it looks that we will not have another podium in this last race of the season....\\
+2011-11-27 17:29:34 \emph{@OfficialMGP} \#F1 5 laps left\\
+2011-11-27 17:34:45 \emph{@HRTF1Team} Tonio abandons the race with 7 laps to go due to an alternator failure. It's a real shame to finish the season like that\\
+2011-11-27 17:35:28 \emph{@MyTeamLotus} The final lap for Team Lotus. Emotional moments as the job is done. Well done to everyone in the team and thank you for so much hard work.\\
+2011-11-27 17:36:23 \emph{@OfficialLRGP} P10 for Vitaly, P17 for Bruno\\
+2011-11-27 17:36:32 \emph{@redbullracing} By all accounts that's a \#REDBULLRACING \#F1 1,2 FINISH by @aussiegrit \& \#Vettel respectively here in BRAZIL!!!\#BIGBADWOLVESINTHEHOUSETONIGHT\\
+2011-11-27 17:36:35 \emph{@OfficialSF1Team} \#Kamui is finishing 9th and is saving P7 in the \#F1 constructor championship for us. great news after a nerve-stretching race.\\
+2011-11-27 17:37:41 \emph{@OfficialMGP} \#F1 End of a tough race for the boys today in Interlagos. Nico P7, Michael P15 after an early puncture/contact with SEN.\\
+2011-11-27 17:38:31 \emph{@OfficialSF1Team} "Thank you guys" from \#Kamui over the radio to his race engineer and team.\\
+2011-11-27 17:40:28 \emph{@HRTF1Team} Finaliza el Gran Premio de Brasil, el ltimo del ao, con Daniel en P20 y Tonio DNF\\
+2011-11-27 17:41:19 \emph{@HRTF1Team} The Brazilian Grand Prix, the last race of the season, comes to an end with Daniel in P20 and Tonio DNF\\
+2011-11-27 17:42:20 \emph{@TheFifthDriver} Mark Webber wins the Brazilian Grand Prix. Jenson will join him on the podium in third. Lewis retired on lap 48 with gearbox issues.\\
+2011-11-27 17:42:35 \emph{@HRTF1Team} Clasificacin final del GP de Brasil | Final classification of the Brazilian GP http://t.co/e9i7R8Rw\\
+2011-11-27 17:42:54 \emph{@MarussiaVirgin} Well done Jerome - P19 - and well done team for being just that - a real Team - through thick and thin, throughout a difficult season\\
+2011-11-27 17:45:38 \emph{@TheFifthDriver} The top 10 for you: 1) WEB, 2) VET, 3) Jenson, 4) ALO, 5) MAS, 6) SUT, 7) ROS, 8) DIR, 9) KOB, 10) PET.\\
+2011-11-27 17:48:19 \emph{@TheFifthDriver} Here's the podium for you with @JensonButton definitely looking forward to spraying the champagne :-) http://t.co/9Knk0ibI\\
+
+\subsection{Post-Race}
+
+2011-11-27 17:50:58 \emph{@InsideFerrari} THe race finished with two Ferraris just outside the podium. This meant that Fernando is 4th in the Championship and Felipe 6th.\\
+2011-11-27 17:51:37 \emph{@clubforce} Excellent result in Sao Paulo. P6 for Adrian and P8 for @pauldirestaf1 - equalling our best result of year and securing P6 in championship.\\
+2011-11-27 17:55:13 \emph{@OfficialLRGP} That's all folks: http://t.co/4PqLkYs1\\
+2011-11-27 17:59:26 \emph{@TheFifthDriver} Forget the champagne, can you spot @JensonButton hiding behind the awesome ticker tape! http://t.co/FMp740So\\
+2011-11-27 18:03:42 \emph{@TheFifthDriver} A well deserved swig of fizz for the West Country's finest @JensonButton http://t.co/UqWYc5gb\\
+2011-11-27 18:05:12 \emph{@InsideFerrari} BRA - Just off the podium http://t.co/ENxhij86\\
+2011-11-27 18:14:01 \emph{@TheFifthDriver} And then on to the final FIA press conference of the 2011 season for our podium man... http://t.co/vyqvXN4q\\
+2011-11-27 18:47:33 \emph{@OfficialSF1Team} freeze the moment! Smiling faces all over in our paddock club suite and \#Kamui in the middle of it! http://t.co/ZL3fvqpe\\
+2011-11-27 19:06:17 \emph{@OfficialSF1Team} Peter Sauber: "Thanks to the whole team at the track, in Hinwil and to our partners"!\\
+2011-11-27 19:07:32 \emph{@OfficialSF1Team} \#Kamui:"We worked a lot on the race pace and Im happy that I was able to score in the final two races of the season."\\
+2011-11-27 19:08:49 \emph{@OfficialSF1Team} \#Checo: "The teams main target for today was to make sure we finished the season in seventh, and I am very happy that this was achieved!"\\
+2011-11-27 19:12:34 \emph{@HRTF1Team} Brazilian Grand Prix http://t.co/kp0XYb4S\\
+2011-11-27 19:12:56 \emph{@OfficialMGP} \#F1 Ross We know that we need to put everything together next year http://t.co/YSI4Etd1\\
+2011-11-27 19:13:00 \emph{@OfficialMGP} \#F1 Michael I am confident we can make another step forward to where Mercedes belongs; fighting at the top http://t.co/gjlocNJ7\\
+2011-11-27 19:13:03 \emph{@OfficialMGP} \#F1 Nico I look forward to an exciting time in the winter as we work hard to develop a better car for next year http://t.co/910GocSQ\\
+2011-11-27 19:13:44 \emph{@redbullracing} \#WINNING http://t.co/F9g4LlMt\\
+2011-11-27 19:14:04 \emph{@OfficialSF1Team} By far the most creative \#MO in our team! Cheers from \#Interlagos \#F1 to @MovemberUK! http://t.co/762L2En4\\
+2011-11-27 19:20:12 \emph{@OfficialSF1Team} You do not want to mess with the real \#MOtorheads of \#MOtorsports in \#MOvember..;-). Go \#MO! http://t.co/aK2bfZZo\\
+2011-11-27 19:42:41 \emph{@WilliamsF1Team} It hasn't stopped for rubens since he got out the car - 1st debrief, now media work! http://t.co/xVQNmm4S\\
+2011-11-27 20:03:53 \emph{@OfficialSF1Team} RT @Formel28: by far ROSS is friendliest bodywork man of any team - we Scrutineers will miss him loads at races next year! - THX!!!!\\
+2011-11-27 20:18:24 \emph{@WilliamsF1Team} Disappointing end to the season for Pastor - Rubens drove well to 14th and passed 50,000 raced miles today. Amazing.\\
+2011-11-27 20:29:03 \emph{@WilliamsF1Team} If you want to read our last race report of the year, it's now ready here: http://t.co/Ol4yGPIf\\
+2011-11-27 20:50:10 \emph{@InsideFerrari} BRA - Just off the podium. Alonso: "Proud of the team anyway" http://t.co/kTdSdDAy\\
+2011-11-27 20:50:38 \emph{@OfficialSF1Team} Congratulations to \#Federer for his outstanding performance in London and Master title number 6! Wow!\\
+2011-11-27 20:51:58 \emph{@HRTF1Team} A punto de terminar la jornada, solo queda dar las gracias a todo el equipo que ha trabajado tan duro esta... http://t.co/WnMaO59x\\
+2011-11-27 20:53:44 \emph{@HRTF1Team} A tough day is drawing to a close, all that's left is to thank the whole team that has worked so hard this... http://t.co/667Ul8Tt\\
+2011-11-27 20:54:04 \emph{@MarussiaVirgin} For the full story of today's season finale in Sao Paulo check out http://t.co/yjdnzrJO\\
+2011-11-27 20:59:25 \emph{@MarussiaVirgin} The team announces its driver line-up for 2012, with Charles Pic partnering Timo Glock next season http://t.co/YtUV2UYT\\
+2011-11-27 21:01:33 \emph{@InsideFerrari} BRA - Podium dreams fail to come true http://t.co/d3YEgGNx\\
+2011-11-27 21:02:35 \emph{@WilliamsF1Team} That's it from us from the race track till testing - thank you for following and sticking with us. We will be back fighting again in 2012!\\
+
+\newpage
+\section{Feedback}
+This report format is something of an experiment, providing a ``safe'', yet authentic, context for me to explore data handling and visualisation design in conceptual terms, as well as giving some real data to work with as I try to get my head round the R statistical programming language. It's also providing something of a testbed for me to get back to grips with automated report generation/workflows.
+
+Given the audience demographics of Formula One, I'm also mindful that folk reading this may be interested in how similar techniques, whether relating to data publicaation, data visualisation or automated document creation, may be relevant to their own work related - or personal - projects... which is why I'm trying to be as open as I can about how this document was created, and everything that has gone in to making it. I don't think there's quite enough here for an Open University shortcourse (that's the day job!), but you never know...!
+
+All comments appreciated, particularly on:
+
+\begin{itemize}
+\item \emph{chart types}: there are several experimental chart types, as well as my take on more traditional motor sport style chart. Feedback and suggestions welcome on the usefulness/clarity of these charts, things to look for in the charts, suggested improvements to the visual design of the charts.
+\item \emph{scripts}: the latest version of the ``source code'' for this document is available from:\\ \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/abudhabi2011f1Race.Rnw}
+
+\end{itemize}
+
+Please send feedback to: \emph{tony.hirst@gmail.com}, or visit \emph{f1datajunkie.blogspot.com}
+
+At the moment, I'm using a single, monolithic script to generate the report. Ideally, this needs splitting into several components that are then drawn together automagically. (If you can provide hints/examples/advice on how to do this, maybe even using this document as an example, it'd save me a load of time.;-) The R functions used to generate charts are collected at the top of the document - all comments on how to improve them in terms of ``best practice'' much appreciated. I generate the PDF from the source Sweave document within RStudio (\emph{rstudio.org} using the MacTeX LateX processor).
+
+Please feel free to fork the ``source code'' of this documents and make your own changes to it, for example, by using the report as a shell for your own comments/analysis of the race. (I'm still a git/github novice, so I don't at the moment know how to pull any changes back into my repository!)
+
+A copy of the current version of this document can be found at:\\
+\emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/abudhabi2011f1Race.pdf}
+
+PS If any motor racing industry folk want to know more, please do get in touch...:-)
+
+\end{document}

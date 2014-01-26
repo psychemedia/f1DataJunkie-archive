@@ -1,0 +1,1089 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dC1laDBjZkZkcTlQRzNBZVl4RE02Z1E'
+
+library("ggplot2")
+require(RCurl)
+require(xtable)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+racestats=gsqAPI(sskey,'select *',gid='13')
+racestats$driverName=factor(racestats$driverNum,labels = driverLabels)
+
+# Grab data from the Race Proximity sheet
+proximity=gsqAPI(sskey,'select *',gid='12')
+proximity$stop=by(proximity, 1:nrow(proximity), function(row) if (row$pitstop==1) row$pitstop else NA)
+
+# The diff calculation is wrong? It doesn't use 0 for the first item in a factor?
+# add lap zero row - add 24 lap vals=0 not 1 etc?
+gridrow=data.frame(lap=0,car=racestats$driverNum,pos=racestats$grid,timeToPosInFront=0,timeToPosBehind=0,timeToTrackInFront=0, timeToTrackBehind=0,pitstop=0,laptime=0,fuelcorrlaptime=0,stop=NA)
+gridproximity=rbind(proximity,gridrow)
+#sort the dataframe by criver/car and lap, then do the diff?
+gridproximity=gridproximity[with(gridproximity, order(car,lap)), ]
+gridproximity$posdelta=c(0,diff(gridproximity$pos))
+proximity=subset(gridproximity,lap>0)
+proximity$driverName <- factor(proximity$car,labels = driverLabels)
+                   
+maxLap=max(proximity$lap)
+firstLap=subset(proximity,lap==1)
+
+# Grab data from the Comprehensive Race Laptimes Sheet
+times=gsqAPI(sskey,'select *',10)
+times$driverName=factor(times$car,labels = driverLabels)
+
+ttmp=subset(times,fuelCorrectedLaptime>0)
+fuelcorrThreshold=min(ttmp$fuelCorrectedLaptime)*1.1
+yrange=c(min(ttmp$fuelCorrectedLaptime),fuelcorrThreshold)
+
+mycolours=c(26,26,178,178,33,33,270,270,142,142,254,254,13,128,128,630,630,139,139,501,501,32,32,55,55)
+mycolourfn=function(x) colours()[mycolours[x]]
+myshapes=c(1,2,1,2,1,2,1,2,1,2,1,2,5,1,2,1,2,1,2,1,2,1,2,1,2)
+myshapefn=function(x) myshapes[x]
+
+speedTime=function(racestats,timeData,speedData,speedRange,driverName='driverName'){
+#racestats=subset(racestats,timeData>0 & speedData>0)
+p=ggplot(racestats,aes_string(x=timeData,y=speedData,label=driverName))+ geom_text(size=4,angle=45)+scale_x_continuous('Time (s)')+opts(legend.position = "none") + scale_y_continuous('Speed (km/h)',limits=speedRange)
+print(p)
+}
+
+timesDistribution=function(timeData,ydat,ytxt,xdat='driverName'){
+p=ggplot(timeData)+geom_boxplot(aes_string(x=xdat,y=ydat))+opts(legend.position = "none") + scale_y_continuous(ytxt)+opts(axis.text.x=theme_text(angle=90))+xlab(NULL)
+print(p)
+}
+
+raceStintBox=function(stintTimes,fct,yrange){
+  if (fct>0) stintTimes=subset(stintTimes,fuelCorrectedLaptime<fct)
+  stintTimes$driverName=factor(stintTimes$driverName)
+  p=ggplot( stintTimes ) +
+    geom_boxplot( aes( x=interaction( stint, driverName, sep=":" ), y=fuelCorrectedLaptime ) ) +
+		scale_y_continuous( "Fuel Corrected Laptime (s)",limits=yrange) +
+		scale_x_discrete( "Race Stint:Driver" ) +
+		opts( legend.position="none" ) 
+  print(p)
+}
+
+nullChart=function(){
+  p = qplot(data.frame(),x=' ',y=' ',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)
+  print(p)
+}
+
+racePosChart=function(posData){
+p=ggplot(posData) + geom_line(aes(x=lap,y=pos,group=driverName,col=car)) + geom_point(aes(x=lap,y=pos*stop,col=car)) + scale_y_discrete( "Driver",limits=1:24,breaks=1:24) + scale_x_continuous('Lap',limits=c(0,maxLap+1)) + opts(legend.position="none")
+print(p)
+}
+
+battleplot=function(x){
+battledata=subset(proximity,car==x)
+p=ggplot(battledata)  + geom_point(aes(y=-5*posdelta,x=lap)) + geom_point(aes(y=timeToPosInFront,x=lap,pch=3,col=5)) + geom_point(aes(y=timeToPosBehind,x=lap,col=5,pch=4)) + geom_line(aes(x=lap,y=pos,group=driverName,col=1)) + scale_y_continuous( "Time Delta (s)",limits=c(-20,25)) + scale_x_continuous( limits=c(0,maxLap+1) ) + geom_point(aes(x=lap,y=-7*stop,pch=0,col=2)) + opts( legend.position="none", panel.grid.major = theme_blank(), panel.grid.minor = theme_line(linetype = "2925"), panel.background = theme_blank())
+print (p)
+}
+
+# I can't get the colour mappings to work in ggplot, so falling back on plot
+battlePlotByPos=function(x){
+dummy=plot(-5*posdelta~lap,data=subset(proximity,pos==x),col=mycolourfn(car),ylim=c(-20,25),pch=myshapefn(car),xlab='Lap',ylab='Time difference (s)') + points(timeToPosInFront~lap,data=subset(proximity,pos==x),pch=3,col=8)+points(timeToPosBehind~lap,data=subset(proximity,pos==x),pch=4,col=8)
+}
+
+# Race Summary Chart
+# Thanks to Joran on Stack Overflow for helping improve the code used to genearte this image
+# http://stackoverflow.com/questions/7861771/omitting-a-missing-x-axis-value-in-ggplot2-convert-range-to-categorical-variabl
+raceSummaryChart=function(){
+  p=ggplot() + 
+    geom_step(aes(x=proximity$driverName, y=proximity$pos, group=proximity$driverName)) + 
+    geom_point(aes(x=firstLap$driverName, y=firstLap$pos, pch=3, size=2)) + 
+    geom_point(aes(x=racestats$driverName, y=racestats$classification,size=2), label='Final') + 
+    geom_point(aes(x=racestats$driverName, y=racestats$grid, col='red')) + 
+    ylab("Position") + 
+    scale_y_discrete("Race Position",breaks=1:24,limits=1:24) + opts(legend.position = "none") + 
+    opts(axis.text.x=theme_text(angle=90, hjust=0)) + xlab(NULL)
+print(p)
+}
+
+#Pit stop chart
+pitChart=function(times){
+  p=ggplot(times)+geom_point(aes(y=driverName, x=lap,col=stint,size=(stoppingLap==1))) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")+ylab(NULL)
+  print(p)
+}
+
+posExchange=function(proximity){
+  p=ggplot(proximity)+geom_point(aes(x=lap,y=car,size=abs(posdelta),col=(posdelta<0)))+scale_colour_hue("Position Change",breaks = c(FALSE,TRUE),labels=c('Loss','Gain'))+scale_size("Places")
+  print(p)
+}
+  
+#pitpos chart
+pitPosChart=function(proximity,times){
+p=ggplot(proximity)+geom_point(aes(x=lap,y=car,size=abs(posdelta),col=(posdelta<0)))
+p=ggplot()+geom_point(aes(x=proximity$lap,y=proximity$driverName,size=abs(proximity$posdelta),col=(proximity$posdelta<0)))+geom_point(aes(y=times$driverName, x=times$lap,col=times$stint,pch=2,size=(times$stoppingLap==1))) + scale_x_continuous('Lap') + scale_y_discrete('Driver') + opts(legend.position="none")+ylab(NULL)
+  print(p)
+}
+
+timeRegression=function(vtimes,cap=''){
+  vs=lm(lapTime ~ lap,data=vtimes)
+  print(xtable(vs),floating = FALSE)
+}
+
+@
+
+\title{F1 2011 India (Race)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+\newpage
+\section{Race Summary Data}
+This report has been automatically generated from timing data scraped from the official FIA F1 Timing press releases.
+
+In this section, you will be able to find macroscopic charts that summarise the race over the whole field.
+
+\subsection{Race Summary Chart}
+The \emph{Race Summary Chart} attempts to summarise position related data across the whole race, and for each driver.
+
+\textbf{Key}
+The \emph{red dot} denotes the GRID position;
+the \emph{black dot} denotes the FINAL position;
+the \emph{horizontal line} denotes the END OF FIRST LAP position;
+the \emph{vertical line} denotes the RANGE OF RACE POSITIONS held during the race
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+raceSummaryChart()
+@
+\caption{Race Summary Chart}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for}
+Who makes or loses places from the start (do the GRID and END OF FIRST LAP positions differ)?
+Do have drivers have a particularly good race, as denoted by a large gain in places comparing GRID and FINAL positions?
+Drivers who were placed in a wide variety of positions may have had an eventful race.
+\\
+\noindent\textbf{Feedback} The \emph{Race Summary Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
+
+\newpage
+\subsection{Position Density Chart}
+The \emph{Position Density Chart} attempts to capture the amount of time each driver held each race position. It is inspired by the commonly reported cross-season statistic, 'number of laps in lead'.
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(proximity, aes(pos, ..density..)) + geom_histogram(binwidth = 1) + facet_grid(driverName ~ .)  +  opts(axis.text.y = theme_blank()) + scale_x_continuous('Race Position') + scale_y_continuous('Position Density, by Car')+opts(strip.text.y = theme_text(size = 8))
+
+print(p)
+@
+\caption{Position Density Chart}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for} Was the race a procession, (cars holding the same positions for much of the race), or does there appear to have been some position changes (e.g. with cars taking different race positions for a significant amount of the race)? Note that if a car was in first position for half the race, and second place for half the race, we would not be able to distinguish this from a case where first and second changed places each lap! 
+\\
+\noindent\textbf{To do} Explore the possibility of a complementary chart that captures the number of position changes for each car over the course of the race.
+\\
+\noindent\textbf{Feedback} The \emph{Position Density Chart} is an experimental chart type; feedback/comments welcome: tony.hirst@gmail.com
+
+
+
+\newpage
+\subsection{Laptime Distributions}
+The laptime distributions summarise the overall distributions of recorded and fuel corrected lap times for each driver. This is not necessarily very informative, (the stint analysis laptime distributions provided for each team may be more useful).
+
+The scatterplot of laptime vs. lap clearly identifies safety car laps, in which all the cars will tend to post a slow time.
+
+The chart showing \emph{ultimate laptime} vs. \emph{fastest laptime} shows how well put together each driver's fastet lap was (the ultimate lap time is calculated by adding together the fastest individual sector times for each driver. (Hmmm... what would the corollary be for speeds?)). The nodes/labels are coloured to show how far away from the ultimate lap the fastet lap was. This chart really needs some label tweaking, but I'm not sure how to do that? (I think the labels need distancing from the points and then connecting by arrows?) The grey line identifies the times for which fastest and ultimate times are the same. Points above this line show that the driver's fastest lap was slower than the ultimate lap. Points can never go below this line (the fastest lap can't be faster than the ultimate lap, only equal to it or slower than it, by definition).
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<laptimescatterbylap,echo=F,fig=T,width=5,height=5>>=
+p=qplot(x=lap,y=lapTime, data=times)
+print(p)
+@
+\caption{Laptimes by lap)}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fclaptimescatterbylap,echo=F,fig=T,width=5,height=5>>=
+p=qplot(x=lap,y=fuelCorrectedLaptime, data=times)
+print(p)
+@
+\caption{Fuel corrected laptimes)}}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<laptimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'lapTime','Recorded laptimes (s)')
+@
+\caption{Laptime distribution}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fcTimesDistro,echo=F,fig=T,width=5,height=5>>=
+timesDistribution(times,'fuelCorrectedLaptime','Fuel corrected laptimes (s)')
+@
+\caption{Fuel corrected laptime distribution}
+\end{minipage}
+\end{figure}
+
+%ffs - needs fixing
+%\begin{figure}
+%\begin{center}
+%<<fig = T, echo = F, width=7,height=7>>=
+%td=subset(times,fuelCorrectedLaptime<fuelcorrThreshold)
+%timesDistribution(td,'fuelCorrectedLaptime','Fuel corrected laptimes (s) [slow laps omitted]')
+%@
+%\caption{Fuel Corrected Laptime Distribution (Slow laps omitted)}
+%\end{center}
+%\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+#ffs hack
+p=qplot(x=ultimate,y=fastestlap,data=subset(racestats,fastestlap>0 & ultimate>0 &fastestlap<110),label=driverName,col=10*(fastestlap-ultimate))+geom_abline(col='grey')+geom_text(size=3)+opts(legend.position = "none")
+print(p)
+@
+\caption{Fastest lap vs. ultimate lap comparison}
+\end{center}
+\end{figure}
+
+\section{Simple Fuel Penalty Effect Model}
+
+Run a simple linear regression over the laptimes for all drivers to try to get an idea of the \emph{fuel penalty effect} across the race. (Note that this model might also implicitly include a track evolution component.)
+
+The key parameter is the \emph{lap estimate}. This value is the anticipated laptime change per lap resulting from reducing fuel load and track evolution. Note that there may be a tyre component in there too, particularly if all cars pit at similar times. As stints are identified, if we can factor in a \emph{lap in stint} component, we can add an interaction component to the model for the stint lap to try to take into account a tyre effect.
+
+When I get a chance, I'll add in models for each car.
+\\
+\\
+\emph{Overall}:\\
+\\
+<<echo=FALSE,results=tex>>=
+timeRegression(times)
+@
+\\
+
+\newpage
+\subsection{(Sector) Times and Speeds}
+How do the drivers compare in terms of speed and laptime/sector time?
+
+\noindent\textbf{Things to look for}
+Do the fastest cars in each sector also record the smallest times?
+How do drivers in each team compare?
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS1,echo=F,fig=T,width=5,height=5>>=
+speedTime(subset(racestats,inter1>0),'sector1','inter1',c(min(racestats$inter1)-2,max(racestats$inter1)+2))
+@
+\caption{Sector 1/Inter1 Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS2,echo=F,fig=T,width=5,height=5>>=
+speedTime(subset(racestats,inter2>0),'sector2','inter2',c(min(racestats$inter2)-2,max(racestats$inter2)+2))
+@
+\caption{Sector 2/Inter2 Comparison}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeS3,echo=F,fig=T,width=5,height=5>>=
+speedTime(subset(racestats,finish>0),'sector3','finish',c(min(racestats$finish)-2,max(racestats$finish)+2))
+@
+\caption{Sector 3/Finish Comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<speedTimeRace,echo=F,fig=T,width=5,height=5>>=
+speedTime(subset(racestats,trap>0),'fastestlap','trap',c(min(racestats$trap)-2,max(racestats$trap)+2))
+@
+\caption{Fastest Lap/Trap Comparison}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Pit Event Summary}
+The \emph{pit event summary} chart summarises pit events, which includes drive through penalties and stop-and-go penalties as well as actual pit stops.
+
+\noindent\textbf{To do} find some way of marking pit stops vs DT etc. Colour stint by tyre (prime/option, new/old)
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+pitChart(times)
+@
+\caption{Pit Event Summary; colours denote stint number. \emph{(Note that drive-through/DT and stop-and-go penalties result in an increase in the stint count.)}}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+stopCount=aggregate(times$stoppingLap, by=list(Lap=times$lap),FUN=sum)
+p=ggplot()+geom_point(aes(stopCount$Lap,stopCount$x))+ylab("Number of stops")+xlab("Lap")
+print(p)
+@
+\caption{Pit Event Summary (count by lap). This chart summarises the number of pit events per lap. This view might help identify particular phases of the race (for example, including the onset of wet weather, perhaps?) \emph{(Note that drive-through/DT and stop-and-go penalities result in an increase in the stint count.)}}
+\end{center}
+\end{figure}
+
+\noindent\textbf{Things to look for} Does the timing and number of pit stops suggest different pit stop strategies were in place?
+
+\noindent\textbf{Notes} I have to admit, I don't find this chart very informative, though it is an improvement on the previous stint analysis chart. Is there a better way of presenting the information that allows us to more easily compare stint lengths? A table, perhaps? Maybe colouring by tyre would make this chart more useful, perhaps using an underlaid cross to highlight PIT laps on occasions where drivers move onto the same set of tyres they were using in the previous stint?
+
+\newpage
+\subsection{Position Change Chart}
+The position change chart represents the race position change for each car on each lap compared to the previous lap. The size of the symbol depicts the absolute change in the number of positions and the colour depicts the `direction' of the change (i.e. whether position(s) were gained (greeny blue), or lost (reddy orange)).
+
+The \emph{position change chart} is intended to capture a macroscopic view of the race in terms of when there is a lot of position change activity going on. It might make sense to overlay this chart with some sort of representation of pit events, or would this unnecessarily clutter the image?
+
+(I'm getting infected by the \emph{grammar of graphics} way of thinking about things... might it make sense to come up with a grammar of graphics for descrbing F1 timing charts?!)
+
+\textbf{To do} Pull out fragments of this chart to illustrate the team reports?
+
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+posExchange(proximity)
+@
+\caption{Position Change Chart}
+\end{center}
+\end{figure}
+
+\subsection{Stint Maps}
+
+The \emph{stint maps} summarise the race from the point of view of stint from the lap and car perspectives. The aim of these graphics to help identify different phases of the race in a clear and unambigous way. The \emph{stint map by lap} probably demonstrates this most clearly.
+
+A similar style of chart may be appropriate for relating tyre choice across the race?
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(times, aes(factor(lap),fill=factor(stint)))+geom_bar()+ylab("Number of cars in stint")+xlab("Lap")+opts(axis.text.x=theme_text(angle=90, hjust=0))
+print(p)
+@
+\caption{Laps broken down to show number of cars per stint}}
+\end{center}
+\end{figure}
+ 
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+p=ggplot(times, aes(factor(driverName),fill=factor(stint)))+geom_bar()+ylab("Number of Laps in stint")+xlab(NULL)+opts(axis.text.x=theme_text(angle=90, hjust=0))
+print(p)
+@
+\caption{Number of laps in each stint per car)}}
+\end{center}
+\end{figure}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$lapTime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+p=qplot(x=driverName,y=x, data=subset(minqs,x>0),pch=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)+ylab('Laptime (s)')
+print(p)
+@
+\caption{Fastest laptime per stint per car}
+\end{center}
+\end{figure}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+minqs=aggregate(times$fuelCorrectedLaptime, by=list(Stint=times$stint,driverName=times$driverName),FUN=min)
+p=qplot(x=driverName,y=x, data=subset(minqs,x>0),pch=Stint)+opts(axis.text.x=theme_text(angle=90, hjust=0))+xlab(NULL)+ylab('Fuel Corrected Laptime (s)')
+print(p)
+@
+\caption{Fastest fuel corrected laptime per stint per car}
+\end{center}
+\end{figure}
+
+%\begin{figure}
+%\begin{center}
+%<<fig = T, echo = F>>=
+%pitPosChart(proximity,times)
+%@
+%\caption{Pit and Position Change Chart}
+%\end{center}
+%\end{figure}
+
+\textbf{To do} Would it be worth exploring a combined position change/lap event chart, maybe using different symbols/layers, that attempts to summarise both the pit stop events and the position changes by lap for each driver within the same chart?
+
+%test
+\subsection{Proximity Charts}
+The \emph{proximity charts} are infographics as much as anything, showing how close each car, or the car in each race position, is to the cars in the position immediately ahead and immediately behind. The larger the node, the closer the car is to the car in race position ahead (the car in first place is large because it is zero distance to the car ahead...). The redder the node, the closer the car is to the car in race position immediately behind (the car in last place is bight red becasue it is zero distance away from the car behind).
+
+\begin{figure}[htbp]
+\begin{center}
+<<raceposproximity,echo=F,fig=T,width=5,height=5>>=
+p=ggplot(proximity)+geom_point(aes(x=lap,y=pos,size=1/(timeToPosInFront+0.1)**0.05,col=-(-timeToPosBehind)**0.2))+opts(legend.position="none")+ylab("Race position")
+print(p)
+@
+\caption{Proximity map by position}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<racecarproximity,echo=F,fig=T,width=5,height=5>>=
+p=ggplot(proximity)+geom_point(aes(x=lap,y=driverName,size=1/(timeToPosInFront+0.1)**0.05,col=-(-timeToPosBehind)**0.2))+opts(legend.position="none")+ylab(NULL)
+print(p)
+@
+\caption{Proximity Map by car}
+\end{center}
+\end{figure}
+
+\newpage
+\subsection{Battle Plots for Position}
+The \emph{battle plots for position} show activity around the specified race position, depicting the car in the corresponding position on each lap and the time to the cars in the positions immediately ahead and immediately behind.
+
+The colour of the car along the x-axis identifies the team, and the symbol shows whether it is driver 1 (\emph{circle}) or driver 2 (\emph{triangle}) in the team. When the ``position car'' symbol is off the x-axis, it identifies the number of positions that that car \emph{gained} (above the line) or \emph{lost} (below the line) since the last lap in order to enter the specified race position.
+
+The grey + symbols \emph{above} the line identify the time to the car in race position immediately ahead, and the grey x symbols \emph{below} the line identify the time to the car in race immediately behind the car in the race position of interest.
+
+\begin{figure}
+\begin{minipage}[b]{0.9\linewidth}
+\centering
+<<fig = T, echo = F, width=7,height=7>>=
+battlePlotByPos(1)
+@
+\caption{Battle plot for 1st}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP2,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(2)
+@
+\caption{Battle plot for 2nd}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP3,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(3)
+@
+\caption{Battle plot for 3rd}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\noindent\textbf{Things to look for} If the car in the race position ahead is close (the + marks above the axis are close to the axis), the car in the current position may be battling for the position ahead. If the car in the race position behind is close (the x marks below the line are close to the axis), the car in the current position may be fighting to keep the position. If car-in-front or car-behind marks are going away from the axis as we move left to right (increasing lap count), that means the car in the current position is either falling behind the car ahead, or pulling away from the car behind.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP4,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(4)
+@
+\caption{Battle plot for 4th}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<battleP5,echo=F,fig=T,width=5,height=5>>=
+battlePlotByPos(5)
+@
+\caption{Battle plot for 5th}
+\end{minipage}
+\end{figure}
+
+\newpage
+\section{Team Summaries}
+The team summary pages summarise team based statistics, allowing comparisons to be drawn diretly between team members.
+
+The team summaries include the following chart types:
+
+\begin{itemize}
+\item \textbf{Fuel corrected aptime distribution by stint} The \emph{fuel corrected laptime distribution by stint} chart is a graphical statistical summary of fuel corrected lap times by stint for each driver.
+\item \textbf{Race position chart} Inspired by the popular chart that depicts race position for the whole field, the \emph{race position charts} show the positions, by lap, for each car in the team. PIT events are also highlighted.
+\item \textbf{Battle plot} The \emph{battle plot} is an experimental chart, inspired in part by traditional race history charts, that attempts to show the extent to which a particular driver was in battles with the cars in the race positions immediately in front of, and immedialtely behind, the car in question. Position changes (number of positions gained/lost) since the previous lap are also depicted, as well as PIT events. A race position overlay provides additional context, though we could also claim that the battle plot provides context for race position chart. (Battle plots may also be used to show when there is at least one car out of race position between the car of interest and the cars in the race positions immediately ahead and behind.) Maybe this chart (and/or the \emph{race position chart} should also mark the number of lead laps completed at the end of the race, so we can see how many laps behind the lead car (if any) each driver was?)
+\end{itemize}
+
+\newpage
+\subsection{Red Bull Racing (RBR)}
+
+The \textbf{Red Bull Racing} drivers are \emph{Sebastian Vettel (VET, 1)} and \emph{Mark Webber (WEB, 2)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRStintDist,echo=F,fig=T,width=5,height=5>>=
+rbrStint=subset(times,(car==1 | car==2) )
+raceStintBox(rbrStint,fuelcorrThreshold,yrange)
+@
+\caption{RBR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRracePos,echo=F,fig=T,width=5,height=5>>=
+rbrPos=subset(proximity,(car==1 | car==2) )
+racePosChart(rbrPos)
+@
+\caption{Position Chart: {\color{blue}VET}, {\color{red}WEB}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(1)
+@
+\caption{Battle Plot, \emph{VET}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RBRbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(2)
+@
+\caption{Battle Plot, \emph{WEB}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{McLaren (MCL)}
+
+The \textbf{McLaren} drivers are \emph{Lewis Hamilton (HAM, 3)} and \emph{Jenson Button (BUT, 4)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLStintDist,echo=F,fig=T,width=5,height=5>>=
+mclStint=subset(times,(car==3 | car==4) )
+raceStintBox(mclStint,fuelcorrThreshold,yrange)
+@
+\caption{MCL: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLracePos,echo=F,fig=T,width=5,height=5>>=
+mclPos=subset(proximity,(car==3 | car==4) )
+racePosChart(mclPos)
+@
+\caption{Position Chart: {\color{blue}HAM}, {\color{red}BUT}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(3)
+@
+\caption{Battle Plot, \emph{HAM}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MCLbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(4)
+@
+\caption{Battle Plot, \emph{BUT}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{Ferrari (FER)}
+
+The \textbf{Ferrari} drivers are \emph{Fernando Alonso (ALO, 5)} and \emph{Felipe Massa (MAS, 6)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERStintDist,echo=F,fig=T,width=5,height=5>>=
+ferStint=subset(times,(car==5 | car==6) )
+raceStintBox(ferStint,fuelcorrThreshold,yrange)
+@
+\caption{FER: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERracePos,echo=F,fig=T,width=5,height=5>>=
+ferPos=subset(proximity,(car==5 | car==6) )
+racePosChart(ferPos)
+@
+\caption{Position Chart: {\color{blue}ALO}, {\color{red}MAS}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(5)
+@
+\caption{Battle Plot, \emph{ALO}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FERbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(6)
+@
+\caption{Battle Plot, \emph{MAS}}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{Mercedes (MER)}
+
+The \textbf{Mercedes} drivers are \emph{Michael Schumacher (SCH, 7)} and \emph{Nico Rosberg (ROS, 8)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERStintDist,echo=F,fig=T,width=5,height=5>>=
+merStint=subset(times,(car==7 | car==8) )
+raceStintBox(merStint,fuelcorrThreshold,yrange)
+@
+\caption{MER: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERracePos,echo=F,fig=T,width=5,height=5>>=
+merPos=subset(proximity,(car==7 | car==8) )
+racePosChart(merPos)
+@
+\caption{Position Chart: {\color{blue}SCH}, {\color{red}ROS}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(7)
+@
+\caption{Battle Plot, \emph{SCH}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<MERbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(8)
+@
+\caption{Battle Plot, \emph{ROS}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Renault (REN)}
+
+The \textbf{Renault} drivers are \emph{Bruno Senna (SEN, 9)} and \emph{Vitaly Petrov (PET, 10)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENStintDist,echo=F,fig=T,width=5,height=5>>=
+renStint=subset(times,(car==9 | car==10) )
+raceStintBox(renStint,fuelcorrThreshold,yrange)
+@
+\caption{REN: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENracePos,echo=F,fig=T,width=5,height=5>>=
+renPos=subset(proximity,(car==9 | car==10) )
+racePosChart(renPos)
+@
+\caption{Position Chart: {\color{blue}SEN}, {\color{red}PET}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(9)
+@
+\caption{Battle Plot, \emph{SEN}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<RENbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(10)
+@
+\caption{Battle Plot, \emph{PET}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Williams (WIL)}
+
+The \textbf{Williams} drivers are \emph{Rubens Barrichello (BAR, 11)} and \emph{Pastor Maldonado (MAL, 12)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILStintDist,echo=F,fig=T,width=5,height=5>>=
+wilStint=subset(times,(car==11 | car==12) )
+raceStintBox(wilStint,fuelcorrThreshold,yrange)
+@
+\caption{WIL: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILracePos,echo=F,fig=T,width=5,height=5>>=
+wilPos=subset(proximity,(car==11 | car==12) )
+racePosChart(wilPos)
+@
+\caption{Position Chart: {\color{blue}BAR}, {\color{red}MAL}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(11)
+@
+\caption{Battle Plot, \emph{BAR}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<WILbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(12)
+@
+\caption{Battle Plot, \emph{MAL}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Force India (FOR)}
+
+The \textbf{Force India} drivers are \emph{Adrian Sutil (SUT, 14)} and \emph{Paul di Resta (RES, 15)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORStintDist,echo=F,fig=T,width=5,height=5>>=
+forStint=subset(times,(car==14 | car==15) )
+raceStintBox(forStint,fuelcorrThreshold,yrange)
+@
+\caption{FOR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORracePos,echo=F,fig=T,width=5,height=5>>=
+forPos=subset(proximity,(car==14 | car==15) )
+racePosChart(forPos)
+@
+\caption{Position Chart: {\color{blue}SUT}, {\color{red}RES}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(14)
+@
+\caption{Battle Plot, \emph{SUT}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<FORbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(15)
+@
+\caption{Battle Plot, \emph{RES}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Sauber (SAU)}
+
+The \textbf{Sauber} drivers are \emph{Kamui Kobayashi (KOB, 16)} and \emph{Sergio P\'{e}rez (PER, 17)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUStintDist,echo=F,fig=T,width=5,height=5>>=
+sauStint=subset(times,(car==16 | car==17) )
+raceStintBox(sauStint,fuelcorrThreshold,yrange)
+@
+\caption{SAU: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUracePos,echo=F,fig=T,width=5,height=5>>=
+sauPos=subset(proximity,(car==16 | car==17) )
+racePosChart(sauPos)
+@
+\caption{Position Chart: {\color{blue}KOB}, {\color{red}PER}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(16)
+@
+\caption{Battle Plot, \emph{KOB}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<SAUbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(17)
+@
+\caption{Battle Plot, \emph{PER}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Toro Rosso (TOR)}
+
+The \textbf{Toro Rosso} drivers are \emph{S\'{e}bastien Buemi (BUE, 18)} and \emph{Jaime Alguersuari (ALG), 19}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORStintDist,echo=F,fig=T,width=5,height=5>>=
+torStint=subset(times,(car==18 | car==19) )
+raceStintBox(torStint,fuelcorrThreshold,yrange)
+@
+\caption{TOR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORracePos,echo=F,fig=T,width=5,height=5>>=
+torPos=subset(proximity,(car==18 | car==19) )
+racePosChart(torPos)
+@
+\caption{Position Chart: {\color{blue}BUE}, {\color{red}ALG}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(18)
+@
+\caption{Battle Plot, \emph{BUE}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<TORbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(19)
+@
+\caption{Battle Plot, \emph{ALG}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{Team Lotus (LOT)}
+
+The \textbf{Team Lotus} drivers are \emph{Heikki Kovalainen (KOV, 20)} and \emph{Jarno Trulli (TRU, 21)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTStintDist,echo=F,fig=T,width=5,height=5>>=
+lotStint=subset(times,(car==20 | car==21) )
+raceStintBox(lotStint,fuelcorrThreshold,yrange)
+@
+\caption{LOT: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTracePos,echo=F,fig=T,width=5,height=5>>=
+lotPos=subset(proximity,(car==20 | car==21) )
+racePosChart(lotPos)
+@
+\caption{Position Chart: {\color{blue}KOV}, {\color{red}TRU}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(20)
+@
+\caption{Battle Plot, \emph{KOV}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<LOTbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(21)
+@
+\caption{Battle Plot, \emph{TRU}}
+\end{minipage}
+\end{figure}
+
+\newpage
+\subsection{HRT (HRT)}
+
+The \textbf{HRT} drivers are \emph{NARAIN KARTHIKEYAN (22)} and \emph{Daniel Ricciardo (RIC, 23)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTStintDist,echo=F,fig=T,width=5,height=5>>=
+hrtStint=subset(times,(car==22 | car==23) )
+raceStintBox(hrtStint,fuelcorrThreshold,yrange)
+@
+\caption{HRT: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTracePos,echo=F,fig=T,width=5,height=5>>=
+hrtPos=subset(proximity,(car==22 | car==23) )
+racePosChart(hrtPos)
+@
+\caption{Position Chart: {\color{blue}RIC}, {\color{red}LIU}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(22)
+@
+\caption{Battle Plot, \emph{RIC}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<HRTbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(23)
+@
+\caption{Battle Plot, \emph{LIU}}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\subsection{Marussia Virgin (VIR)}
+The \textbf{Marussia Virgin} drivers are \emph{Timo Glock (GLO, 24)} and \emph{J\'{e}r\^{o}me d'Ambrosio (AMB, 25)}.
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRStintDist,echo=F,fig=T,width=5,height=5>>=
+virStint=subset(times,(car==24 | car==25) )
+raceStintBox(virStint,fuelcorrThreshold,yrange)
+@
+\caption{VIR: Fuel corrected laptimes/stint}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRracePos,echo=F,fig=T,width=5,height=5>>=
+hrtPos=subset(proximity,(car==24 | car==25) )
+racePosChart(hrtPos)
+@
+\caption{Position Chart: {\color{blue}GLO}, {\color{red}AMB}}
+\end{minipage}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRbattle1,echo=F,fig=T,width=5,height=7>>=
+battleplot(22)
+@
+\caption{Battle Plot, \emph{GLO}}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<VIRbattle2,echo=F,fig=T,width=5,height=7>>=
+battleplot(23)
+@
+\caption{Battle Plot, \emph{AMB}}
+\end{minipage}
+\end{figure}
+
+
+
+\newpage
+\section{Official Tweets}
+Status updates from official team Twitter accounts.
+
+\subsection{Red Bull Racing}
+
+\newpage
+\section{Feedback}
+This report format is something of an experiment, providing a ``safe'', yet authentic, context for me to explore data handling and visualisation design in conceptual terms, as well as giving some real data to work with as I try to get my head round the R statistical programming language. It's also providing something of a testbed for me to get back to grips with automated report generation/workflows.
+
+Given the audience demographics of Formula One, I'm also mindful that folk reading this may be interested in how similar techniques, whether relating to data publicaation, data visualisation or automated document creation, may be relevant to their own work related - or personal - projects... which is why I'm trying to be as open as I can about how this document was created, and everything that has gone in to making it. I don't think there's quite enough here for an Open University shortcourse (that's the day job!), but you never know...!
+
+All comments appreciated, particularly on:
+
+\begin{itemize}
+\item \emph{chart types}: there are several experimental chart types, as well as my take on more traditional motor sport style chart. Feedback and suggestions welcome on the usefulness/clarity of these charts, things to look for in the charts, suggested improvements to the visual design of the charts.
+\item \emph{scripts}: the latest version of the ``source code'' for this document is available from:\\ \emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.Rnw}
+
+\end{itemize}
+
+Please send feedback to: \emph{tony.hirst@gmail.com}, or visit \emph{f1datajunkie.blogspot.com}
+
+At the moment, I'm using a single, monolithic script to generate the report. Ideally, this needs splitting into several components that are then drawn together automagically. (If you can provide hints/examples/advice on how to do this, maybe even using this document as an example, it'd save me a load of time.;-) The R functions used to generate charts are collected at the top of the document - all comments on how to improve them in terms of ``best practice'' much appreciated. I generate the PDF from the source Sweave document within RStudio (\emph{rstudio.org} using the MacTeX LateX processor).
+
+Please feel free to fork the ``source code'' of this documents and make your own changes to it, for example, by using the report as a shell for your own comments/analysis of the race. (I'm still a git/github novice, so I don't at the moment know how to pull any changes back into my repository!)
+
+A copy of the current version of this document can be found at:\\
+\emph{https://github.com/psychemedia/f1DataJunkie/blob/master/raceReports/korea2011f1Race.pdf}
+
+PS If any motor racing industry folk want to know more, please do get in touch...:-)
+
+\end{document}

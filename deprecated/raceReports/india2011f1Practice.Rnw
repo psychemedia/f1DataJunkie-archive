@@ -1,0 +1,1620 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dC1laDBjZkZkcTlQRzNBZVl4RE02Z1E'
+
+library("ggplot2")
+require(RCurl)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','KAR','RIC','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+fp1times=gsqAPI(sskey,'select *',gid='0')
+fp2times=gsqAPI(sskey,'select *',gid='2')
+fp3times=gsqAPI(sskey,'select *',gid='4')
+fpcombinedclassification=gsqAPI(sskey,'select *',gid='7')
+fpcombinedclassification$driverName=factor(fpcombinedclassification$driverNum,labels = driverLabels)
+
+
+fpSessionUtilisation=function(sessiondata){
+  p=ggplot(sessiondata) + geom_point(aes(x=Elapsed,y=reorder(Name, DriverNum),pch=1)) + xlab('Elapsed time in session (s)') +ylab(NULL)
+  print(p)
+}
+
+fpFullsessionUtilisation=function(fp1times,fp2times,fp3times){
+  p=ggplot() + geom_point(aes(x=1000+max(fp1times$Elapsed)+max(fp2times$Elapsed)+fp3times$Elapsed,y=fp3times$DriverNum,col=fp3times$Stint.Length)) +  geom_point(aes(x=fp1times$Elapsed,y= fp1times$DriverNum,col=fp1times$Stint.Length)) + geom_point(aes(x=500+max(fp1times$Elapsed)+fp2times$Elapsed,y= fp2times$DriverNum,col=fp2times$Stint.Length)) + xlab('Elapsed time in session (s)') +ylab('Car Number') + geom_vline(xintercept = c(max(fp1times$Elapsed)+max(fp2times$Elapsed)+750,max(fp1times$Elapsed)+250),color='grey')+ scale_colour_continuous(name = "Stint length")
+  print(p)
+}
+
+
+fpSessionTeamggBox=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+  # y-axis: laptime distribution
+  if (nrow(df)>0){
+  #  p=ggplot( subset( df, Time < threshold ) ) +
+	#    geom_boxplot( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	#    scale_y_continuous( "Laptime (s)") +
+	#    opts( axis.text.x=theme_text( angle=45 ), legend.position="none" )  +xlab(NULL)
+    p=qplot(x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time, data=subset( df, Time < threshold ), geom=c("boxplot", "jitter")) +
+      scale_y_continuous( "Laptime (s)") +
+      opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+nullplot=function(){
+  p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)
+  print(p)
+}
+fpSessionTeamggPoint=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+	# y-axis: laptime distribution
+  if (nrow(df)>0){
+  	p=ggplot( subset( df, Time < threshold ) ) +
+	    geom_point( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	    scale_y_continuous( "Laptime (s)") +
+	    opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  } else {p = qplot(df,x=' ',y='Laptime (s)',geom='blank',theme='blank')+xlab(NULL)+ylab(NULL)}
+  print(p)
+}
+
+
+fpxRank=function(fpcombinedstats,cat='time',ytxt='Fastest lap time (s)'){
+  fp1stats=subset(fpcombinedstats,session=='fp1' & time>0 & speed>0)
+  fp2stats=subset(fpcombinedstats,session=='fp2' & time>0 & speed>0)
+  fp3stats=subset(fpcombinedstats,session=='fp3' & time>0 & speed>0)
+  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverName',y=cat,pch='session')) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt) + geom_point(data=fp2stats,aes_string(x='driverName',y=cat,pch='session')) + geom_point(data=fp3stats,aes_string(x='driverName',y=cat,pch='session')) 
+  print(p)
+}
+
+fpxPosRank=function(sessionstats){
+  p=ggplot() + geom_point(data=fpcombinedclassification,aes(x=driverName,y=pos,groups=session,pch=session,size=session)) + opts(axis.text.x=theme_text(angle=90))+xlab(NULL) + ylab('Classification')
+  print(p)
+}
+  
+fpSessionTeamBoxStintRange=function( df, threshold, geStintLengthMin, geStintLengthMax ) {
+	dff=subset( df, Time < 120 & Stint.Length>=geStintLengthMin & Stint.Length<=geStintLengthMax )
+	boxplot( Time~Stint*DriverNum, data=dff, las=2, ylab="Time(s)", xlab=paste("FP Stint:DriverNum stint range",geStintLengthMin,':',geStintLengthMax))
+}
+
+
+@
+
+\title{F1 2011 India (Practice)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+
+\newpage
+\section{Free Practice Summary}
+
+What went on in the free practice sessions?
+
+The FIA don't release that much information about the practice sessions - it's pretty much limited to the classification (with fatset lap/speed), and a set of lap times. That said, I have tried to find various ways of visualising the data to try and give us a feel for what went on in the session. If you have any ideas about what else we might be able to derive from the data, please let me know.
+
+\subsection{Session Utilisation Charts}
+\textbf{Session utilisation charts} are an experimental chart type that show how each team made use of the practice sessions, identifying the time during the session when a lap time was recorded. The combined session utilisation chart shows the extent to which each car goes out, as well as using colour to denote stint length. Uniform breaks in the session might indicate red flag conditions. However, if the stoppage is only for a short time, this can be quite hard to detect visually on the combined sessions utilisation chart.
+
+There are some issues with the combined chart I need to fix: the cars need to be identified as factors, thus removing non-existent car 13, and each car needs labelling (and ordering numerically) and highlighting with a minor(?) gridline. Add grey horizontal lines between each team to highlight the teams (so lines at 2.5:23.5 step 2). 
+
+\subsection{Session comparison chart (lap time, speed, position)}
+The \textbf{quickest lap comparison}, \textbf{fastest speed comparison} and \textbf{position comparison} charts summarise the best times/speeds recorded in each session along with the standings. The quicker cars are the ones near the bottom of the fastest lap chart and the top of the speed chart. Note that the name labels for the race drivers are used to identify the \emph{car} that participated in each session. Some teams may utilise a third driver in the earlier practice sessions. (It should be possible for me to pull out a list of names of the drivers who particpated in each session and put them into a table, such as a classification table?)
+
+Looking across the \emph{Classification} rows and down the columns, there should be at most once instance of each symbol (evidence of that classified position for each of the sessions) in each row and column. If there is a symbol missing, it may be hidden beneath one of the larger symbols. So for example, if the same car was placed third in free practice 2 and 3, we would only see the larger square denoting the FP3 classification. (I wonder - can I specify the layer/height of a symbol as an aesthetic variable?) Prominence is given to standings from FP2 and FP3 because these are more likely to be indicative of performance in qualifying and in the race.
+
+\textbf{To do} Add unit gridlines and labels to the position chart. Is it maybe worth including some sort of long stint summary?
+
+\newpage
+%\begin{figure}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp1utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp1times)
+%@
+%\caption{FP1 Session Utilisation}
+%\end{minipage}
+%\hspace{0.2cm}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp2utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp2times)
+%@
+%\caption{FP2 Session Utilisation}
+%\end{minipage}\hspace{0.2cm}
+%\begin{minipage}[b]{0.5\linewidth}
+%\centering
+%<<fp3utilisation,echo=F,fig=T,width=5,height=5>>=
+%fpSessionUtilisation(fp3times)
+%@
+%\caption{FP3 Session Utilisation}
+%\end{minipage}
+%\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpFullsessionUtilisation(fp1times,fp2times,fp3times)
+@
+\caption{FP1-3 Session Utilisation}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1_3fasttime,echo=F,fig=T,width=5,height=5>>=
+fpxRank(fpcombinedclassification,'time','Quickest lap time (s)')
+@
+\caption{Free Practice 1-3: Fastest lap comparison}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1_3fastspeed,echo=F,fig=T,width=5,height=5>>=
+fpxRank(fpcombinedclassification,'speed','Fastest speed (mph)')
+@
+\caption{Free Practice 1-3: Fastest speed comparison}
+\end{minipage}
+\begin{minipage}[b]{1.0\linewidth}
+\centering
+<<fp1_3classification,echo=F,fig=T,width=8,height=8>>=
+fpxPosRank(fpcombinedclassification)
+@
+\caption{Free Practice 1-3: Classification comparison}
+\end{minipage}
+\end{figure}
+
+%\newpage
+%\subsection{Long Stint Summaries}
+
+%The long stint summary charts summarise the distibution of laptimes recorded in a long stint (that is, a stint of at least N laps), with lap times grater than ?? filtered out. (That is, the distribution may summarise different ``substints'' within a stint, and additionally may be a summary of less than N lap times... If you have any suggestions regarding better heauristics for capturing a meaningful summary statistic capturing long stint times, please let me know... At the very least, may I just need to capture fue corrected lap times, in the hope that if we can resolve a stint to a tyre selection, we can start to build up a model of tyre related laptime penalties?)
+%\begin{figure}[htbp]
+%\begin{center}
+%<<fig = T, echo = F>>=
+%MAXTIME=300
+%fpSessionTeamBoxStintRange(fp2times,MAXTIME,8,25)
+%@
+%\caption{FP2 Long Stint Summary Session Utilisation (8 laps+)}
+%\end{center}
+%\end{figure}
+
+With respect to times, would a fastest time per stint per session summary be useful (especially if it could be tied to tyre selection?) How about a long stint summary too? (What counts as a long stint? >8-10 laps depending on circuit length (ie defined in terms of time/distance, rather than laps, \emph{per se}?))
+
+\newpage
+\section{Team Analyses}
+The \emph{Team Analysis} reports provide a set of charts summarising the activity of each team during each practice session, in particular the range of laptimes and their distribution, by stint.
+
+I'm not sure the laptime distribution chart is that useful on its own, so I overlaid the actual times with jitter. (I'm not sure if the jitter is regular, eg increasing x with increasing sample?)
+
+\textbf{To do} Need a table for each team showing fastest lap per stint, and maybe some sort of summary of 'fast times', esp. in longer stints (so eg more than \emph{N} laps within \emph{X}\% of the fastest lap recorded by that team in that session?)
+
+I use the following identifiers for the teams:
+\begin{itemize}
+\item \textbf{RBR}: \emph{Red bull Racing}
+\item \textbf{MCL}: \emph{McLaren}
+\item \textbf{FER}: \emph{Ferrari}
+\item \textbf{MER}: \emph{Mercedes}
+\item \textbf{REN}: \emph{Renault}
+\item \textbf{WIL}: \emph{Williams}
+\item \textbf{FOR}: \emph{Force India}
+\item \textbf{SAU}: \emph{Sauber}
+\item \textbf{TOR}: \emph{Toro Rosso}
+\item \textbf{LOT}: \emph{Team Lotus}
+\item \textbf{HRT}: \emph{HRT}
+\item \textbf{VIR}: \emph{Marussia Virgin}
+\end{itemize}
+
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 RBR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 RBR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==1 | DriverNum==2 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 RBR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 RBR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MCL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MCL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==3 | DriverNum==4 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MCL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MCL Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3ferTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==5 | DriverNum==6 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3ferDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FER Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 MER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 MER Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3merTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==7 | DriverNum==8 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MER Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3merDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 MER Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 REN Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 REN Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3renTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==9 | DriverNum==10 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 REN Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3renDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 REN Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 WIL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 WIL Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3wilTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==11 | DriverNum==12 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 WIL Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3wilDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 WIL Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 FOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 FOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3forTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==14 | DriverNum==15 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3forDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 FOR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 SAU Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 SAU Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3sauTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==16 | DriverNum==17 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 SAU Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3sauDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 SAU Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 TOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 TOR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3torTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==18 | DriverNum==19 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 TOR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3torDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 TOR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 LOT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 LOT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3lotTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==20 | DriverNum==21 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 LOT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3lotDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 LOT Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 HRT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 HRT Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3hrtTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==22 | DriverNum==23 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 HRT Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3hrtDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 HRT Laptime distribution}
+\end{minipage}
+\end{figure}
+
+\newpage
+
+\begin{figure}[!hp]
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  sessiondata=subset( fp1times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp1times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP1 VIR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  sessiondata=subset( fp2times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp2times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP2 VIR Laptime distribution}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3virTimes,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  sessiondata=subset( fp3times, DriverNum==24 | DriverNum==25 )
+  fpSessionTeamggPoint(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 VIR Laptimes}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3virDistro,echo=F,fig=T,width=5,height=5>>=
+if ("DriverNum" %in% colnames(fp3times)) {
+  fpSessionTeamggBox(sessiondata)
+} else {nullplot()}
+@
+\caption{FP3 VIR Laptime distribution}
+\end{minipage}
+\end{figure}
+
+
+
+\section{Twitter Commentary}
+To try to provide a bit of context around the charts, I've pulled together some Twitter commentary from "trusted sources". I'm not sure I've found the best layout for this yet (plus I changed the way I dumped the Twitter data after starting this section), so if you have any ideas about how to make better use the Twitter data, I'd love to hear it:-)
+
+\subsection{Pirelli Tyre Commentary}
+
+Pirelli seem to be quite actively tweeting, so they may provide a good source of information about tyre selection during the stints. I really need to find a way timestamping the tweets so they can be cross referenced with other charts?
+
+\subsubsection{Free Practice 1}
+2011-10-28 04:31:08,\emph{@Pirelli\_Media} Welcome to the Buddh circuit in India! Adrian Sutil, Karun Chandhok and Narain Karthikeyan are the first drivers ever to lap this circuit.\\
+2011-10-28 04:33:54,\emph{@Pirelli\_Media} Tyre allocation for today: three softs and one hard (extra set of softs). One set of primes (the soft tyre here) has to go back after FP1.\\
+2011-10-28 04:36:58,\emph{@Pirelli\_Media} The soft tyre is what we expect to be best suited to the track, but the hard tyre is here, as a back-up.\\
+2011-10-28 04:39:55,\emph{@Pirelli\_Media} The P Zero Silver hard tyre, for info, was last seen at Silverstone.\\
+2011-10-28 04:41:17,\emph{@Pirelli\_Media} Circuit has been cleaned overnight, meaning that there are some patches of water that should disappear soon.\\
+2011-10-28 04:48:12,\emph{@Pirelli\_Media} Nobody out for now; everyone waiting for everyone else to go out and clean the circuit! Sebastian Vettel obliges...\\
+2011-10-28 04:50:34,\emph{@Pirelli\_Media} More drivers coming out now, we expect a big degree of track evolution over the course of the weekend.\\
+2011-10-28 04:54:46,\emph{@Pirelli\_Media} There is a mixture of both compounds being tried, Lewis Hamilton on the softs.\\
+2011-10-28 05:05:39,\emph{@Pirelli\_Media} Alguersuari currently quickest on the soft tyre: 1m32.911s. He improves his previous time by over a second.\\
+2011-10-28 05:11:26,\emph{@Pirelli\_Media} Alguersuari quickest again on the same set of tyres. Toro Rossos on soft tyres, Red Bulls on hard tyres.\\
+2011-10-28 05:12:23,\emph{@Pirelli\_Media} Again we're seeing quite a mixture of tyre choices all the way down the pit lane. The priority is cleaning the track...\\
+2011-10-28 05:15:16,\emph{@Pirelli\_Media} Button quickest on the soft tyre (Hamilton on this tyre too). Times are really coming down already...\\
+2011-10-28 05:19:48,\emph{@Pirelli\_Media} Webber is the highest-placed runner on the hard tyre, just under a second behind Schumacher who is quickest on the softs.\\
+2011-10-28 05:22:16,\emph{@Pirelli\_Media} Paul Hembery is on Radio 5: "The compound they will use in this race is the soft. But you need something in your pocket just in case."\\
+2011-10-28 05:23:16,\emph{@Pirelli\_Media} Paul also expects lap times to improve by a massive five or six seconds still from what we are seeing already...\\
+2011-10-28 05:34:09,\emph{@Pirelli\_Media} Button quickest on the soft tyre again; we're now in the 1m28s  bracket.\\
+2011-10-28 05:44:12,\emph{@Pirelli\_Media} Vettel goes quickest on the soft tyres: 1m27.416s. Anyone want to guess what the fastest time will be in FP2?\\
+2011-10-28 05:52:51,\emph{@Pirelli\_Media} We're seeing good durability from the tyres during the longer runs on the softs, despite the slippery surface that makes them slide a lot.\\
+2011-10-28 05:54:47,\emph{@Pirelli\_Media} Rear tyres get a lot of work here as traction is a key issue when the track is dusty, but this should improve as the weekend goes on\\
+2011-10-28 06:02:26,\emph{@Pirelli\_Media} Lewis Hamilton goes fastest after the first ever session in Buddh: 1m26.836s, using the soft tyres. Vettel and Webber second and third.\\
+2011-10-28 06:46:52,\emph{@Pirelli\_Media} Here's a photo of Virgin practising pit stops yesterday. Practice makes perfect. http://t.co/QCftYpfN\\
+2011-10-28 06:49:47,\emph{@Pirelli\_Media} Also at the Indian Grand Prix: we believe in ensuring that our senior management have the best possible facilities: http://t.co/xcEjB7Mu\\
+
+\subsubsection{Free Practice 2}
+2011-10-28 08:35:59,\emph{@Pirelli\_Media} FP2 underway and it's the Lotus Renault of Vitaly Petrov who is fastest on the hard tyres. So far.\\
+2011-10-28 08:41:00,\emph{@Pirelli\_Media} VETTEL VERSUS HEMBERY: THE WORLD CHAMPION TAKES ON A NEW CHALLENGE The newly crowned two-time Formula One world... http://t.co/5SrXkXLU\\
+2011-10-28 08:41:53,\emph{@Pirelli\_Media} Hard tyres are what most people are trying out at the moment, but they're not going to be the default option for the race.\\
+2011-10-28 08:52:10,\emph{@Pirelli\_Media} Hamilton quickest on the soft tyres, followed by Buemi.\\
+2011-10-28 08:57:47,\emph{@Pirelli\_Media} Hamilton quickest again; what's notable once more is just how quickly the track is evolving. Webber up to second on the soft tyres.\\
+2011-10-28 09:03:34,\emph{@Pirelli\_Media} At the moment drivers are doing short runs, expect the teams to try long run race simulations as the session goes on.\\
+2011-10-28 09:39:05,\emph{@Pirelli\_Media} Vettel still in front followed by Hamilton - who has been given a three-race grid penalty.\\
+2011-10-28 09:42:18,\emph{@Pirelli\_Media} Massa now in front on the soft tyre: 1m25.706s. Times started off in excess of 1m30s this morning - so getting quicker and quicker.\\
+2011-10-28 09:52:39,\emph{@Pirelli\_Media} Sebastian Vettel with the professional tyre fitters after having won the competition against Paul Hembery! http://t.co/YUzVi2KW\\
+2011-10-28 09:56:09,\emph{@Pirelli\_Media} Drivers now completing long runs on the soft tyres: really useful way of assessing race pace\\
+2011-10-28 10:37:08,\emph{@Pirelli\_Media} So FP2 over and it's Ferrari's Felipe Massa in front, but the Red Bulls and McLarens look to have very good race pace too.\\
+2011-10-28 14:35:17,\emph{@Pirelli\_Media} Massa fastest for Ferrari as Formula One arrives in India: Ferrari driver Felipe Massa has set the fastest lap ... http://t.co/vLzNf5tP\\
+2011-10-28 14:54:03,\emph{@Pirelli\_Media} MASSA FASTEST FOR FERRARI AS FORMULA ONE ARRIVES IN INDIA Ferrari driver Felipe Massa has set the fastest lap of... http://t.co/VDjjEE1j\\
+
+\subsubsection{Free Practice 3}
+2011-10-29 05:42:56,\emph{@Pirelli\_Media} Massa's fastest time yesterday was 1m25.706s, for reference. Let's see how today compares.\\
+2011-10-29 05:45:06,\emph{@Pirelli\_Media} More drivers coming out now; expect to see them on the hard tyre first and then onto the soft. Schumacher goes  1m31.768s. Plenty to come.\\
+2011-10-29 05:49:22,\emph{@Pirelli\_Media} Schumacher goes faster again; he's on the P Zero Silver hard tyre.\\
+2011-10-29 05:54:11,\emph{@Pirelli\_Media} Everyone on the hard tyres so far; later they will switch to the soft compound - which will be used for qualifying.\\
+2011-10-29 05:55:27,\emph{@Pirelli\_Media} This work on the hard tyre is very important as the teams are almost sure to use it to get through Q1 this afternoon.\\
+2011-10-29 05:59:52,\emph{@Pirelli\_Media} Vettel fastest now, having set three fastest sector times on the hard tyre.  1m26.311s. Red Bull looking fast,\\
+2011-10-29 06:00:16,\emph{@Pirelli\_Media} Schumacher is first onto the soft tyres; watch his times...\\
+2011-10-29 06:10:32,\emph{@Pirelli\_Media} The media is reporting that Romain Grosjean - one of our former test drivers - will drive in free practice at Abu Dhabi.\\
+2011-10-29 06:12:20,\emph{@Pirelli\_Media} Button switches over to the soft tyres: should provide a good indication about his qualifying pace.\\
+2011-10-29 06:18:16,\emph{@Pirelli\_Media} Hamilton onto the Pirelli P Zero Yellow soft tyres with his Bob Marley helmet. Time for him to get up and stand up for his rights.\\
+2011-10-29 06:22:10,\emph{@Pirelli\_Media} Massa now onto the sott tyres, like most people in the final 10 minutes of qualifying.\\
+2011-10-29 06:26:21,\emph{@Pirelli\_Media} Lots of people again running different fuel loads so hard to see full picture but for sure the Ferrari is working well - Alonso: 1m25.784s\\
+2011-10-29 06:32:57,\emph{@Pirelli\_Media} End of FP3: Vettel suddenly puts in a 1m24.824s on the soft tyre. That's 0.367s quicker than Button in second. A big warning for the others!\\
+2011-10-29 06:34:43,\emph{@Pirelli\_Media} Join us again for qualifying at 1400 local time. Times should be even faster, exceeding the lap times that most people predicted here.\\
+
+
+\subsection{F1 Teams on Twitter}
+A \emph{curated} archive of tweets from the F1 teams grabbed from the @sidepodcast/f1teams list. It might make sense to parse these out by team and then present them on a per-session, per-team basis? I also wonder if it's worth curating the tweets a bit more, maybe to just leave the ones that provide information about what's going on/went on in the session?
+
+I wonder as well whether any of the linked to images are openly licensed, and how they might be incorporated into this report? Or maybe there are some openly licensed photos on flickr that can be pulled into the doc somehow?
+
+\subsubsection{Preamble}
+2011-10-28 02:40:22 Team Lotus Namaste from Friday Practice at the Buddh International Circuit in India. An historic day beckons as another new country joins Formula 1. \\
+2011-10-28 02:41:10 Team Lotus There's a tangible sense of excitement amongst the fans here and wall to wall media coverage of the event has seriously ramped up excitement \\
+2011-10-28 02:45:21 HRT F1 Team Buenos das. De camino al Buddh Intl Circuit | Good morning. On our way to the Buddh Intl Circuit http://t.co/TZru6pDi \\
+2011-10-28 03:03:54 Team Lotus Appropriately for where we are, the sound of angry elephants fills the Indian air as the engines are being fired up in preparation for FP1. \\
+2011-10-28 03:07:15 McLaren Good morning from the Buddh International Circuit! Lewis and Jenson are both relaxing in the paddock and we can't wait for P1 to start! \\
+2011-10-28 03:09:41 McLaren Just poked my head into the engineers' office - just started the morning's briefing, so lots of attentive-looking people sitting down! \\
+2011-10-28 03:21:24 Team Lotus Dry weather predicted all day. Hazy start to the morning with air temp up to 29 by the end of FP1, track temp at 40. No risk of rain all day \\
+2011-10-28 03:22:16 Team Lotus For FP2 the air temp will rise to 32, track temp staying at around 40, with light winds all day and very low humidity. Perfect! \\
+2011-10-28 03:38:12 Team Lotus Whatever happens the first few laps are going to be very dusty... expect to see some interesting images on TV \\
+2011-10-28 03:51:01 Team Lotus JK Racing Asia Series currently on track for their practice session this morning - the air's still pretty hazy but good to see cars out \\
+2011-10-28 04:21:39 HRT F1 Team Hay un perro en mitad de la pista... | there's a dog at the track... \\
+2011-10-28 04:23:02 Club Force India F1 Not long to go until we get our first taste of the the Buddh International circuit. 9 mins till the green light. \\
+
+\subsubsection{Free Practice 1}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp1times)
+@
+\caption{Free Practice 1 - Session Utilisation}
+\end{center}
+\end{figure}
+
+2011-10-28 04:25:37 HRT F1 Team Condiciones atmosfricas: 25 grados de temperatura, 29 grados en pista | Track conditions: temperature 25 degrees, track 29 \\
+2011-10-28 04:27:01 Team Lotus Tyres going on now, two minutes til fire-up - F1 in India is nearly under way \\
+2011-10-28 04:27:39 Red Bull Racing Gearing up for FP1. \#F1 \#redbullracing (@ Buddh International Circuit / Buddh   w/ 5 others) http://t.co/eyZq7rk0 \\
+2011-10-28 04:28:18 Club Force India F1 Look out for our special Ra One branding on the noses of both VJM04s when the cars hit the track. \\
+2011-10-28 04:28:43 Lotus Renault GP Our drivers @BSenna and @vitalypetrov10 are in their cars and ready to go \\
+2011-10-28 04:29:10 Team Lotus Karun rolls out of the garage and is waiting at the end of the pit lane to get the session under way \\
+2011-10-28 04:29:55 HRT F1 Team Narain listo para un momento histrico.  | Narain ready for an historic moment. http://t.co/iQdZq6ST \\
+2011-10-28 04:30:26 Lotus Renault GP It needed a wash as there is a lot of dust around after its recent construction \\
+2011-10-28 04:30:50 Lotus Renault GP Green light and the track is open \\
+2011-10-28 04:31:08 MERCEDES GP PETRONAS Green light for P1 at the Buddh International Circuit \\
+2011-10-28 04:31:37 Lotus Renault GP Word is there are wet patches on track after it received a wash before its first use \\
+2011-10-28 04:31:38 Team Lotus Karun us on his installation lap now. Testing the radio at various points on the way round \\
+2011-10-28 04:32:14 Sauber F1 Team First ever installation lap of \#F1 at @IndianGPF1 - a historical moment in motor sports! \\
+2011-10-28 04:32:38 HRT F1 Team Arranca la FP1 del primer GP de la India | The FP1 of the first ever Indian GP kicks off \#F1 \\
+2011-10-28 04:32:42 Team Lotus Karun says out and goes onto the first ever official timed F1 lap in India \\
+2011-10-28 04:33:04 Club Force India F1 What a sight to see both Sahara Force Indias be first out on track in India FP1. \\
+2011-10-28 04:33:06 Team Lotus Jarno's wearing a special helmet this weekend to remember Marco Simoncelli http://t.co/08ibI6jb \\
+2011-10-28 04:33:25 MERCEDES GP PETRONAS Michael is the first of our drivers to head out round the new track... \\
+2011-10-28 04:34:07 Scuderia Ferrari Good morning from the Scuderia Ferrari garage at the Buddh International Circuit \\
+2011-10-28 04:34:17 Lotus Renault GP Of our drivers, @BSenna is first out on the silver marked hard Pirelli, @vitalypetrov10 is next, similarly rubbered \\
+2011-10-28 04:34:29 MERCEDES GP PETRONAS Quickly followed by Nico for his install lap \\
+2011-10-28 04:34:34 Lotus Renault GP Box @BSenna box for the first time \\
+2011-10-28 04:34:47 HRT F1 Team KAR y RIC vuelven al box tras una vuelta de instalacin sin problemas | KAR and RIC return to the box after a trouble free installation lap \\
+2011-10-28 04:35:03 Club Force India F1 First impressions, Adrian says all Ok. As we expected track is very green and low grip to begin with. \\
+2011-10-28 04:35:03 Scuderia Ferrari FP1 of the inaugural edition of the Grand Prix of India has started 5 minutes ago and both Fernando and Felipe are doing their first lap. \\
+2011-10-28 04:35:29 Lotus Renault GP Box Vitaly box \\
+2011-10-28 04:35:29 Scuderia Ferrari At the moment the real stars are the stray dogs!! \\
+2011-10-28 04:35:33 Team Lotus First red flag is out for a dog on the track. Both cars heading back to the pits \\
+2011-10-28 04:36:25 McLaren This morning's P1 session has been red-flagged after just five minutes because a dog's running on the track... \#f1 \\
+2011-10-28 04:36:32 Scuderia Ferrari This is the reason of the red flag.... \\
+2011-10-28 04:36:52 Team Lotus Karun's first timed lap was a 1m52.148s \\
+2011-10-28 04:37:34 Scuderia Ferrari Both our drivers - as many of their colleagues - have stickers on their helmets to commemorate Marco Simoncelli and Dan Wheldon. \\
+2011-10-28 04:37:39 MERCEDES GP PETRONAS Red flag due to a dog out on track somewhere \\
+2011-10-28 04:38:09 HRT F1 Team Bandera roja en pista cuando llevamos menos de 10min de FP1 | Red flag on track less than 10 minutes into FP1 \#F1 \\
+2011-10-28 04:38:14 Team Lotus Jarno hops out of his car while the team carry out some planned checks and changes before his first proper run \\
+2011-10-28 04:38:21 Team Lotus RT @MikeGascoyne: Karun just done the first timed lap to bed in a set of brakes. Changing them for the next run \\
+2011-10-28 04:38:55 MarussiaVirginRacing That's an installation lap in the bag for both drivers before the red flag. Time now for some systems checks back in the garage \\
+2011-10-28 04:39:11 Lotus Renault GP Here he is @vitalypetrov10 http://t.co/PbQzQN7c \\
+2011-10-28 04:39:15 Lotus Renault GP There is hi-vis paint on Vitaly's rear wing, it's quite a mess \\
+2011-10-28 04:40:05 Lotus Renault GP Red flag for Red Setter? \\
+2011-10-28 04:40:29 Lotus Renault GP Green light for dog gone \\
+2011-10-28 04:41:04 McLaren For this race, Danish warrior Jakob Andreasen is race-engineering Jenson's car. Dave Robson is expecting a baby... best wishes to both! \\
+2011-10-28 04:41:10 HRT F1 Team Se reinicia la sesin | session re-started \\
+2011-10-28 04:41:14 Team Lotus The session has gone green again. We're just making a few changes before rejoining \\
+2011-10-28 04:41:57 McLaren You really get an idea of how wide the entries to Turns Three and Four are - they're like super-highways... \\
+2011-10-28 04:43:17 Team Lotus Here's the shot of @KarunChandhok having set the first ever timed F1 lap in India  http://t.co/nUKIVZzQ \\
+2011-10-28 04:45:10 McLaren Okay, as usual, there'll be a brief lull in this morning's activities. So let's hear your \#socialfriday questions via @thefifthdriver \\
+2011-10-28 04:45:50 HRT F1 Team Daniel listo para salir a su primera tanda con neumticos blandos | Daniel ready for his first stint on soft tyres \#F1 \\
+2011-10-28 04:46:01 McLaren Jenson says he's particularly enjoying sectors two and three of this circuit. \\
+2011-10-28 04:47:34 MERCEDES GP PETRONAS With the track green again a few minutes ago, Nico heads back out to continue his aborted install lap \\
+2011-10-28 04:47:40 Team Lotus Another shot of Jarno's special helmet for this weekend http://t.co/xllj2m7U \\
+2011-10-28 04:48:39 HRT F1 Team Asphalt has been washed out overnight but both drivers report a very dusty track \\
+2011-10-28 04:51:14 Team Lotus It's normal for us to change Karun's brake material after the installation lap, since he has a different preference to Jarno or Heikki \\
+2011-10-28 04:51:18 HRT F1 Team Narain sale a su primera tanda con neumticos blandos | Narain is out for his first stint on soft tyres \\
+2011-10-28 04:54:22 MERCEDES GP PETRONAS Ralf Schumacher pops in to say hello before Michael heads out for his first run on the option tyres \\
+2011-10-28 04:55:01 HRT F1 Team Bonita imagen de Narain y HRT en TV | Nice shot of Narain and HRT on TV \\
+2011-10-28 04:57:08 MERCEDES GP PETRONAS Nico's also out on track now on the option which is the hard tyre here... \\
+2011-10-28 04:57:18 McLaren So far, it's been a fantastic weekend. Everyone has been super friendly, the city is incredible and we're all very positive about the track! \\
+2011-10-28 04:57:36 Scuderia Ferrari Still a lot of dust on the track. \\
+2011-10-28 04:57:39 Lotus Renault GP Watching the action for @vitalypetrov10 as the early runners learn just how slippery it is out there http://t.co/wlueftQG \\
+2011-10-28 04:58:49 Lotus Renault GP Looking at the data, @BSenna and Simon Rennie http://t.co/A5nV054p \\
+2011-10-28 05:01:23 Team Lotus Karun heads back out onto track now for his second run \\
+2011-10-28 05:01:34 MarussiaVirginRacing Timo back out on track for a short run before heading back in for an aero adjustment. Getting a good feel for the track now \\
+2011-10-28 05:01:45 Lotus Renault GP Helmet on for @BSenna http://t.co/YlAP0YEW \\
+2011-10-28 05:03:14 HRT F1 Team KAR in the pits for front wing adjustments and goes back on track immediately http://t.co/xApxZzCJ \\
+2011-10-28 05:03:48 Team Lotus Here's Karun rolling out a minute ago...  http://t.co/szaoxYlI \\
+2011-10-28 05:04:36 Lotus Renault GP Back in the car for @vitalypetrov10 http://t.co/RJF00Dwo \\
+2011-10-28 05:05:09 Team Lotus seems like this time zone is better for most - breakfast in Europe, afternoon in East Asia and evening in Aus/NZ.... \\
+2011-10-28 05:06:01 Lotus Renault GP Back out for @vitalypetrov10 on his installed set of hards \\
+011-10-28 05:06:26 McLaren \#socialfriday @vishalrakholiya asks" How was Jenson's experience riding tuktuk?" He loved it - but found it unstable under braking! \\
+2011-10-28 05:06:31 MERCEDES GP PETRONAS Both drivers return to the garage having completed their first timed laps of this new circuit \\
+2011-10-28 05:06:53 Team Lotus TV now riding on board for a lap with Karun \\
+2011-10-28 05:07:01 HRT F1 Team RIC y KAR llamados a boxes tras completar sus primeras tandas | RIC and KAR called in after completing their first stint's program \\
+2011-10-28 05:07:48 Club Force India F1 Both cars back out now. We were waiting for the track to rubber in a bit. \\
+2011-10-28 05:08:18 Lotus Renault GP Back out for @BSenna too on the dusty used hards http://t.co/YpNzmwUv \\
+2011-10-28 05:09:56 Williams F1 Grip levels \& any resultant braking issues will be closely investigated by Rubens \& Pastor during the 1st runs on the new Buddh track in P1 \\
+2011-10-28 05:10:26 Lotus Renault GP There appears to be no radio for @BSenna so no Tony Blackburn for him \\
+2011-10-28 05:11:05 Team Lotus Karun still out on his run, a couple of green sectors this time round \\
+2011-10-28 05:11:43 Team Lotus Jarno firing up now and pulling out into the pit lane for his first proper run \\
+2011-10-28 05:12:10 HRT F1 Team Motorsports is mourning and HRT remembers Wheldon and Simoncelli with a black ribbon on the cars http://t.co/BKVR0Zmr \\
+2011-10-28 05:12:23 MarussiaVirginRacing Jerome gets ready to roll again after we made some adjustments for a toe change. Timo meanwhile is pushing through with his programme \\
+2011-10-28 05:13:10 Scuderia Ferrari Still waiting for better track conditions. Today there is one more set of Soft tyres for each driver. \\
+2011-10-28 05:13:53 MERCEDES GP PETRONAS Michael's out for his second run on the soft tyres this time \\
+2011-10-28 05:14:02 Team Lotus "Karun, box this lap" he's just improved to a 1m35.4s - that's 11th, half a second behind Kobayashi and 0.7 ahead of Petrov \\
+2011-10-28 05:14:40 Scuderia Ferrari But now it is time to go. Felipe is leaving the garage on Softs \\
+2011-10-28 05:14:51 Lotus Renault GP Box Vitaly box \\
+2011-10-28 05:15:33 McLaren Lots of cars sliding onto the grass as they continue learning the circuit. It's dusty on the racing line - even dustier off it! \\
+2011-10-28 05:16:49 MERCEDES GP PETRONAS Nico is also back out on track \\
+2011-10-28 05:18:22 HRT F1 Team Empieza la segunda tanda de Daniel | Daniel's second stint begins \\
+2011-10-28 05:18:26 Lotus Renault GP Back again @vitalypetrov10 - the hard tyres only seem to get dusty rather than wear so far http://t.co/ssHXvXF3 \\
+2011-10-28 05:18:55 Team Lotus Jarno improves to a 1m34.7s and climbs to 10th on the chart \\
+2011-10-28 05:19:17 Club Force India F1 Lots to learn this session so both cars should not be in the garage too much. We've also got an small aero tweak to check out. \\
+2011-10-28 05:19:18 Scuderia Ferrari ANd now it is time for Fernando's first run \\
+2011-10-28 05:20:17 McLaren \#socialfriday @eggomelettee asks: "Is it disruptive if a driver keeps changing engineer?" A bit, but JB gets on really well with both guys! \\
+2011-10-28 05:20:25 HRT F1 Team Y Narain tampoco pierde tiempo y sale tambin del garaje | Narain doesn't waist time either and leaves the garage \\
+2011-10-28 05:20:55 Team Lotus Jarno goes faster again, down to a 33.3, that's .5 behind Maldonado and .4 behind Vettel, .7 ahead of Rosberg and 1s ahead of Barrichello \\
+2011-10-28 05:20:58 Lotus Renault GP The return of Bruno http://t.co/XebvJdOk \\
+2011-10-28 05:21:55 McLaren Here's @jensonbutton pulling into the pit box at Buddh International during P1! http://t.co/T8S5TGhZ \\
+2011-10-28 05:22:13 Team Lotus Jarno betters his time for the fourth lap in a row. Now down to a 1m32.8s, just 0.1s behind Maldonado \\
+2011-10-28 05:23:49 Lotus Renault GP Nice @twsteel watch @russellbatch http://t.co/X4CmqwpH \\
+2011-10-28 05:23:58 Team Lotus Five improvements on the trot for Jarno. 1m32.6s now and 11th place \\
+2011-10-28 05:25:09 Scuderia Ferrari Technical problem on Fernando's car who had to park on the track. \\
+2011-10-28 05:25:16 MERCEDES GP PETRONAS Michael boxes with the quickest time to date - 1:28.656 \\
+2011-10-28 05:25:18 Team Lotus Jarno is back in the pits now after that run, which was on the soft tyre by the way \\
+2011-10-28 05:25:39 HRT F1 Team You can see that the drivers are gaining confidence. Daniel just improved his lap time in almost two seconds \\
+2011-10-28 05:25:51 Lotus Renault GP We're joined in the garage by documentary photographer, @suzannephoto http://t.co/530IaR5Q \\
+2011-10-28 05:25:53 Lotus Renault GP Out on the yellow softs for @vitalypetrov10 \\
+2011-10-28 05:29:53 MERCEDES GP PETRONAS Nico's back in the pits with 16 laps completed in total and currently in P3 \\
+2011-10-28 05:29:55 Lotus Renault GP More radio issues this session, the marketing crew radio cutting over the pit radio: canapes anyone? Bollinger, Vitaly, Bollinger! \\
+2011-10-28 05:31:21 Team Lotus feedback from Jarno is that there's a bit of understeer and the braking isn't quite to his liking, so we're making changes to the set-up now \\
+2011-10-28 05:31:43 McLaren After one hour of P1, the top three is 1) SCH 2) HAM 3) MAS. \\
+2011-10-28 05:31:47 Lotus Renault GP About to go out on his first set of softs for @BSenna - can he receive Gary Davies this time? http://t.co/stcchDWj \\
+2011-10-28 05:32:32 Team Lotus Karun heads back out onto track for his next stint \\
+2011-10-28 05:32:41 Lotus Renault GP Into the top ten for @vitalypetrov10 with P7 on his first soft run \\
+2011-10-28 05:33:57 Team Lotus and Jarno is back out as well. both cars on the soft tyre still \\
+2011-10-28 05:35:22 Scuderia Ferrari First run completed by Felipe, who is currently 4th in 1.29.473. \\
+2011-10-28 05:35:31 McLaren And that's fastest overall for Lewis - a1m27.515s. Jenson is second overall with a 1m28.501s. \\
+2011-10-28 05:36:40 Club Force India F1 Very early days, but Adrian is P9 and Paul P15. Track improving all the time. 24 mins of FP1 remaining. \\
+2011-10-28 05:36:57 Lotus Renault GP Box Vitaly, come back number 10, your time is up \\
+2011-10-28 05:38:23 Lotus Renault GP Vitaly's softs look more like a tyre should after being out on track, early days for feedback, lots of track evolution to come \\
+2011-10-28 05:38:26 HRT F1 Team Track conditions improving and both drivers are back in the garage to prepare their third stints \\
+2011-10-28 05:39:02 Team Lotus Karun posts his best time so far, a 1m33.1s. That's 19th and 0.6s behind Jarno who is 17th \\
+2011-10-28 05:40:12 Team Lotus Jarno responds by improving his time to a 1m31.s and moving up to 16th ahead of Barrichello \\
+2011-10-28 05:41:01 Scuderia Ferrari An engine problem caused Fernando's stoppage. \\
+2011-10-28 05:41:11 McLaren Here's the fastest man in India! \#lewishamilton \#f1 http://t.co/OgG2glWO \\
+2011-10-28 05:41:38 Scuderia Ferrari The car is being brought here in the garage: the crew will have to work hard to prepare it for FP2. \\
+2011-10-28 05:41:52 MERCEDES GP PETRONAS With 18mins to go, both drivers are back out on the prime tyres \\
+2011-10-28 05:42:33 Lotus Renault GP Box Bruno box, 0.094secs between you and Vitaly at the moment \\
+2011-10-28 05:43:25 Team Lotus Green sectors all over the place! Jarno down to a 1m30.8s, now 15th ahead of Perez. Karun improved to a 32.4 in 18th.   Both called back in \\
+2011-10-28 05:44:34 Scuderia Ferrari Second run for Felipe, again on the same set of Soft tyres \\
+2011-10-28 05:46:35 MERCEDES GP PETRONAS Michael boxes from P5 after a short run on the primes \\
+2011-10-28 05:47:50 HRT F1 Team Daniel and Narain are back out. Both keep the same soft tyres they have been using from the beginning \#F1 \\
+2011-10-28 05:49:26 Scuderia Ferrari Fernando's car is back in the garage. \\
+2011-10-28 05:50:31 Lotus Renault GP Back out with @vitalypetrov10 with used softs \\
+2011-10-28 05:51:14 Team Lotus Midfield battle looking like it might be quite close. Everyone has done runs on the soft: Bar 30.3, Alg 30.5, Mal 30.6, Tru 30.8, Per 30.8 \\
+2011-10-28 05:51:21 MarussiaVirginRacing Stop in the box for Jerome as he heads in for a switch to the Soft tyre http://t.co/WxaYo1fQ \\
+2011-10-28 05:52:17 Scuderia Ferrari Yellow flag at T9 as Alguersuari crashed \\
+2011-10-28 05:52:46 Team Lotus Jarno on his last run: "Balance feels better, tyres going off sometimes - maybe the track, balance feels fine" \\
+2011-10-28 05:53:34 Team Lotus Karun says: "Brakes much better, a bit of understeer in high-speed corners, grip improving every lap" \\
+2011-10-28 05:53:43 HRT F1 Team KAR (34.1) y RIC (33.9) siguen mejorando | KAR (34.1) and RIC (33.9) keep improving \\
+2011-10-28 05:54:22 Lotus Renault GP Ready to go back out again @BSenna http://t.co/P5zhizbQ \\
+2011-10-28 05:54:38 Lotus Renault GP Oil on track from turn 15 to turn 16 \\
+2011-10-28 05:55:02 Lotus Renault GP Bruno's out on used softs \\
+2011-10-28 05:55:45 Scuderia Ferrari A troubled end of the session with many yellow flags \\
+2011-10-28 05:56:39 Team Lotus Yellow flags are clearing up now, both cars back on track with 4mins to go \\
+2011-10-28 05:57:08 MERCEDES GP PETRONAS Michael goes out for the last few minutes on the prime tyres \\
+2011-10-28 05:57:32 Scuderia Ferrari Nose change for Felipe \\
+2011-10-28 05:57:58 HRT F1 Team More confidence means more cars going off limits and some bite the dust... Literally \\
+2011-10-28 05:58:19 Scuderia Ferrari Sorry, this was a front flap adjustment, next lap should be nose change: this is part of the aero programme we are carrying on this session. \\
+2011-10-28 05:58:22 Lotus Renault GP http://t.co/HmQ1euko \\
+2011-10-28 06:00:51 Scuderia Ferrari Session finished \\
+2011-10-28 06:01:14 Toro Rosso Whoops! Jaime's back ended his car into the tyre barrier at T9. Don't know how bad it is yet. He's fine but plenty of work before FP2. \\
+2011-10-28 06:01:30 MERCEDES GP PETRONAS End of the very first practice session here in India \& time for a couple of practice pit stops \\
+2011-10-28 06:01:57 McLaren The top 10 after P1 is: 1) HAM 2) VET 3) WEB 4) BUT 5) SCH 6) ROS 7) MAS 8) SUT 9) BUE 10) KOB. \\
+2011-10-28 06:02:33 Team Lotus That's it for the first ever practice session in India, cars back in the pits, pit-stop practice \\
+2011-10-28 06:02:39 MERCEDES GP PETRONAS Michael P5 1.28.531 23 laps, Nico P6 1.28.542 29 laps \\
+2011-10-28 06:02:55 McLaren Times for the top four at India after P1 are: 1) HAM 1m26.836s 2) VET 1m27.416s 3) WEB 1m27.428s 4) BUT 1m28.394s. \\
+2011-10-28 06:03:02 Scuderia Ferrari Felipe is 7th in 1.28.644 \\
+2011-10-28 06:03:19 Scuderia Ferrari Hamilton quickest in 1.26.836 \\
+2011-10-28 06:03:24 HRT F1 Team Acaba FP1: Daniel P21 (33.928/L27) y Narain P22 (34.113/L30). Narain es el piloto que ms vueltas ha dado \#F1 \\
+2011-10-28 06:03:28 McLaren That concludes our live coverage of P1 from the Buddh International Circuit. Don't forget to rejoin us for more LIVE action from P2! \\
+2011-10-28 06:03:48 Lotus Renault GP Back in and out for @BSenna http://t.co/c1rsDyO6 \\
+2011-10-28 06:04:18 HRT F1 Team FP1 ends: Daniel P21 (33.928/L27) and Narain P22 (34.113/L30). Narain is the driver that completed more laps \#F1 \\
+2011-10-28 06:04:32 Toro Rosso Seb 9th and Jaime 16th at the end of FP1. Track very dirty and inevitably, we had a red flag when a dog ran on track. \\
+2011-10-28 06:05:20 Team Lotus We finished FP1 in India with Jarno 18th on a 1m30.8s and Karun 19th on a 1m32.4s \\
+2011-10-28 06:05:33 Lotus Renault GP Back in for @vitalypetrov10 - reports track still dirty but improving all the time http://t.co/CdLNBv9a \\
+2011-10-28 06:06:09 Scuderia Ferrari With just 4 laps, Fernando is obviously last in the time sheet. \\
+2011-10-28 06:06:10 Red Bull Racing \#F1 \#redbullracing results from \#IndianGP: VET P2 with  1:27.416 after 23 laps and WEB P3 with 1:27.428 after 27 laps \\
+2011-10-28 06:07:01 HRT F1 Team Tiempos y posiciones tras la FP1 | Times and positions after FP1 http://t.co/qtvfQUQI \\
+2011-10-28 06:08:15 Club Force India F1 FP1 complete in India. Adrian ends the morning in P8, while @pauldirestaf1 is P11. \\
+2011-10-28 06:13:03 Team Lotus It's still early in the weekend, but that's a positive start for us with Jarno just 0.7s off 14th place \\
+2011-10-28 06:14:14 Red Bull Racing Keep your \#f1askus questions coming in for our drivers folks! We'll be answering the top 5 questions today. http://t.co/srwIxNjp \\
+2011-10-28 06:17:27 Sauber F1 Team FP1 resume: The drivers say they like the layout of the track. To find more grip is target for FP2. http://t.co/7sTuCcxL \\
+2011-10-28 06:25:56 Williams F1 Confirmed engine failure for Pastor in P1, cause as yet unknown. \\
+
+\subsubsection{Interim Period between FP1 and FP2}
+2011-10-28 06:36:04 McLaren Along with Jenson, he was one of the drivers leading the tributes to Dan Wheldon and, this weekend, he wears a black armband of remembrance. \\
+2011-10-28 06:43:41 McLaren For all those asking, here's @lewishamilton's \#bobmarley crash helmet. What do you guys think? http://t.co/rpnRMUJ2 \\
+2011-10-28 06:44:30 Sauber F1 Team Interview von Hausleitner \#ORF mit Monisha Kaltenborn im Paddock! Thema: @IndianGPF1 und Tennis. http://t.co/vA38yiXW \\
+2011-10-28 06:48:07 Red Bull F1 Spy Nee-naw nee-naw. \#IndianGP medical services rolling on some, how shall I say this? Retro wheels? http://t.co/gASKWTgk \\
+2011-10-28 06:58:00 Lotus Renault GP INDIAN GP - PRACTICE 1 - LOTUS RENAULT GP REPORT http://t.co/BcHubuIX \\
+2011-10-28 06:58:59 Scuderia Ferrari IND - Not much grip for circuit debut http://t.co/u2wGDxIK \\
+2011-10-28 07:36:41 Team Lotus One hour to go until FP2 - why not pass the time reading our Indian GP preview pieces in our latest magazine? http://t.co/NmVzLxyE \\
+2011-10-28 07:44:55 Team Lotus Check out these shots of Jarno's Marco Simoncelli tribute helmet: http://t.co/u6HZS2hc \\
+2011-10-28 07:52:06 HRT F1 Team 45 min para la FP2, hora de calentar los motores | 45 min to FP2 it is time for warming engines up http://t.co/BzWw6b2t \\
+2011-10-28 08:03:15 Scuderia Ferrari Two drivers - Hamilton and Perez - received a drop of 3 grid positions penalty for ignoring double waved yellow flags in FP1. \\
+2011-10-28 08:05:20 HRT F1 Team Balbir (Liuzzi and Narain's physiotherapist) star of the Indian TV \#F1 http://t.co/9nIbN1LR \\
+2011-10-28 08:16:12 Club Force India F1 Indian GP Practice Sessions : Adrian clocks in 1:28.705 after 23 laps,placed P8 after Session  1. \\
+2011-10-28 08:17:04 Team Lotus 15mins until FP2. Jarno and Heikki are getting prepared. These will be Heikki's first laps of the track \\
+2011-10-28 08:17:21 Club Force India F1 Indian GP Practice Sessions :
+After 24 laps, Paul Di Resta clocked in a 1:29.700 and is placed P11 on the grid. \\
+2011-10-28 08:17:47 HRT F1 Team For all of those who're asking, Narain is on car \#22 because that was his until he stepped down in Silverstone. \\
+2011-10-28 08:22:15 HRT F1 Team 10 min para la FP2. 30*C temperatura ambiente y 39*C en pista | 10 min for FP2. 30*C air temperature and 39*C track \#F1 \\
+2011-10-28 08:22:27 MERCEDES GP PETRONAS \#F1 @nico\_rosberg visits New Delhi http://t.co/t05P4nAU \\
+2011-10-28 08:23:04 Sauber F1 Team We can confirm that @checoperez17 received a drop of 3 grid positions penalty for ignoring double waved yellow flags in FP1. \\
+2011-10-28 08:23:28 Team Lotus The haze has lifted a bit, it's looking brighter \& clear and feeling warm. Track temp 39, air temp 30, wind speed 3m/s, humidity 24% \\
+2011-10-28 08:26:11 HRT F1 Team Narain preparndose para la sesin a punto de ponerse el nuevo casco edicin especial para India http://t.co/APCHAbgM \\
+2011-10-28 08:26:34 MERCEDES GP PETRONAS \#F1 FP2 only few minutes away... \\
+2011-10-28 08:28:29 Team Lotus Five mins to go until FP2... Come on, own up, who is shirking work responsibilities to follow the F1? \\
+2011-10-28 08:29:40 HRT F1 Team Narain preparing for the session, just about to put on his new special edition helmet   http://t.co/APCHAbgM \\
+2011-10-28 08:30:22 HRT F1 Team FP2 is about to get underway, follow the action on our Twitter \\
+
+\subsubsection{Practice 2}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp2times)
+@
+\caption{Free Practice 2 - Session Utilisation}
+\end{center}
+\end{figure}
+
+2011-10-28 08:30:25 MERCEDES GP PETRONAS \#F1 FP2 is on! \\
+2011-10-28 08:31:53 Scuderia Ferrari FP2 has just begun \\
+2011-10-28 08:32:15 Scuderia Ferrari Both drivers are ready to go, waiting for the OK from their race engineers \\
+2011-10-28 08:32:21 Club Force India F1 FP2 is go! Expect lots of running as we've still got loads to learn about this place. \\
+2011-10-28 08:32:30 Team Lotus Heikki is out on track straight away to learn the circuit. Jarno out there too \\
+2011-10-28 08:32:32 Lotus Renault GP Out first for @vitalypetrov10 with his set of hards as this morning http://t.co/eBWF2E3L \\
+2011-10-28 08:32:33 HRT F1 Team FP2 begins | Arranca la FP2 \\
+2011-10-28 08:33:02 Scuderia Ferrari Fernando is leaving the garage now \\
+2011-10-28 08:33:21 MERCEDES GP PETRONAS \#F1 Nico is out on track for an install lap \\
+2011-10-28 08:33:33 Lotus Renault GP Same duties for @BSenna used hards who should have a drive through to do http://t.co/WnRubZNH \\
+2011-10-28 08:33:45 MarussiaVirginRacing And we're off! For the second session of the day at the Buddh International Circuit. Both drivers out on track \\
+2011-10-28 08:34:18 Toro Rosso Jaime's car is fixed and we're back on track for FP2. Well done boys in the garage. \\
+2011-10-28 08:34:41 Lotus Renault GP For all you chassis stattos, @vitalypetrov10 is in R31-06, @BSenna is in R31-04 \\
+2011-10-28 08:35:42 Scuderia Ferrari Felipe left the garage few seconds ago \\
+2011-10-28 08:35:45 Lotus Renault GP Both our drivers close together on track... \\
+2011-10-28 08:35:57 MERCEDES GP PETRONAS \#F1 Nico checking conditions around the track \\
+2011-10-28 08:36:06 Team Lotus Heikki's first ever lap of the Buddh circuit was a 1m38.459s \\
+2011-10-28 08:37:51 HRT F1 Team Daniel follows him out | Daniel sale detrs http://t.co/sTrHYUnG \\
+2011-10-28 08:38:05 Lotus Renault GP Box Vitaly Box! \\
+2011-10-28 08:39:09 Team Lotus The eagle-eyed among you might notice that the headrests on all cars have changed from pink in FP1 to blue in FP2. But do you know why?... \\
+2011-10-28 08:39:28 Lotus Renault GP Box Bruno Box, keep pushing \\
+2011-10-28 08:39:56 MERCEDES GP PETRONAS \#F1 Michael is joining the action too just now \\
+2011-10-28 08:40:41 MERCEDES GP PETRONAS \#F1 Track is still very dusty - grip will get better lap after lap \\
+2011-10-28 08:40:58 Lotus Renault GP In driver radio news, @BSenna has full tunes and team radio now, we've been on the roof and changed the ariel \\
+2011-10-28 08:42:05 MERCEDES GP PETRONAS \#F1 Nico's latest lap 1.32.141 \\
+2011-10-28 08:42:15 Lotus Renault GP Channel changing time for @vitalypetrov10 http://t.co/0FquwJMW \\
+2011-10-28 08:42:47 Lotus Renault GP Stop at the marks and pull away @BSenna http://t.co/G5BCdjZT \\
+2011-10-28 08:43:01 MERCEDES GP PETRONAS \#F1 Small spin for Michael in T3 - all OK \\
+2011-10-28 08:43:22 MERCEDES GP PETRONAS \#F1 Car in the gravel at T9 \\
+2011-10-28 08:43:35 HRT F1 Team El pit lane del Buddh Intl Circuit es de los ms largos del Mundial. Las paradas en boxes: clave http://t.co/AipI0HyO \\
+2011-10-28 08:43:53 MERCEDES GP PETRONAS \#F1 Yellow flag - looks like a Williams \\
+2011-10-28 08:45:26 MERCEDES GP PETRONAS \#F1 Nico is back in the pits - 7 laps completed \\
+2011-10-28 08:45:34 HRT F1 Team The pit lane at the Buddh Intl Circuit is one of the longest in the Championship. Pit stops will be key http://t.co/AipI0HyO \\
+2011-10-28 08:45:42 Scuderia Ferrari Another yellow flag so Felipe and Fernando are using this time for a practice start at the end of the pit lane \\
+2011-10-28 08:46:10 HRT F1 Team Narain and Daniel come into the garage | Narain y Daniel entran a boxes \\
+2011-10-28 08:46:12 MERCEDES GP PETRONAS \#F1 And Michael is now back in the pits too \\
+2011-10-28 08:46:21 Lotus Renault GP Both our cars have different rear wings from this morning and @vitalypetrov10 has a different gearbox \\
+2011-10-28 08:46:31 Team Lotus Both drivers back in the pits after their first runs. Heikki did a 1m32.4s on the soft tyre, Jarno a 1m34.6s on the hard \\
+2011-10-28 08:46:48 Team Lotus RT @MikeGascoyne: Jarno saying just no grip on the hard tyre \\
+2011-10-28 08:49:56 Lotus Renault GP A new set of softs for @BSenna and the same for @vitalypetrov10 who take to the track line astern http://t.co/bi3r9wkE \\
+2011-10-28 08:50:04 Team Lotus Heikki says the car is good in the high-speed stuff but he's still getting the hang of the circuit, and wants to improve the brake balance \\
+2011-10-28 08:50:30 HRT F1 Team Narain, who completed his first stint on hard tyres, changes to softs for his second stint \\
+2011-10-28 08:53:13 Club Force India F1 Sitting P9 and P10 for Adrian and Paul as we are 20 mins into FP2. \\
+2011-10-28 08:54:15 HRT F1 Team After a first taste of soft tyres, Daniel comes out on hards for the first time \\
+2011-10-28 08:56:09 Lotus Renault GP Return to the garage if you don't mind @BSenna \\
+2011-10-28 08:56:13 Team Lotus Heikki is back on track now for his second run. Jarno just firing up and about to roll out \\
+2011-10-28 08:57:12 Team Lotus some good guesses on the headrests. the first right answer: RT @RacingPuma: Temperature change so different density of foam needs to be used \\
+2011-10-28 08:57:15 Lotus Renault GP It's dusty offline eh @BSenna ? \\
+2011-10-28 08:57:22 MERCEDES GP PETRONAS \#F1 Nico is back on track \\
+2011-10-28 08:58:40 Lotus Renault GP Back in the garage for @BSenna http://t.co/BgzaClC0 \\
+2011-10-28 08:58:42 Team Lotus Heikki is back out on the soft tyre again, Jarno continuing on the hard \\
+2011-10-28 08:58:48 Lotus Renault GP We need @vitalypetrov10 to return to the pits, how shall we call him in?... \\
+2011-10-28 08:59:43 MERCEDES GP PETRONAS \#F1 Michael is going out on track too now \\
+2011-10-28 08:59:47 Team Lotus Correction, Jarno has switched back to the soft tyre as well \\
+2011-10-28 09:00:24 HRT F1 Team Although he isn't driving this weekend, Tonio is still contributing hugely to the team from the garage http://t.co/GYXmqdCo \\
+2011-10-28 09:01:24 MERCEDES GP PETRONAS \#F1 1.31.555 for Nico \\
+2011-10-28 09:01:40 Lotus Renault GP More understeer reported by @vitalypetrov10 - push, Petrov, push http://t.co/7uCqUGgJ \\
+2011-10-28 09:02:15 Scuderia Ferrari Second run for Felipe, this time on Softs \\
+2011-10-28 09:02:33 Scuderia Ferrari At the moment, Felipe is 6th, Fernando 8th. \\
+2011-10-28 09:03:00 MERCEDES GP PETRONAS \#F1 Michael is already back in the pits after a short run for data \\
+2011-10-28 09:05:57 Scuderia Ferrari and now Fernando is following the same programme \\
+2011-10-28 09:06:12 Lotus Renault GP We're going down on rear ride height for @vitalypetrov10 so maybe we'll crack out the neons too \\
+2011-10-28 09:06:57 HRT F1 Team Narain returns to the garage after a run of 8 laps with soft tyres. He's already under his morning's best time (33.782) \\
+2011-10-28 09:06:58 MarussiaVirginRacing Timo 17th \& Jerome 18th. Plenty of detailed feedback coming back in \& food for thought for the \#MVRengineers \\
+2011-10-28 09:07:09 MERCEDES GP PETRONAS \#F1 Nico improves to 1.31.098 as he completes his 14th lap of FP2 \\
+2011-10-28 09:07:30 Team Lotus You can hear @KarunChandhok talking to @5LiveF1 about the Buddh circuit on air now \\
+2011-10-28 09:07:34 MERCEDES GP PETRONAS \#F1 And he's now back in the garage \\
+2011-10-28 09:09:35 Team Lotus Heikki is back in the pits now having got down to a 32.2 on that run, Jarno has improved to a 33.5 on his \\
+2011-10-28 09:09:45 MERCEDES GP PETRONAS \#F1 With 50 minutes to go, both our drivers are in the pits. \\
+2011-10-28 09:10:58 Lotus Renault GP No dogs so far as the session approaches the half-way mark \\
+2011-10-28 09:11:34 Lotus Renault GP Back out for @BSenna with a set of new softs \\
+2011-10-28 09:12:46 Lotus Renault GP Poised and waiting Petrov http://t.co/nEKLu5yE \\
+2011-10-28 09:13:11 Team Lotus Heikki's feedback from that last run: "Brake balance getting better, less understeer now, not too bad, trying to push at the end" \\
+2011-10-28 09:13:29 Lotus Renault GP A new set of softs and back on track for @vitalypetrov10 \\
+2011-10-28 09:14:16 HRT F1 Team Daniel (P20) is called in after a 10 laps' stint on hard tyres \\
+2011-10-28 09:16:30 Lotus Renault GP At half-way mark, P8 for @BSenna P9 for @vitalypetrov10 \\
+2011-10-28 09:17:42 HRT F1 Team Y de nuevo neumticos blandos para Narain en su tercera tanda | And a new set of soft tyres for Narain for his third stint \#F1 \\
+2011-10-28 09:17:49 Scuderia Ferrari Felipe is back in the garage: he is currently 2nd in 1.26.589 \\
+2011-10-28 09:19:07 MERCEDES GP PETRONAS \#F1 Both Michael and Nico are now back on track \\
+2011-10-28 09:19:32 Scuderia Ferrari Also Fernando is back in the garage. He is currently 5th in 1.26.952 \\
+2011-10-28 09:20:27 HRT F1 Team Tambin Daniel opta por los blandos en su tercera tanda | Also Daniel goes for softs for his third stint \#F1 \\
+2011-10-28 09:21:08 MERCEDES GP PETRONAS \#F1 Big crash for a Virgin. DAM we guess \\
+2011-10-28 09:21:29 MERCEDES GP PETRONAS \#F1 RED FLAG. DAM indeed, he's out of the car and OK \\
+2011-10-28 09:21:31 Team Lotus The red flag is out for D'Ambrosio's crash. Everyone back to the pits \\
+2011-10-28 09:21:49 Lotus Renault GP Session red flag, both our cars back in \\
+2011-10-28 09:22:10 HRT F1 Team Bandera roja tras el choque de DAM | Red flag after DAM crash \\
+2011-10-28 09:23:30 Team Lotus Jarno was 11 laps into a longer run on the soft tyre when the session was stopped. Heikki done five laps of his first run on the hard tyre \\
+2011-10-28 09:24:21 Club Force India F1 Red flag at BIC. Both Adrian and @pauldirestaf1 doing lots of running. 18 laps so far with 35 mins of session to go. \\
+2011-10-28 09:24:47 Scuderia Ferrari Red flag: D'Ambrosio crashed \\
+2011-10-28 09:26:36 HRT F1 Team Se reinicia la sesin a 34 min del final | Session restarts 34 min to the end \\
+2011-10-28 09:27:41 Team Lotus Session restarted and Heikki one of 9 cars to head straight back out \\
+2011-10-28 09:27:43 Lotus Renault GP Change to the rear anti-roll bar for @vitalypetrov10 \\
+2011-10-28 09:29:39 MarussiaVirginRacing Jerome on his way back to the pits and we'll hear from him soon \\
+2011-10-28 09:30:22 Team Lotus Heikki said the grip wasn't as bad as he feared on the hard tyre, warmed up and got better as the run went on \\
+2011-10-28 09:31:03 Scuderia Ferrari Fernando is ready to go. \\
+2011-10-28 09:33:32 Scuderia Ferrari Also Felipe is now back on track \\
+2011-10-28 09:33:36 MERCEDES GP PETRONAS \#F1 26 minutes to go and both our guys are on track \\
+2011-10-28 09:33:38 HRT F1 Team 1'33.824 para Narain (P22) que tiene a Daniel (P21) a menos de una dcima | 1'33.824 for Narain (P22) with Daniel less than a tenth quicker \\
+2011-10-28 09:35:37 Team Lotus Heikki is back on the soft tyre and has just improved his time to a 1m30.4s, in 17th, 0.3s behind Maldonado \\
+2011-10-28 09:35:50 HRT F1 Team Perdn, 1'32.824, sorry \\
+2011-10-28 09:36:17 McLaren A recap on our progress with just over one hour of P2 completed: 1) VET 2) HAM 1m26.454s 3) MAS 4) BUT 1m26.714s 5) ALO 6) WEB. \\
+2011-10-28 09:36:51 MERCEDES GP PETRONAS \#F1 Quick comeback in the pits for Michael and he's already back on track \\
+2011-10-28 09:38:01 MarussiaVirginRacing He's back and OK: "Just ran a little wide with too much kerb on T11. That turned into oversteer and I went into the wall" \\
+2011-10-28 09:43:27 MERCEDES GP PETRONAS \#F1 Focus on long runs for the guys \\
+2011-10-28 09:44:07 HRT F1 Team Para la ltima tanda, repostaje y ajustes aero para Daniel y repostaje y neumticos blandos nuevos para Narain \\
+2011-10-28 09:44:34 Lotus Renault GP Our guys are conducting long runs at the moment, going round and round and round and round... \\
+2011-10-28 09:45:05 Scuderia Ferrari Run finished for both drivers: Felipe is quickest in 1.25.706, Fernando 3rd in 1.25.930. \\
+2011-10-28 09:45:20 Team Lotus Jarno is into the 1m20s for the first time with a 29.3, in 16th place now 0.3s ahead of Barrichello. Heikki improved to 30.2 in 18th \\
+2011-10-28 09:45:50 HRT F1 Team For the last stint, refuelling and aero adjustments for Daniel and refuelling and new set of soft tyres for Narain \\
+2011-10-28 09:46:56 Lotus Renault GP I was watching TV http://t.co/A1uhbjdZ \\
+2011-10-28 09:47:11 HRT F1 Team Winners of the Indian Grand Prix contest http://t.co/mOl92cAW \\
+2011-10-28 09:47:47 Lotus Renault GP Invisible car evaluation going well, check out the narrow track rear! http://t.co/aG55irr1 \\
+2011-10-28 09:50:08 Scuderia Ferrari In the last few minutes everyone should run with high fuel \\
+2011-10-28 09:50:56 Team Lotus Into the last 10mins of FP2, Heikki is on track testing a heavier load, Jarno getting ready to leave the pits for this final run \\
+2011-10-28 09:51:46 Team Lotus Both of our drivers did their quickest times several laps into their runs, so it looks promising that there's more time to come tomorrow \\
+2011-10-28 09:51:48 Sauber F1 Team FP2. Currently P12 and P13. Times are dropping as there is more grip on track. http://t.co/Y3BW7lLR \\
+2011-10-28 09:52:00 Scuderia Ferrari Felipe will do a practice start to start the final run, as per normal Friday programme \\
+2011-10-28 09:54:03 Scuderia Ferrari Fernando is going out now. \\
+2011-10-28 09:54:44 Lotus Renault GP Pit stop and change to hard tyres for @BSenna http://t.co/W7jLTERw \\
+2011-10-28 09:55:58 Lotus Renault GP Pit stop and change to another set of used softs for @vitalypetrov10 http://t.co/vW5aVGcE \\
+2011-10-28 09:57:57 McLaren That's a pretty big grandstand... \#f1 http://t.co/loiX73o8 \\
+2011-10-28 09:58:54 Scuderia Ferrari Mainly practice starts for him at the end of the session \\
+2011-10-28 10:01:19 Scuderia Ferrari Session finished. Felipe remained quickest, followed by Vettel, Fernando, Hamilton, Webber and Button. \\
+2011-10-28 10:01:22 Team Lotus Clock winding down to the end of FP2, we've completed the most laps of any team this session so some good mileage and reliability today \\
+2011-10-28 10:01:37 MERCEDES GP PETRONAS \#F1 So much dust on track! Our post-race feature "The dust settles" will never deserve its name more than this weekend! \\
+2011-10-28 10:01:54 McLaren The top 10 at the end of P2 in India is 1) MAS 2) VET 3) ALO 4) HAM 5) WEB 6) BUT 7) SUT 8) SEN 9) DIR 10) BUE. \\
+2011-10-28 10:01:54 HRT F1 Team Termina la FP2: RIC 23 (32.768/L33) y KAR 24 (32.824/L33) | End of FP2: RIC 23 (32.768/L33) y KAR 24 (32.824/L33) \#F1 \\
+2011-10-28 10:02:34 MERCEDES GP PETRONAS \#F1 The checkered flag is out \\
+2011-10-28 10:02:45 McLaren Top three is 1) MAS 1m25.706s 2) VET 1m25.794s 3) ALO 1m25.930. Jenson was sixth on a 1m26.714s. \\
+2011-10-28 10:03:02 Williams F1 P2 over with some important data gained. Rubens P15 (29laps), Pastor P16 (24laps) \\
+2011-10-28 10:03:06 Lotus Renault GP End of the session, P8 for @BSenna and P11 for @vitalypetrov10 good mileage completed and no dramas. To the data analysis! \\
+2011-10-28 10:03:09 Team Lotus We've finished FP2 in India with Jarno 17th on a 1m29.3s (0.6 behind Maldonado) and Heikki 18th on a 1m30.2s \\
+2011-10-28 10:03:30 McLaren That concludes our LIVE coverage of a fascinating first day of F1 running in India. Join us tomorrow for coverage of P3 \& qualifying! \\
+2011-10-28 10:05:50 HRT F1 Team Final times and positions | Clasificacin y tiempos finales http://t.co/5zODtdUa \\
+2011-10-28 10:06:33 Williams F1 Thomson Reuters' charity branding for int'l girls charity, Plan http://t.co/0IszjGrB \\
+2011-10-28 10:10:10 Team Lotus Heikki kept a consistent pace over a longer run on the soft, so degradation looking ok. He says no problems and track is evolving constantly \\
+2011-10-28 10:14:11 Club Force India F1 Another strong session for Sahara Force India as Adrian finishes P7 and Paul P11. \\
+2011-10-28 10:19:33 Red Bull Racing \#F1 \#redbullracing FP2 results from the \#IndianGP:  VET P2 with 1:25.794 after 34 laps and WEB P5 with 1:26.500 after 30 laps. \\
+
+\subsubsection{Post-FP2}
+2011-10-28 10:41:49 Team Lotus Day one at the Indian Grand Prix is over - FP1 / FP2 report is here http://t.co/FSOjwg4y \#vr4smallbiz \\
+2011-10-28 10:49:48 Club Force India F1 More to be unleashed at the Qualifying Sessions tommorow! Go Team Sahara Force India! http://t.co/uBjyrfHH \\
+2011-10-28 11:14:06 HRT F1 Team Day 1 at the Indian Grand Prix http://t.co/VdOO3MEK \\
+011-10-28 11:17:35 Sauber F1 Team Kamui: "The lay-out of the track is really nice, and I have a good feeling driving the circuit". @IndianGPF1. \\
+2011-10-28 11:42:49 MERCEDES GP PETRONAS \#F1 India, Friday: Ross: Its exciting to face a new challenge here. http://t.co/gCduGA4I \\
+2011-10-28 11:42:53 MERCEDES GP PETRONAS \#F1 India, Friday: Michael: This afternoon was more challenging for us - we need to work on the set-up tomorrow. http://t.co/kwb13m28 \\
+2011-10-28 11:42:56 MERCEDES GP PETRONAS \#F1 India, Friday: Nico: I have a good feeling for this weekend. Hopefully that feeling will continue tomorrow." http://t.co/zfjmkoEK \\
+2011-10-28 11:50:55 Team Lotus Check out our gallery of images from Friday at the Indian GP here: http://t.co/UMvhdwcR \\
+2011-10-28 11:57:43 Lotus Renault GP Considerable track time in this afternoons 90-minute session, check out our report here http://t.co/9RWSDYXX \#F1 \#LRGP \#IndianGP \\
+2011-10-28 12:19:38 Sauber F1 Team Not only we practised today -  the grid girls get their first instructions for Sunday. http://t.co/gGcGAo0w \\
+2011-10-28 12:38:51 Scuderia Ferrari IND - Good first take for Massa Felipe fastest as Buddh makes its debut  http://t.co/aHMZvWHJ \\
+2011-10-28 12:49:33 Lotus Renault GP Allies: http://t.co/QBYicci2 \\
+2011-10-28 12:55:33 HRT F1 Team Un "pequeo" visitante en el garaje | A "small" visitor in the box http://t.co/LL95wbNI \\
+2011-10-28 12:56:01 Scuderia Ferrari IND - Right first time for Ferrari in India http://t.co/JlVCseSx \\
+2011-10-28 13:12:20 HRT F1 Team Here there are some more pics of Narain's India special edition helmet http://t.co/3u9UYGnW \\
+2011-10-28 13:23:14 HRT F1 Team ... Y el otro lado | ...and the other side http://t.co/zqCwtQaH \\
+2011-10-28 13:32:22 McLaren Fancy becoming a trainee at the Brazilian GP thanks to @AkzoNobel?? This is a truly AWESOME, once in a lifetime prize! http://t.co/3CeenV57 \\
+2011-10-28 13:36:42 Team Lotus Here are a couple more shots from today's running - pretty sharp! http://t.co/7ofuyE2i \\
+2011-10-28 13:37:48 Team Lotus You can see how the track rises and falls in these shots.... http://t.co/EkLBUIfP http://t.co/D3UKBQv1 \\
+2011-10-28 14:31:04 MarussiaVirginRacing For the full story of our first day of running at the Buddh International Circuit check out http://t.co/a9rALFda \\
+2011-10-28 14:38:56 MarussiaVirginRacing Have a great evening @SilentBobF1 and @mrssilentbob. Sounds like a tough journey home 2nite. Hope this makes up for it http://t.co/yp5LTMFE \\
+2011-10-28 14:39:19 Team Lotus So you've seen how the cars run on the Buddh circuit - for a guide around the track by Karun, head over here - http://t.co/I4N9wnJd \\
+2011-10-28 15:16:33 Club Force India F1 Keep the flame burning inside of you; Qualifying and Race Day is yet to come - \#Raisetheflag at http://t.co/hAmV4BIb for Sahara Force India! \\
+2011-10-28 16:08:57 MarussiaVirginRacing And now for today's big photographic moments from @latphotographic. Loving this shot of Timo at the T-10-11-12 section http://t.co/r5XLlvjZ \\
+2011-10-28 16:12:48 MarussiaVirginRacing Check out the undulations on this. A great shot of the long straight between Turns 3 and 4. Also featuring an MVR-02 http://t.co/7GJYFjWn \\
+
+\subsubsection{Practice 3}
+
+%test
+\begin{figure}
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp3times)
+@
+\caption{Free Practice 3 - Session Utilisation}
+\end{center}
+\end{figure}
+
+2011-10-29 01:35:26 \emph{@MyTeamLotus} It's hazy, it's crazy and it's a bit too early to be tweeting (curfew breaks at 8) but anyway... Namaste from Saturday at the Indian GP!\\
+2011-10-29 03:15:01 \emph{@ToroRossoSpy} I'm at The Buddh International Circuit (Jaypee Sports City, Greater Noida, at Yamuna Express Hgwy, Greater Noida) http://t.co/oBkM24G2\\
+2011-10-29 03:26:59 \emph{@MarussiaVirgin} Good morning Delhi and our followers everywhere. Final pitstop practice at a very hazy Buddh Circuit http://t.co/2X4p3mTR\\
+2011-10-29 03:33:19 \emph{@redbullracing} I'm at Buddh International Circuit / Buddh   (Buddh International circuit, Sector 25, Dankaur)\\
+2011-10-29 04:52:51 \emph{@HRTF1Team} HRT supports "Paint it Orange" campaign of Richard Burns Foundation, buy your t-shirt at http://t.co/RnhLxibJ\\
+2011-10-29 04:53:30 \emph{@HRTF1Team} HRT apoya la campaa "Paint it Orange" de la Fundacin Richard Burns, compra tu camiseta en http://t.co/RnhLxibJ\\
+2011-10-29 04:57:22 \emph{@HRTF1Team} Una banda de msicos y bailarines indios anima la maana en el pit lane del circuito. \#F1 http://t.co/kOmszQHY\\
+2011-10-29 05:00:24 \emph{@HRTF1Team} A band of Indian musicians and dancers, brightens the morning up on the pit lane. Nice \#F1 http://t.co/75LDvLrJ\\
+2011-10-29 05:14:48 \emph{@MyTeamLotus} !5 minutes until FP3. Both drivers have warmed up and are ready to go in what will be a very busy session on a fast evolving track\\
+2011-10-29 05:24:13 \emph{@InsideFerrari} Good morning from the Scuderia Ferrari garage at the Buddh International Circuit.\\
+2011-10-29 05:24:39 \emph{@InsideFerrari} Everything is ready for FP3, which will start in five minutes.\\
+2011-10-29 05:24:40 \emph{@redbullf1spy} Sorry if we're boring you sir. FP3's about to start \& you're sleeping in the Paddock Club Car Park? http://t.co/nESxsYKD\\
+2011-10-29 05:24:44 \emph{@MyTeamLotus} 33 on track now and it's only going to get hotter. The softs were holding up very well yesterday - will the same be true as grip increases?\\
+2011-10-29 05:25:38 \emph{@HRTF1Team} Todo listo en el coche para que empiece la FP3. Neumticos y piloto tambin. \#F1 http://t.co/9z3zSecp\\
+2011-10-29 05:25:56 \emph{@OfficialLRGP} Getting ready for FP3 for @vitalypetrov10 http://t.co/RRCD8SKH\\
+2011-10-29 05:26:33 \emph{@OfficialLRGP} In the car nice and early for @BSenna http://t.co/FCkZtRmb\\
+2011-10-29 05:27:07 \emph{@HRTF1Team} Everything ready on the car for the start of FP3. Tyres and drivers as too \#F1 http://t.co/M2f4Ox8I\\
+2011-10-29 05:28:16 \emph{@MyTeamLotus} Instructions from Juan for Heikki: "Usual installation lap first, rolling bite point finder and oil level check at the end of the lap"\\
+2011-10-29 05:28:42 \emph{@InsideFerrari} One minute to the green light\\
+2011-10-29 05:29:27 \emph{@HRTF1Team} Ren (1r mecnico) ajusta los cinturones a Narain | Ren (1st mechanic) adjusts Narain's seat belts http://t.co/2II4PUNb\\
+2011-10-29 05:29:54 \emph{@InsideFerrari} Main target of FP3 is usually the preparation of the Q session but maybe today someone will run on high fuel to do some work for the race.\\
+2011-10-29 05:30:29 \emph{@OfficialSF1Team} FP3 stared. Both car on installation lap.\\
+2011-10-29 05:31:01 \emph{@InsideFerrari} Today is a special day for one of our guys, Modesto Menabue, who celebrates his 50th birthday: more than th (cont) http://t.co/LHEof2ch\\
+2011-10-29 05:31:30 \emph{@OfficialLRGP} Firing up and heading out, both cars on new hards\\
+2011-10-29 05:31:40 \emph{@MyTeamLotus} "Let's fire up and go" - both cars now out on track for installation laps - radio checks loud and clear around the circuit\\
+2011-10-29 05:31:48 \emph{@InsideFerrari} Green light is on. Felipe and Fernando are ready to go.\\
+2011-10-29 05:32:04 \emph{@MarussiaVirgin} Track 36 degs and air 28 as both cars pull away for the start of FP3. Very sunny and haze starting to lift a little\\
+2011-10-29 05:32:41 \emph{@OfficialMGP} P3 is underway here in Delhi with both our cars heading out right at the start\\
+2011-10-29 05:33:34 \emph{@InsideFerrari} Some traffic in pit lane, between cars leaving the garage and coming in\\
+2011-10-29 05:33:58 \emph{@HRTF1Team} Empieza la FP3!! | FP3 starts!!! \#F1 http://t.co/wA61Hg5d\\
+2011-10-29 05:34:29 \emph{@MarussiaVirgin} Install lap for Jerome and Timo then straight back in. Track dirtier than expected and less grip\\
+2011-10-29 05:34:59 \emph{@OfficialMGP} Install laps completed and it's back into the garage\\
+2011-10-29 05:35:26 \emph{@OfficialLRGP} Back in for @vitalypetrov10 his car lightly covered in dust after a lap. http://t.co/maFTj6ts\\
+2011-10-29 05:35:28 \emph{@MarussiaVirgin} Morning \#MVRAmigos. Up and at 'em as usual\\
+2011-10-29 05:36:12 \emph{@HRTF1Team} Vueltas de instalacin completada. Todo ok | installation laps completes. All ok\\
+2011-10-29 05:36:12 \emph{@OfficialLRGP} Time for some Mr Sheen and a checkover for @BSenna and his R31 http://t.co/NEkA8Jp0\\
+2011-10-29 05:37:43 \emph{@OfficialLRGP} Our very own show and shine http://t.co/S3QsbrVX\\
+2011-10-29 05:38:34 \emph{@ToroRossoSpy} FP3 appena cominciata, giro d\&\#39;installazione effettuato...ora i controlli di routine e poi...si parte! Temp. 28 gradi piacevolissimi\\
+2011-10-29 05:39:17 \emph{@InsideFerrari} Now it is time to wait for some volunteer who wish to clean the track...\\
+2011-10-29 05:41:20 \emph{@InsideFerrari} The first one is Michael Schumacher!\\
+2011-10-29 05:41:22 \emph{@MyTeamLotus} Jarno in car in FP3 - he's making adjustments to the brake balance for next run http://t.co/IGPC0Ifz\\
+2011-10-29 05:41:28 \emph{@OfficialMGP} Michael is the first car to head out again after the install laps, he's on option tyres\\
+2011-10-29 05:42:35 \emph{@OfficialSF1Team} A lot of dust makes the track rather slippery. Checo now on hard tyres for four timed laps. http://t.co/fmfKne5w\\
+2011-10-29 05:42:53 \emph{@HRTF1Team} Maana muy soleada y suben las temperaturas. Ambiente 28*C, pista 36*C | very sunny morning and temperatures rise. Air 28*C, track 36*C\\
+2011-10-29 05:43:06 \emph{@OfficialLRGP} Bruno runs with a similar cooling setup http://t.co/OkkvLxRx\\
+2011-10-29 05:43:51 \emph{@OfficialLRGP} Talking of cooling, both cars have the older less 'tight' bodywork here, as it cools the car better.\\
+2011-10-29 05:45:21 \emph{@clubforce} FP3 begins on a beautiful day in Delhi. Here is a quick spy shot from the garage. http://t.co/EBN10I68\\
+2011-10-29 05:45:40 \emph{@HRTF1Team} Narain regresa a la pista con neumticos duros | Narain goes back out on hard tyres \#F1\\
+2011-10-29 05:45:50 \emph{@TheFifthDriver} Take a look at the awesome Indian-themed HUGO BOSS \#dmftf overalls for this race! The best yet? http://t.co/ILJU4B2a\\
+2011-10-29 05:46:39 \emph{@MyTeamLotus} Heikki, back in the car for FP3 run 2 http://t.co/xsrXRTHN\\
+2011-10-29 05:49:24 \emph{@OfficialLRGP} He's gone! @vitalypetrov10 has a new set of hards http://t.co/K3l4SrcJ\\
+2011-10-29 05:49:52 \emph{@MyTeamLotus} Hard tyres for Heikki and Jarno for run 2\\
+2011-10-29 05:50:25 \emph{@OfficialLRGP} Both our cars are running a bit more front wing today to counter understeer, or push for anyone in the USofA\\
+2011-10-29 05:50:57 \emph{@HRTF1Team} Y tambin Daniel sale con duros para esta primera tanda | Also Daniel leaves with hards for this first stint\\
+2011-10-29 05:51:38 \emph{@WilliamsF1Team} The team are back out on track for final prep work ahead of qualifying. Difficult to tell where we are due to continual track evolution\\
+2011-10-29 05:53:36 \emph{@WilliamsF1Team} We have new pods online 2day - set up and engineering - so if you want to get behind the scenes in India login to http://t.co/jqttwmY0\\
+2011-10-29 05:53:47 \emph{@InsideFerrari} Our drivers are still seating outside their cockpit, as their McLaren's colleagues.\\
+2011-10-29 05:54:30 \emph{@InsideFerrari} But now it is time to run....\\
+2011-10-29 05:55:48 \emph{@clubforce} Paul and Adrian are currently running the option tyres, which is the hard compound. Longish runs underway.\\
+2011-10-29 05:56:28 \emph{@OfficialLRGP} Making noise for @tedkravitz http://t.co/k76Z3mYz\\
+2011-10-29 05:56:57 \emph{@OfficialMGP} One in, one out... Michael's off again but this time on the primes\\
+2011-10-29 05:57:19 \emph{@HRTF1Team} Narain entra para ajustes aero y un nuevo juego de neumticos duros | Narain in for a tyre and aero change. New set of hard tyres for him\\
+2011-10-29 05:58:03 \emph{@InsideFerrari} And Fernando just left the garage for his first run\\
+2011-10-29 05:59:01 \emph{@InsideFerrari} Felipe just did the same. Both on Hards.\\
+2011-10-29 05:59:21 \emph{@MarussiaVirgin} Thoughts from the number 25 cockpit of Jerome: the track is very different from yesterday. Car feels very oversteer-y\\
+2011-10-29 06:00:18 \emph{@HRTF1Team} Vuelta rpida para Daniel (L8) con duros 33.246 | fast lap for Daniel (L8) on hards 33.246\\
+2011-10-29 06:02:03 \emph{@OfficialMGP} Nico also fits the primes and heads out...\\
+2011-10-29 06:03:11 \emph{@OfficialLRGP} Both cars head out on new softs, @vitalypetrov10 first, @BSenna next\\
+2011-10-29 06:04:55 \emph{@MyTeamLotus} 1.31.320 for Heikki on lap 11, 1.31.540 for Jarno on lap 9 as both cars continue on the hard tyres on run 1\\
+2011-10-29 06:04:56 \emph{@HRTF1Team} Varios coches cambian a neumticos blandos y se nota la diferencia | Some cars switched to soft tyres and the difference is remarkable\\
+2011-10-29 06:07:05 \emph{@OfficialLRGP} Bruno P5, Vitaly P10\\
+2011-10-29 06:08:03 \emph{@HRTF1Team} Lucha de tiempos con nuestros rivales. Por ahora ambos HRT por delante | Battling with our rivals for the times. Both HRT ahead for now\\
+2011-10-29 06:08:29 \emph{@OfficialMGP} Michael is back out for a second run on the primes which are the soft tyre, just as Nico returns in P2\\
+2011-10-29 06:09:38 \emph{@OfficialLRGP} Aside from some more front wing, we haven't changed much to the set-up - if it ain't broke, don't fix it\\
+2011-10-29 06:10:21 \emph{@MyTeamLotus} Heikki's reporting that grip levels on the hard tyres still not great but the balance is good\\
+2011-10-29 06:10:25 \emph{@OfficialLRGP} Box, Vitaly box\\
+2011-10-29 06:11:45 \emph{@HRTF1Team} Daniel back in the garage satisfied with the car's balance. Important improvement with respect yesterday.\\
+2011-10-29 06:12:27 \emph{@OfficialLRGP} P4 for Bruno, come in now\\
+2011-10-29 06:12:30 \emph{@InsideFerrari} Run completed by Fernando, who is currently 7th in 1.27.552\\
+2011-10-29 06:13:05 \emph{@OfficialMGP} Michael improves to P4 1.27.217\\
+2011-10-29 06:13:53 \emph{@OfficialLRGP} Bruno back in, looking good so far this session http://t.co/0zK8a1zF\\
+2011-10-29 06:14:12 \emph{@InsideFerrari} Also Felipe is coming in: he is 12th in 1.28.057\\
+2011-10-29 06:14:35 \emph{@HRTF1Team} Narain tambin regresa satisfecho y listo para la tercera salida | Narain returns satisfied as well and ready for the third run\\
+2011-10-29 06:14:58 \emph{@WilliamsF1Team} Rubens comes in for a practice stop in the box after 13 laps out on track in P3 so far http://t.co/15wlWoYV\\
+2011-10-29 06:15:54 \emph{@clubforce} Adrian heads out on soft tyres with 15 mins of FP3 remaining.\\
+2011-10-29 06:17:47 \emph{@ToroRossoSpy} A 15 min. dalla fine: Seb 6, Jaime 8. Attenzione...tori in pista??!!\\
+2011-10-29 06:18:29 \emph{@MyTeamLotus} Jarno \& Heikki back in for performance run preparations. Adjustments made to front wing flap angle on both cars \& Heikki's brake balance\\
+2011-10-29 06:18:56 \emph{@InsideFerrari} With around ten minutes to the end it is time for the run on Softs.\\
+2011-10-29 06:19:09 \emph{@InsideFerrari} Fernando is leaving the garage now\\
+2011-10-29 06:20:16 \emph{@HRTF1Team} Ambos coches cambian a neumticos blandos para los ltimos 10 minutos | Both cars switch to soft tyres for the remaining 10 minutes \#F1\\
+2011-10-29 06:20:21 \emph{@OfficialMGP} 10mins remaining and both drivers are out on the prime tyres\\
+2011-10-29 06:20:47 \emph{@InsideFerrari} Felipe just di dthe same\\
+2011-10-29 06:21:39 \emph{@MyTeamLotus} Ten minutes to go and both cars are out on the soft tyres for the last runs of FP3\\
+2011-10-29 06:21:55 \emph{@OfficialLRGP} Back out for @BSenna on used softs\\
+2011-10-29 06:22:38 \emph{@MarussiaVirgin} 8 mins 30 remaining and Timo heads out on the Soft tyre. Jerome to follow\\
+2011-10-29 06:23:13 \emph{@OfficialLRGP} With the cars out, garage-proud Dan takes advantage of the opportunity to sweep up http://t.co/UUzRN787\\
+2011-10-29 06:23:56 \emph{@HRTF1Team} KAR mejora su tiempo en la primera vuelta y sube a P19 (31.099) | KAR improves his lap time on the first lap and is P19 (31.099)\\
+2011-10-29 06:26:26 \emph{@OfficialLRGP} Here's @davenportemily F1 photographer extraordinaire, and she's about to take pics of the R31 http://t.co/HBGPhtND\\
+2011-10-29 06:28:35 \emph{@HRTF1Team} RIC es llamado a boxes. Parace que hay un problema. Mejor chequear | RIC called in. Seems there could be a problem. Better check out\\
+2011-10-29 06:30:29 \emph{@InsideFerrari} Run finished with a practice start for each driver\\
+2011-10-29 06:31:25 \emph{@InsideFerrari} 1.25.784 for Fernando, 1.26.058 for Felipe, 5th and 6th as usual in this last part of the season. And as usual Vettel quickest in 1.24.824\\
+2011-10-29 06:31:32 \emph{@OfficialMGP} End of P3 and both drivers will complete a practice pit stop on their return\\
+2011-10-29 06:33:14 \emph{@OfficialMGP} Nico P8 1.26.873 22 laps, Michael P11 1.27.217 21 laps\\
+2011-10-29 06:33:25 \emph{@redbullracing} \#F1 \#redbullacing FP3 results from the \#IndianGP: Seb takes P1 with 1:24.824 after 18 laps \& Mark takes P3 with 1:25.203 after 19 laps.\\
+2011-10-29 06:33:46 \emph{@OfficialLRGP} The return of Bruno http://t.co/FVMsBjmj\\
+2011-10-29 06:34:39 \emph{@TheFifthDriver} So, Jenson's best is a 1:25.191s and Lewis's a 1:25.288s. Second and fourth.\\
+2011-10-29 06:34:51 \emph{@WilliamsF1Team} P17 for Pastor \& P18 for Rubens in last practice session b4 quali. http://t.co/DbGk8cBA\\
+2011-10-29 06:35:20 \emph{@clubforce} Another strong session for Sahara Force India. @pauldirestaf1 is P7 and Adrian Sutil P9. Getting set for qualy in a couple of hours.\\
+2011-10-29 06:35:28 \emph{@OfficialLRGP} Vitaly's final pullaway was so aggressive it dislodged dead insects and dust from the roof. The perils of trackside tweeting\\
+2011-10-29 06:35:57 \emph{@ToroRossoSpy} Risultati finali FP3: Seb 1:27.146 pos. 10, Jaime 1:27.387 pos. 15. Aspettando la qualifica, tutti davanti alla TV alle 10.30!!!\\
+2011-10-29 06:36:12 \emph{@TheFifthDriver} The top 10: 1) VET, 2) Jenson, 3) WEB, 4) Lewis, 5) ALO, 6) MAS, 7) DIR, 8) ROS, 9) SUT, 10) BUE.\\
+2011-10-29 06:38:55 \emph{@HRTF1Team} Tiempos y posiciones de la FP3 | FP3 times and positions http://t.co/Q2dHfd6G\\
+2011-10-29 06:39:58 \emph{@MyTeamLotus} 19th for Jarno and 20th for Heikki in FP3. Both cars are now being prepared for quali while the heat keeps rising on track\\
+2011-10-29 06:40:50 \emph{@WilliamsF1Team} The boys making final setup changes to the cars pre-qualifying http://t.co/ftk6nI9V\\
+2011-10-29 06:44:30 \emph{@MarussiaVirgin} Timo 21st \& Jerome 23rd at the end of that session. Join us at 1300 (Delhi) and 0830 (UK) for \#riseNshine\\
+2011-10-29 06:54:39 \emph{@HRTF1Team} Seems that the problem with Daniel's car was a gearbox one. Locating the source now and hands on to fix it before qualifying\\
+2011-10-29 07:01:30 \emph{@HRTF1Team} Thanks for following the session live on twitter (@HRTF1Team). We will be back at 14.00 \#F1\\
+2011-10-29 07:05:29 \emph{@InsideFerrari} IND - Fifth and sixth in final free practice http://t.co/Nhog7Apj\\
+2011-10-29 07:08:53 \emph{@MarussiaVirgin} After watching FP3 from the pitwall, Sakon \& Robert are now meeting @MarussiaVirgin guests in Paddock Club \#MVRpartners http://t.co/PzqP35D6\\
+2011-10-29 07:20:23 \emph{@OfficialLRGP} Romain confirmed for Friday drives at final two race weekends: http://t.co/n5yAGyzf\\
+
+\end{document}

@@ -1,0 +1,281 @@
+\documentclass[a4paper]{article}
+\SweaveOpts{echo=FALSE}
+\usepackage{a4wide}
+\usepackage{color}
+
+<< echo = F >>=
+#This key identifies the Google spreadsheet containing the scraped timing data
+sskey='0AmbQbL4Lrd61dHlibmxYa2JyT05Na2pGVUxLWVJYRWc'
+
+library("ggplot2")
+require(RCurl)
+
+gsqAPI = function(key,query,gid){ return( read.csv( paste( sep="", 'http://spreadsheets.google.com/tq?', 'tqx=out:csv', '&tq=', curlEscape(query), '&key=', key, '&gid=', curlEscape(gid) ) ) ) }
+
+driverLabels=c('VET','WEB','HAM','BUT','ALO','MAS','SCH','ROS','SEN','PET','BAR','MAL','SUT','RES','KOB','PER','BUE','ALG','KOV','TRU','RIC','LIU','GLO','AMB')
+
+# Grab data from the Race Statistics sheet
+fp1times=gsqAPI(sskey,'select *',gid='0')
+fp2times=gsqAPI(sskey,'select *',gid='2')
+fp3times=gsqAPI(sskey,'select *',gid='4')
+fpcombinedclassification=gsqAPI(sskey,'select *',gid='7')
+fpcombinedclassification$driverName=factor(fpcombinedclassification$driverNum,labels = driverLabels)
+
+fpSessionUtilisation=function(sessiondata){
+  p=ggplot(sessiondata) + geom_point(aes(x=Elapsed,y=reorder(Name, DriverNum),pch=1)) + xlab('Elapsed time in session (s)') +ylab(NULL)
+  print(p)
+}
+
+fpSessionTeamggBox=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+	# x-axis: session, stint, driver number
+	# y-axis: laptime distribution
+
+	p=ggplot( subset( df, Time < threshold ) ) +
+	  geom_boxplot( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	  scale_y_continuous( "Laptime (s)") +
+	  opts( axis.text.x=theme_text( angle=45 ), legend.position="none" )  +xlab(NULL)
+  print(p)
+}
+
+fpSessionTeamggPoint=function( df, threshold=250 ) {
+  # show distribution of laptimes across stintby  session by car
+  # x-axis: session, stint, driver number
+	# y-axis: laptime distribution
+
+	p=ggplot( subset( df, Time < threshold ) ) +
+	  geom_point( aes( x=interaction( Stint, reorder(Name, DriverNum), sep=":" ), y=Time ) ) +
+	  scale_y_continuous( "Laptime (s)") +
+	  opts( axis.text.x=theme_text( angle=45 ), legend.position="none") +xlab(NULL)
+  print(p)
+}
+
+
+fpxRank=function(fpcombinedstats,cat='time',ytxt='Fastest lap time (s)'){
+  fp1stats=subset(fpcombinedstats,session=='fp1' & time>0 & speed>0)
+  fp2stats=subset(fpcombinedstats,session=='fp2' & time>0 & speed>0)
+  fp3stats=subset(fpcombinedstats,session=='fp3' & time>0 & speed>0)
+  p=ggplot() + geom_point(data=fp1stats,aes_string(x='driverName',y=cat)) + geom_point(data=fp2stats,aes_string(x='driverName',y=cat)) + geom_point(data=fp3stats,aes_string(x='driverName',y=cat)) + opts(axis.text.x=theme_text(angle=90)) + xlab(NULL) + ylab(ytxt)
+  print(p)
+}
+
+fpxPosRank=function(sessionstats){
+  p=ggplot() + geom_point(data=fpcombinedclassification,aes(x=driverName,y=pos,groups=session,pch=session,size=session)) + opts(axis.text.x=theme_text(angle=90))+xlab(NULL) + ylab('Classification')
+  print(p)
+}
+@
+
+\title{F1 2011 Korea (Practice)\thanks{Source data used to generate this report was obtained from the Timing Information press releases published via the F1/FIA Media Centre }\\A Statistical Graphics Review}
+
+\author{
+Tony Hirst\thanks{@psychemedia, http://f1datajunkie.blogspot.com}\\F1DataJunkie Blog\\License: CC-BY
+}
+
+
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+
+\newpage
+\section{Free Practice 1}
+
+
+
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp1times)
+@
+\caption{Free Practice 1: Session Utilisation Chart}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpxRank(fpcombinedclassification,'time','Fastest lap time (s)')
+@
+\caption{Free Practice 1-3: Lap time comparison}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpxRank(fpcombinedclassification,'speed','Fastest speed (mph)')
+@
+\caption{Free Practice 1-3: Fastest speed comparison}
+\end{center}
+\end{figure}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpxPosRank(fpcombinedclassification)
+@
+\caption{Free Practice 1-3: Classification comparison}
+\end{center}
+\end{figure}
+
+
+\section{Free Practice 2}
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp2times)
+@
+\caption{Free Practice 2: Session Utilisation Chart}
+\end{center}
+\end{figure}
+
+
+
+\newpage
+\section{Free Practice 3}
+
+
+\begin{figure}[htbp]
+\begin{center}
+<<fig = T, echo = F>>=
+fpSessionUtilisation(fp3times)
+@
+\caption{Free Practice 3: Session Utilisation Chart}
+\end{center}
+\end{figure}
+
+
+
+\newpage
+\section{Team Analyses}
+The \emph{Team Analysis} pages provide a set of charts summarising the activity of each team during each practice session.
+
+Need a table for each team shwoing fastest lap per stint.
+
+\newpage
+\subsection{Red Bull Racing (RBR)}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp1times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP1 RBR Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1rbrDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp1times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP1 RBR Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp2times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP2 RBR Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2rbrDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp2times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP2 RBR Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp3times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP3 RBR Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3rbrDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp3times, DriverNum==1 | DriverNum==2 ))
+@
+\caption{FP3 RBR Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+
+\newpage
+\subsection{McLaren (MCL)}
+
+\begin{figure}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp1times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP1 MCL Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp1mclDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp1times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP1 MCL Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp2times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP2 MCL Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp2mclDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp2times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP2 MCL Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclTimes,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggPoint(subset( fp3times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP3 MCL Laptimes}
+\label{fig:figure1}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.5\linewidth}
+\centering
+<<fp3mclDistro,echo=F,fig=T,width=5,height=5>>=
+fpSessionTeamggBox(subset( fp3times, DriverNum==3 | DriverNum==4 ))
+@
+\caption{FP3 MCL Laptime distribution}
+\label{fig:figure2}
+\end{minipage}
+\end{figure}
+
+
+
+\end{document}

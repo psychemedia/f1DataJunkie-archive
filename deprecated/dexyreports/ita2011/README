@@ -1,0 +1,5 @@
+Tinkerings with dexy.it as a way of capturing, documenting and making reusable my f1datajunkie tinkerings.
+
+I'm not sure if this is the best way of getting generated files into the output directory, but it works...
+
+> dexy ; mkdir output/img/ ; cp artifacts/*.png output/img/

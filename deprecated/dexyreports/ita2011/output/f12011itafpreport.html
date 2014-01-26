@@ -1,0 +1,76 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="pastie.css" />
+  </head>
+  <body>
+	<h1>F1 2011 Italy/Monza - Free Practice Report</h2>
+	
+	<h2>Data Import</h2>
+	<p>Data for this race is available from this Google spreadsheet: <a href="https://docs.google.com/spreadsheet/ccc?key=0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE&hl=en_GB">F1 2011 Italy Timing Data</a></p>
+	<ul><li>FP1 Times: <em>gid=0</em></li>
+	<li>FP1 Classification: <em>gid=1</em></li></ul>
+	<p>R Code:</p>
+	    <div class="highlight"><pre><a name="l-1"></a>library<span class="p">(</span>RCurl<span class="p">)</span>
+<a name="l-2"></a>gsqAPI <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>key<span class="p">,</span>query<span class="p">,</span>gid<span class="o">=</span><span class="m">0</span><span class="p">){</span>
+<a name="l-3"></a>	<span class="kr">return</span><span class="p">(</span> read.csv<span class="p">(</span>
+<a name="l-4"></a>		paste<span class="p">(</span> sep<span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span>
+<a name="l-5"></a>			<span class="s">&#39;http://spreadsheets.google.com/tq?&#39;</span><span class="p">,</span> <span class="s">&#39;tqx=out:csv&#39;</span><span class="p">,</span>
+<a name="l-6"></a>			<span class="s">&#39;&amp;tq=&#39;</span><span class="p">,</span> curlEscape<span class="p">(</span>query<span class="p">),</span> <span class="s">&#39;&amp;key=&#39;</span><span class="p">,</span> key<span class="p">,</span> <span class="s">&#39;&amp;gid=&#39;</span><span class="p">,</span> curlEscape<span class="p">(</span>gid<span class="p">)</span> 
+<a name="l-7"></a>		<span class="p">)</span> 
+<a name="l-8"></a>	<span class="p">)</span> <span class="p">)</span>
+<a name="l-9"></a><span class="p">}</span>
+<a name="l-10"></a>
+<a name="l-11"></a>itafp1<span class="o">=</span>gsqAPI<span class="p">(</span><span class="s">&#39;0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE&#39;</span><span class="p">,</span><span class="s">&#39;select A,B,C,D,E,G&#39;</span><span class="p">,</span>gid<span class="o">=</span><span class="s">&#39;0&#39;</span><span class="p">)</span>
+</pre></div>
+
+	<hr/>
+	<h2>Free Practice 1</h2>
+    <div><img src="img/ita-2011-fp1-times.png" alt="FP1 Practice times" /></div>
+    
+    <p>R Code:</p>
+    
+    <div class="highlight"><pre><a name="l-1"></a>png<span class="p">(</span>file<span class="o">=</span><span class="s">&quot;ita-2011-fp1-times.png&quot;</span><span class="p">)</span>
+<a name="l-2"></a>plot<span class="p">(</span>	Time~DriverNum<span class="p">,</span>
+<a name="l-3"></a>		data<span class="o">=</span>subset<span class="p">(</span>itafp1<span class="p">,(</span> Time <span class="o">&lt;</span> <span class="m">110</span><span class="p">)),</span>
+<a name="l-4"></a>		main<span class="o">=</span><span class="s">&#39;F1 2011 Free Practice 1 Times&#39;</span>
+<a name="l-5"></a><span class="p">)</span>
+<a name="l-6"></a>dev.off<span class="p">()</span>
+</pre></div>
+
+    
+    <hr/>
+	<h2>Free Practice 2</h2>
+	<p>I've tweaked the previous approach to create a function to generate the laptimes chart:</p>
+	<div class="highlight"><pre><a name="l-1"></a>fpTimesChart<span class="o">=</span><span class="kr">function</span><span class="p">(</span>df<span class="p">,</span>filename<span class="p">,</span>threshold<span class="p">,</span>title<span class="p">){</span>
+<a name="l-2"></a>	png<span class="p">(</span>file<span class="o">=</span>filename<span class="p">)</span>
+<a name="l-3"></a>	plot<span class="p">(</span>	Time~DriverNum<span class="p">,</span>
+<a name="l-4"></a>		data<span class="o">=</span>subset<span class="p">(</span>df<span class="p">,(</span> Time <span class="o">&lt;</span> threshold<span class="p">)),</span>
+<a name="l-5"></a>		main<span class="o">=</span>title
+<a name="l-6"></a>	<span class="p">)</span>
+<a name="l-7"></a>	dev.off<span class="p">()</span>
+<a name="l-8"></a><span class="p">}</span>
+</pre></div>
+
+	
+	<p>We can now grab the data and create the chart as follows:</p>
+	<div class="highlight"><pre><a name="l-1"></a>fpTimesChart<span class="o">=</span><span class="kr">function</span><span class="p">(</span>df<span class="p">,</span>filename<span class="p">,</span>threshold<span class="p">,</span>title<span class="p">){</span>
+<a name="l-2"></a>	png<span class="p">(</span>file<span class="o">=</span>filename<span class="p">)</span>
+<a name="l-3"></a>	plot<span class="p">(</span>	Time~DriverNum<span class="p">,</span>
+<a name="l-4"></a>		data<span class="o">=</span>subset<span class="p">(</span>df<span class="p">,(</span> Time <span class="o">&lt;</span> threshold<span class="p">)),</span>
+<a name="l-5"></a>		main<span class="o">=</span>title
+<a name="l-6"></a>	<span class="p">)</span>
+<a name="l-7"></a>	dev.off<span class="p">()</span>
+<a name="l-8"></a><span class="p">}</span>
+</pre></div>
+
+	<div class="highlight"><pre><a name="l-1"></a>itafp2<span class="o">=</span>gsqAPI<span class="p">(</span><span class="s">&#39;0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE&#39;</span><span class="p">,</span><span class="s">&#39;select A,B,C,D,E,G&#39;</span><span class="p">,</span>gid<span class="o">=</span><span class="s">&#39;2&#39;</span><span class="p">)</span>
+</pre></div>
+
+	<div class="highlight"><pre><a name="l-1"></a>fpTimesChart<span class="p">(</span>itafp2<span class="p">,</span><span class="s">&quot;ita-2011-fp2-times.png&quot;</span><span class="p">,</span><span class="m">110</span><span class="p">,</span><span class="s">&#39;F1 2011 Free Practice 2 Times&#39;</span><span class="p">)</span>
+</pre></div>
+
+	<p>Here's the chart...</p>
+    <div><img src="img/ita-2011-fp2-times.png" alt="FP2 Practice times" /></div>
+        
+  </body>
+</html>

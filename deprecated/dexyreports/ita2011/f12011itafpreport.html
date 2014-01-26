@@ -1,0 +1,58 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="pastie.css" />
+  </head>
+  <body>
+	<h1>F1 2011 Italy/Monza - Free Practice Report</h2>
+	
+	TEST
+	
+	{{ d['fp1.R|fn|idio|rint|pyg']['FP1-boxplot'] }}
+	
+	<h2>Data Import</h2>
+	<p>Data for this race is available from this Google spreadsheet: <a href="https://docs.google.com/spreadsheet/ccc?key=0AmbQbL4Lrd61dHVNemlLLWNaZ1NzX3JhaS1DYURTZVE&hl=en_GB">F1 2011 Italy Timing Data</a></p>
+	<ul><li>FP1 Times: <em>gid=0</em></li>
+	<li>FP1 Classification: <em>gid=1</em></li></ul>
+	<p>R Code:</p>
+	    {{ d['fp1.R|idio']['data-import'] }}
+	<hr/>
+	<h2>Free Practice 1</h2>
+    <div><img src="img/ita-2011-fp1-times.png" alt="FP1 Practice times" /> <img src="img/ita-2011-fp1-boxplot.png" alt="FP1 Practice times distribution" /></div>
+    
+    <p>R Code:</p>
+    
+    {{ d['fp1.R|idio']['FP1-times'] }}
+    
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp1-utilisation.png" alt="FP1 Utilisation" /></div>
+    <hr/>
+	<h2>Free Practice 2</h2>
+	<p>I've tweaked the previous approach to create a function to generate the laptimes chart:</p>
+	{{ d['fp1.R|idio']['FPtimes-chart'] }}
+	
+	<p>We can now grab the data and create the chart as follows:</p>
+	{{ d['fp1.R|idio']['FP2-data'] }}
+	{{ d['fp1.R|idio']['FP2-times'] }}
+	<p>Here's the chart...</p>
+    <div><img src="img/ita-2011-fp2-times.png" alt="FP2 Practice times" /> <img src="img/ita-2011-fp2-boxplot.png" alt="FP2 Practice times distribution" /></div>
+    
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp2-utilisation.png" alt="FP2 Utilisation" /></div>
+    
+    <h2>Free Practice 3</h2>
+    <p>Grab the data and generate the chart:</p>
+	{{ d['fp1.R|idio']['FP3-data'] }}
+	{{ d['fp1.R|idio']['FP3-times'] }}
+	<p>Here's the chart...</p>
+    <div><img src="img/ita-2011-fp3-times.png" alt="FP2 Practice times" /> <img src="img/ita-2011-fp3-boxplot.png" alt="FP3 Practice times distribution" /></div>
+    
+    <div>Utilisation:</div>
+    <div><img src="img/ita-2011-fp3-utilisation.png" alt="FP3 Utilisation" /></div>
+    
+    <h2>Red Bull Racing: Free Practice Analysis</h2>
+    <div>Times by stint by session</div>
+    <div><img src="img/ita-2011-fp-rbr-ggpoint.png" height='480' width='480' alt="RBR FP Scatter" /> <img src="img/ita-2011-fp-rbr-ggbox.png" alt="RBR FP Box" height='480' width='480' /></div>
+    
+    
+  </body>
+</html>
